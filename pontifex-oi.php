@@ -26,7 +26,7 @@ if (!defined('PONTIFEX_OI_VERSION')) {
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-payment-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-mail-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/functions-select.php';
-require_once PONTIFEX_OI_PATH . 'includes/helpers/webhook-handler.php';
+require_once PONTIFEX_OI_PATH . 'includes/webhooks/webhook-handler.php';
 require_once PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/ajax-soap-fetch-handler.php';
 

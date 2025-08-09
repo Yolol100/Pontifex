@@ -73,6 +73,7 @@ class Frontend {
             ],
             $this->get_product_data_for_js(),
             ['extraMaterialCheckboxes' => $this->get_extra_material_checkboxes_for_js()]
+
         ));
 
         // AJAX-data voor main.js
@@ -88,28 +89,28 @@ class Frontend {
     public function render_planning_shortcode($atts = []) {
         $filters = array_merge([
             'exam_type' => '',
-            'language' => '',
-            'material' => '',
-            'daytype' => '',
-            'month' => '',
-            'province' => '',
-            'location' => '',
-            'timeslot' => '',
-            'page' => 1,
+            'language'  => '',
+            'material'  => '',
+            'daytype'   => '',
+            'month'     => '',
+            'province'  => '',
+            'location'  => '',
+            'timeslot'  => '',
+            'page'      => 1,
         ], array_intersect_key($_GET, array_flip([
             'exam_type', 'language', 'material', 'daytype', 'month', 'province', 'location', 'timeslot', 'page'
         ])));
 
         if (empty($filters['exam_type'])) $filters['exam_type'] = 'los-examen-vca-basis';
-        if (empty($filters['language'])) $filters['language'] = 'nl';
-        if (empty($filters['material'])) $filters['material'] = '1';
+        if (empty($filters['language']))  $filters['language']  = 'nl';
+        if (empty($filters['material']))  $filters['material']  = '1';
 
         $args['exam_types'] = [
             ['id' => '', 'name' => 'Toon alles'],
             ['id' => 'los-examen-vca-basis', 'name' => 'VCA Basis'],
-            ['id' => 'los-examen-vca-vol', 'name' => 'VCA Vol'],
-            ['id' => 'vca-basis-weekend', 'name' => 'VCA Basis Cursus Weekend'],
-            ['id' => 'vca-vol-weekend', 'name' => 'VCA Vol Cursus Weekend'],
+            ['id' => 'los-examen-vca-vol',   'name' => 'VCA Vol'],
+            ['id' => 'vca-basis-weekend',    'name' => 'VCA Basis Cursus Weekend'],
+            ['id' => 'vca-vol-weekend',      'name' => 'VCA Vol Cursus Weekend'],
         ];
         $args['languages'] = [
             ['id' => '', 'name' => 'Toon alles'],
@@ -128,22 +129,22 @@ class Frontend {
 
         $soap = new \PontifexOI\Api\SoapClient();
         $per_page = 10;
-        $all_planning = $soap->getPlanning($filters);
-        $total_results = count($all_planning);
-        $total_pages = (int) ceil($total_results / $per_page);
-        $offset = ($filters['page'] - 1) * $per_page;
-        $planning = array_slice($all_planning, $offset, $per_page);
+        $all_planning    = $soap->getPlanning($filters);
+        $total_results   = count($all_planning);
+        $total_pages     = (int) ceil($total_results / $per_page);
+        $offset          = ($filters['page'] - 1) * $per_page;
+        $planning        = array_slice($all_planning, $offset, $per_page);
 
         $args += [
-            'months' => $soap->getMonths($filters),
-            'provinces' => $soap->getProvinces($filters),
-            'locations' => $soap->getLocations($filters),
-            'timeslots' => $soap->getTimeslots($filters),
-            'planning' => $planning,
-            'filters' => $filters,
+            'months'       => $soap->getMonths($filters),
+            'provinces'    => $soap->getProvinces($filters),
+            'locations'    => $soap->getLocations($filters),
+            'timeslots'    => $soap->getTimeslots($filters),
+            'planning'     => $planning,
+            'filters'      => $filters,
             'current_page' => $filters['page'],
-            'total_pages' => $total_pages,
-            'per_page' => $per_page,
+            'total_pages'  => $total_pages,
+            'per_page'     => $per_page,
         ];
 
         ob_start();
@@ -157,14 +158,14 @@ class Frontend {
     public function render_registration_shortcode($atts = []) {
         $defaults = [
             'exam_type' => sanitize_text_field($_GET['exam_type'] ?? ''),
-            'language' => sanitize_text_field($_GET['language'] ?? ''),
-            'material' => sanitize_text_field($_GET['material'] ?? ''),
-            'date' => sanitize_text_field($_GET['date'] ?? ''),
-            'time' => sanitize_text_field($_GET['time'] ?? ''),
-            'location' => sanitize_text_field($_GET['location'] ?? ''),
-            'province' => sanitize_text_field($_GET['province'] ?? ''),
-            'spots' => sanitize_text_field($_GET['spots'] ?? ''),
-            'price' => sanitize_text_field($_GET['price'] ?? ''),
+            'language'  => sanitize_text_field($_GET['language'] ?? ''),
+            'material'  => sanitize_text_field($_GET['material'] ?? ''),
+            'date'      => sanitize_text_field($_GET['date'] ?? ''),
+            'time'      => sanitize_text_field($_GET['time'] ?? ''),
+            'location'  => sanitize_text_field($_GET['location'] ?? ''),
+            'province'  => sanitize_text_field($_GET['province'] ?? ''),
+            'spots'     => sanitize_text_field($_GET['spots'] ?? ''),
+            'price'     => sanitize_text_field($_GET['price'] ?? ''),
         ];
 
         ob_start();
@@ -176,21 +177,21 @@ class Frontend {
      * AJAX: haal planning op.
      */
     public function ajax_get_planning() {
-        $filters = $_POST['filters'] ?? [];
-        $page = max(1, (int) ($filters['page'] ?? 1));
+        $filters  = $_POST['filters'] ?? [];
+        $page     = max(1, (int) ($filters['page'] ?? 1));
         $per_page = max(1, (int) ($filters['per_page'] ?? 10));
 
-        $soap = new \PontifexOI\Api\SoapClient();
-        $all = $soap->getPlanning($filters);
-        $total = count($all);
+        $soap     = new \PontifexOI\Api\SoapClient();
+        $all      = $soap->getPlanning($filters);
+        $total    = count($all);
         $total_pg = max(1, (int) ceil($total / $per_page));
-        $offset = ($page - 1) * $per_page;
+        $offset   = ($page - 1) * $per_page;
         $planning = array_slice($all, $offset, $per_page);
 
         wp_send_json_success([
-            'planning' => $planning,
+            'planning'     => $planning,
             'current_page' => $page,
-            'total_pages' => $total_pg,
+            'total_pages'  => $total_pg,
         ]);
     }
 
@@ -198,19 +199,19 @@ class Frontend {
      * AJAX: filteropties ophalen.
      */
     public function ajax_get_filter_options() {
-        $filter = sanitize_text_field($_POST['filter'] ?? '');
+        $filter  = sanitize_text_field($_POST['filter'] ?? '');
         $filters = $_POST['filters'] ?? [];
 
-        $soap = new \PontifexOI\Api\SoapClient();
+        $soap    = new \PontifexOI\Api\SoapClient();
         $options = [];
 
         switch ($filter) {
             case 'location': $options = $soap->getLocations($filters); break;
             case 'language': $options = $soap->getLanguages($filters); break;
             case 'material': $options = $soap->getMaterials($filters); break;
-            case 'month': $options = $soap->getMonths($filters); break;
-            case 'province': $options = $soap->getProvinces($filters); break;
-            case 'timeslot': $options = $soap->getTimeslots($filters); break;
+            case 'month':    $options = $soap->getMonths($filters);    break;
+            case 'province': $options = $soap->getProvinces($filters);  break;
+            case 'timeslot': $options = $soap->getTimeslots($filters);  break;
         }
 
         wp_send_json_success(['options' => $options]);
@@ -220,9 +221,9 @@ class Frontend {
      * AJAX: prijs ophalen.
      */
     public function ajax_get_price() {
-        $exam_type = sanitize_text_field($_POST['exam_type'] ?? '');
-        $language = sanitize_text_field($_POST['language'] ?? 'nl');
-        $material = sanitize_text_field($_POST['material'] ?? '1');
+        $exam_type       = sanitize_text_field($_POST['exam_type'] ?? '');
+        $language        = sanitize_text_field($_POST['language'] ?? 'nl');
+        $material        = sanitize_text_field($_POST['material'] ?? '1');
         $candidate_count = absint($_POST['candidate_count'] ?? 1);
 
         if (empty($exam_type)) {
@@ -232,22 +233,22 @@ class Frontend {
 
         try {
             $order_details = [
-                'exam_type' => $exam_type,
-                'language' => $language,
-                'material' => $material,
+                'exam_type'       => $exam_type,
+                'language'        => $language,
+                'material'        => $material,
                 'candidate_count' => $candidate_count,
-                'extra_material' => isset($_POST['extra_material']) && is_array($_POST['extra_material'])
+                'extra_material'  => isset($_POST['extra_material']) && is_array($_POST['extra_material'])
                     ? array_map('sanitize_text_field', $_POST['extra_material'])
                     : [],
             ];
-            $price = PaymentHelpers::calculate_total_price($order_details);
+            $price     = PaymentHelpers::calculate_total_price($order_details);
             $price_str = is_numeric($price) && $price > 0
                 ? '€' . number_format((float)$price, 2, ',', '.')
                 : '';
 
             wp_send_json_success([
-                'price' => $price_str,
-                'raw_price' => $price,
+                'price'      => $price_str,
+                'raw_price'  => $price,
                 'debug_info' => $order_details,
             ]);
         } catch (\Exception $e) {
@@ -261,20 +262,18 @@ class Frontend {
     public function process_payment() {
         check_ajax_referer('pontifex_oi_nonce', 'nonce', false);
 
-        $order_data = $_POST['order'] ?? [];
+        $order_data           = $_POST['order'] ?? [];
         $amount_from_frontend = floatval($_POST['amount'] ?? 0);
 
         if (isset($order_data['extra_material']) && !is_array($order_data['extra_material'])) {
             $order_data['extra_material'] = [$order_data['extra_material']];
         }
-        $order_data['extra_material'] = array_map('sanitize_text_field', $order_data['extra_material'] ?? []);
-
+        $order_data['extra_material']   = array_map('sanitize_text_field', $order_data['extra_material'] ?? []);
         $order_data['candidate_fullname'] = array_map('sanitize_text_field', $order_data['candidate_fullname'] ?? []);
-        $order_data['candidate_infix'] = array_map('sanitize_text_field', $order_data['candidate_infix'] ?? []);
+        $order_data['candidate_infix']    = array_map('sanitize_text_field', $order_data['candidate_infix'] ?? []);
         $order_data['candidate_lastname'] = array_map('sanitize_text_field', $order_data['candidate_lastname'] ?? []);
-        $order_data['candidate_birthdate'] = array_map('sanitize_text_field', $order_data['candidate_birthdate'] ?? []);
-
-        $order_data['candidate_count'] = count($order_data['candidate_fullname']);
+        $order_data['candidate_birthdate']= array_map('sanitize_text_field', $order_data['candidate_birthdate'] ?? []);
+        $order_data['candidate_count']    = count($order_data['candidate_fullname']);
 
         $calculated_total_price = PaymentHelpers::calculate_total_price($order_data);
 
@@ -284,12 +283,12 @@ class Frontend {
         }
 
         global $EXAM_PRODUCTS;
-        $exam_label = $EXAM_PRODUCTS[$order_data['exam_type']]['label'] ?? 'Onbekend Examen';
+        $exam_label     = $EXAM_PRODUCTS[$order_data['exam_type']]['label'] ?? 'Onbekend Examen';
         $language_label = ($order_data['language'] === 'nl') ? 'Nederlands' : (($order_data['language'] === 'en') ? 'Engels' : 'Onbekende Taal');
 
         $candidate_names = [];
         foreach ($order_data['candidate_fullname'] as $key => $fullname) {
-            $infix = $order_data['candidate_infix'][$key] ?? '';
+            $infix    = $order_data['candidate_infix'][$key] ?? '';
             $lastname = $order_data['candidate_lastname'][$key] ?? '';
             $candidate_names[] = trim($fullname . ' ' . $infix . ' ' . $lastname);
         }
@@ -302,14 +301,10 @@ class Frontend {
             'op ' . ($order_data['date'] ?? 'onbekende datum'),
             'om ' . ($order_data['time'] ?? 'onbekende tijd'),
         ];
-
         if (!empty($candidate_list)) {
             $description_parts[] = 'voor: ' . $candidate_list;
         }
-
         $description = implode(' ', $description_parts);
-
-        $webhook_url = rest_url('pontifex-oi/v1/webhook');
 
         $order_email = $order_data['order_email'] ?? '';
 
@@ -351,15 +346,15 @@ class Frontend {
         $exam_products_simple = [];
         foreach ($EXAM_PRODUCTS as $key => $item) {
             $exam_products_simple[$key] = [
-                'label' => $item['label'],
+                'label'  => $item['label'],
                 'prices' => $item['prices'],
             ];
         }
 
         return [
-            'examProducts' => $exam_products_simple,
-            'materialProducts' => $MATERIAL_PRODUCTS,
-            'materialCombis' => $MATERIAL_COMBIS,
+            'examProducts'    => $exam_products_simple,
+            'materialProducts'=> $MATERIAL_PRODUCTS,
+            'materialCombis'  => $MATERIAL_COMBIS,
         ];
     }
 

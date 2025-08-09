@@ -36,6 +36,94 @@ class SoapClient {
     }
 
     /**
+     * VERZEND INSCHRIJVING NAAR SOAP (aanroepen vanuit webhook na succesvolle betaling)
+     * Let op: pas zo nodig de operatie-naam en veldmapping aan aan de WSDL van Pontifex.
+     */
+    public function sendRegistration(array $order): bool {
+        $user_identifier = (int) get_option('pontifex_oi_soap_user_id', '');
+        $hash            = (string) get_option('pontifex_oi_soap_hash', '');
+
+        if (empty($user_identifier) || empty($hash)) {
+            error_log('PontifexOI ERROR - sendRegistration zonder geldige SOAP authenticatie.');
+            throw new Exception('SOAP authenticatiegegevens niet correct ingesteld.');
+        }
+
+        $client = $this->getClient();
+
+        // Kandidaten samenstellen uit parallelle arrays
+        $candidates = [];
+        $fullnames  = $order['candidate_fullname'] ?? [];
+        $infixes    = $order['candidate_infix'] ?? [];
+        $lastnames  = $order['candidate_lastname'] ?? [];
+        $birthdates = $order['candidate_birthdate'] ?? [];
+        $count      = max(count($fullnames), count($lastnames), count($birthdates));
+
+        for ($i = 0; $i < $count; $i++) {
+            $candidates[] = [
+                'first_name' => (string) ($fullnames[$i] ?? ''),
+                'infix'      => (string) ($infixes[$i] ?? ''),
+                'last_name'  => (string) ($lastnames[$i] ?? ''),
+                // Formaat afhankelijk van WSDL; hier als YYYY-MM-DD
+                'birth_date' => (string) ($birthdates[$i] ?? ''),
+            ];
+        }
+
+        // Basis registratie payload – PAS AAN op je WSDL contract!
+        $registration = [
+            'customer_email' => (string) ($order['order_email'] ?? ''),
+            'exam_type'      => (string) ($order['exam_type'] ?? ''),
+            'language'       => (string) ($order['language'] ?? 'nl'),
+            'material'       => (string) ($order['material'] ?? ''),
+            'location'       => (string) ($order['location'] ?? ''),
+            'date'           => (string) ($order['date'] ?? ''),
+            'time'           => (string) ($order['time'] ?? ''),
+            'candidates'     => $candidates,
+            // Extra velden naar behoefte mappen:
+            'order' => [
+                'initials'     => (string) ($order['order_initials'] ?? ''),
+                'infix'        => (string) ($order['order_infix'] ?? ''),
+                'last_name'    => (string) ($order['order_lastname'] ?? ''),
+                'company'      => (string) ($order['order_company'] ?? ''),
+                'vat'          => (string) ($order['order_vat'] ?? ''),
+                'street'       => (string) ($order['order_street'] ?? ''),
+                'city'         => (string) ($order['order_city'] ?? ''),
+                'postcode'     => (string) ($order['order_postcode'] ?? ''),
+                'housenumber'  => (string) ($order['order_housenumber'] ?? ''),
+                'phone'        => (string) ($order['order_phone'] ?? ''),
+            ],
+            // Extra lesmateriaal (optioneel)
+            'extra_material' => (array)  ($order['extra_material'] ?? []),
+            // Raw totaalprijs (optioneel)
+            'total_price'    => (string) ($order['price'] ?? ''),
+        ];
+
+        $params = [
+            'user_identifier' => $user_identifier,
+            'hash'            => $hash,
+            'registration'    => $registration,
+        ];
+
+        // Operatie-naam HIER afstemmen op WSDL, bv. 'createRegistration'
+        try {
+            $resp = $client->__soapCall('createRegistration', $params);
+
+            // Eenvoudige validatie – pas aan op jouw WSDL-respons
+            if ($resp === null) {
+                error_log('PontifexOI SOAP sendRegistration: lege response.');
+                return false;
+            }
+
+            // Succes – log beperkt om PII te beperken
+            error_log('PontifexOI SOAP sendRegistration: succesvol verstuurd.');
+            return true;
+
+        } catch (Exception $e) {
+            error_log('PontifexOI SOAP sendRegistration fout: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * Haalt planning op via SOAP en slaat lokaal op in DB.
      *
      * @throws Exception
@@ -122,9 +210,25 @@ class SoapClient {
                     )
                 );
 
+                // BUGFIX: location_identifier is string → '%s' i.p.v. '%d'
                 $format = [
-                    '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d',
-                    '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d',
+                    '%s', // planning_identifier
+                    '%s', // planning_date
+                    '%s', // planning_time
+                    '%s', // planning_start_date
+                    '%s', // planning_updated
+                    '%s', // planning_status
+                    '%d', // available_seats
+                    '%s', // location_identifier (was fout: %d)
+                    '%s', // location_name
+                    '%s', // location_street
+                    '%s', // location_number
+                    '%s', // location_suffix
+                    '%s', // location_zip_code
+                    '%s', // location_city
+                    '%s', // location_province
+                    '%s', // location_country
+                    '%d', // location_seats
                 ];
 
                 if ($exists) {
