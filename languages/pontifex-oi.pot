@@ -1,0 +1,377 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: pontifex-oi\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-08-05 12:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: Dutch\n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: GPT-4 assisted\n"
+
+#: public/templates/planning-list.php:xx
+msgid "Stap 1: Inplannen"
+msgstr ""
+
+msgid "Selecteer een examen"
+msgstr ""
+
+msgid "Examensoort"
+msgstr ""
+
+msgid "Taal"
+msgstr ""
+
+msgid "Kies een datum en locatie"
+msgstr ""
+
+msgid "Maand"
+msgstr ""
+
+msgid "Provincie"
+msgstr ""
+
+msgid "Locatie"
+msgstr ""
+
+msgid "Dagsoort"
+msgstr ""
+
+msgid "Datum"
+msgstr ""
+
+msgid "Tijd"
+msgstr ""
+
+msgid "Plekken"
+msgstr ""
+
+msgid "Prijs"
+msgstr ""
+
+msgid "Aanmelden"
+msgstr ""
+
+msgid "Kandidaat aanmelden"
+msgstr ""
+
+msgid "VOL"
+msgstr ""
+
+msgid "Geen resultaten gevonden"
+msgstr ""
+
+msgid "Geen resultaten gevonden voor deze filters."
+msgstr ""
+
+msgid "Aantal resultaten"
+msgstr ""
+
+msgid "Aantal resultaten per pagina"
+msgstr ""
+
+msgid "Navigatie resultatenpagina's"
+msgstr ""
+
+msgid "Paginanavigatie"
+msgstr ""
+
+msgid "Toon alles"
+msgstr ""
+
+msgid "Plekken vrij"
+msgstr ""
+
+msgid "Extra lesmateriaal nodig?"
+msgstr ""
+
+msgid "Geen extra lesmateriaal beschikbaar."
+msgstr ""
+
+msgid "Niet van toepassing"
+msgstr ""
+
+msgid "Geen keuze"
+msgstr ""
+
+msgid "Kandidaat toevoegen"
+msgstr ""
+
+msgid "Gegevens kandidaat"
+msgstr ""
+
+msgid "Terug naar planning"
+msgstr ""
+
+msgid "Bestelgegevens"
+msgstr ""
+
+msgid "Gegevens van uw bestelling"
+msgstr ""
+
+msgid "Examen"
+msgstr ""
+
+msgid "Aantal kandidaten"
+msgstr ""
+
+msgid "Prijs totaal"
+msgstr ""
+
+msgid "Bestelling plaatsen"
+msgstr ""
+
+msgid "Naam"
+msgstr ""
+
+msgid "Voorletters"
+msgstr ""
+
+msgid "Tussenvoegsel (optioneel)"
+msgstr ""
+
+msgid "Achternaam"
+msgstr ""
+
+msgid "Postcode en huisnummer"
+msgstr ""
+
+msgid "1234AB"
+msgstr ""
+
+msgid "Huisnummer"
+msgstr ""
+
+msgid "Adres"
+msgstr ""
+
+msgid "Straat"
+msgstr ""
+
+msgid "Plaats"
+msgstr ""
+
+msgid "Telefoonnummer"
+msgstr ""
+
+msgid "0612345678"
+msgstr ""
+
+msgid "E-mailadres"
+msgstr ""
+
+msgid "naam@domein.nl"
+msgstr ""
+
+msgid "Bedrijfsnaam"
+msgstr ""
+
+msgid "BTW-nummer"
+msgstr ""
+
+msgid "NL123456789B01"
+msgstr ""
+
+msgid "Geboortedatum"
+msgstr ""
+
+msgid "Kandidaat verwijderen"
+msgstr ""
+
+msgid "Je aanmelding is gelukt!"
+msgstr ""
+
+msgid "Bedankt voor je aanmelding."
+msgstr ""
+
+msgid "Check je mail voor de details van je aanmelding."
+msgstr ""
+
+msgid "Terugkeren naar home"
+msgstr ""
+
+msgid "Onbekend"
+msgstr ""
+
+msgid "Betaling succesvol"
+msgstr ""
+
+msgid "Bedankt voor je inschrijving."
+msgstr ""
+
+msgid "Je betaling is succesvol ontvangen. Een overzicht van je bestelling is naar je e-mailadres gestuurd."
+msgstr ""
+
+msgid "Gegevens kandidaten"
+msgstr ""
+
+msgid "Naam en achternaam:"
+msgstr ""
+
+msgid "Tussenvoegsel (optioneel):"
+msgstr ""
+
+msgid "Achternaam:"
+msgstr ""
+
+msgid "Geboortedatum:"
+msgstr ""
+
+msgid "Bestelgegevens"
+msgstr ""
+
+msgid "Telefoonnummer:"
+msgstr ""
+
+msgid "E-mailadres:"
+msgstr ""
+
+msgid "Bedrijfsnaam:"
+msgstr ""
+
+msgid "BTW-nummer:"
+msgstr ""
+
+msgid "Betaalgegevens"
+msgstr ""
+
+msgid "Examen:"
+msgstr ""
+
+msgid "Taal:"
+msgstr ""
+
+msgid "Lesmateriaal:"
+msgstr ""
+
+msgid "Extra lesmateriaal:"
+msgstr ""
+
+msgid "Locatie:"
+msgstr ""
+
+msgid "Datum:"
+msgstr ""
+
+msgid "Tijd:"
+msgstr ""
+
+msgid "Kandidaten:"
+msgstr ""
+
+msgid "Totaal:"
+msgstr ""
+
+msgid "Stap 2: Inschrijven"
+msgstr ""
+
+msgid "Gegevens kandidaat"
+msgstr ""
+
+msgid "Terug naar planning"
+msgstr ""
+
+msgid "Naam"
+msgstr ""
+
+msgid "Tussenvoegsel"
+msgstr ""
+
+msgid "Achternaam"
+msgstr ""
+
+msgid "Geboortedatum"
+msgstr ""
+
+msgid "Kandidaat verwijderen"
+msgstr ""
+
+msgid "Extra lesmateriaal nodig?"
+msgstr ""
+
+msgid "Bestelling plaatsen"
+msgstr ""
+
+msgid "Aantal kandidaten"
+msgstr ""
+
+msgid "Prijs totaal"
+msgstr ""
+
+msgid "Kandidaat toevoegen"
+msgstr ""
+
+msgid "Bestelling plaatsen"
+msgstr ""
+
+msgid "Bestelling plaatsen"
+msgstr ""
+
+msgid "Prijs"
+msgstr ""
+
+msgid "Kandidaat toevoegen"
+msgstr ""
+
+msgid "Kandidaat verwijderen"
+msgstr ""
+
+msgid "Testmodus ingeschakeld"
+msgstr ""
+
+msgid "Testmodus uitgeschakeld"
+msgstr ""
+
+msgid "Filters toepassen"
+msgstr ""
+
+msgid "Reset datumfilters"
+msgstr ""
+
+msgid "Bezig..."
+msgstr ""
+
+msgid "Beschikbaar"
+msgstr ""
+
+msgid "VOL"
+msgstr ""
+
+msgid "Geen resultaten gevonden die voldoen aan je zoekcriteria."
+msgstr ""
+
+msgid "Kandidaat toevoegen"
+msgstr ""
+
+msgid "Kandidaat verwijderen"
+msgstr ""
+
+msgid "Prijs"
+msgstr ""
+
+msgid "Extra lesmateriaal nodig?"
+msgstr ""
+
+msgid "Geen extra lesmateriaal beschikbaar."
+msgstr ""
+
+msgid "Er ging iets mis met de verbinding. Probeer het opnieuw."
+msgstr ""
+
+msgid "Vul alle verplichte velden in."
+msgstr ""
+
+msgid "Let op: De live key hoort meestal te beginnen met \"live_\"."
+msgstr ""
+
+msgid "Let op: De test key hoort meestal te beginnen met \"test_\"."
+msgstr ""
+
+msgid "Vorige pagina"
+msgstr ""
+
+msgid "Volgende pagina"
+msgstr ""

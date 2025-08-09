@@ -1,0 +1,490 @@
+/* ---------- Kandidatenlijst ---------- */
+.pontifex-oi-candidates-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: clamp(0.75rem, 1vw + 0.3rem, 1.25rem) !important;
+}
+.pontifex-oi-candidate-row {
+  display: flex !important;
+  gap: clamp(1rem, 1vw + 0.5rem, 1.5rem) !important;
+  align-items: flex-end !important;
+  flex-wrap: wrap !important;
+  position: relative !important;
+}
+.pontifex-oi-candidate-row > div {
+  flex: 1 1 15% !important;
+  min-width: clamp(100px, 10vw, 140px) !important;
+}
+.pontifex-oi-candidate-row input[type="text"],
+.pontifex-oi-candidate-row input[type="date"] {
+  width: 100% !important;
+  padding-block: clamp(0.3rem, 0.5vw + 0.2rem, 0.6rem) !important;
+  padding-inline: clamp(0.5rem, 0.7vw + 0.3rem, 1rem) !important;
+  border-radius: var(--pontifex-radius-sm) !important;
+  border: 1px solid var(--pontifex-border) !important;
+  font-size: clamp(0.9rem, 1vw + 0.3rem, 1rem) !important;
+  font-family: var(--pontifex-font-main) !important;
+}
+.pontifex-oi-candidate-row label {
+  display: block !important;
+  font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem);
+  font-family: var(--pontifex-font-main) !important;
+  margin-block-end: 6px !important;
+  font-weight: 600 !important;
+  color: var(--pontifex-black) !important;
+}
+.pontifex-oi-candidate-row input[placeholder] {
+  font-style: italic !important;
+}
+
+/* Kandidaat verwijderen (X) - alleen oranje, transparant, positie */
+.pontifex-oi-remove-candidate {
+  position: absolute !important;
+  right: -2rem;
+  top: 70%;
+  transform: translateY(-50%) !important;
+  width: 1.65em !important;
+  height: 1.65em !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  color: var(--pontifex-orange) !important;
+  border: none !important;
+  display: flex;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.25em !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  transition: color 0.2s !important;
+  z-index: 1 !important;
+  box-shadow: none !important;
+}
+.pontifex-oi-remove-candidate:hover,
+.pontifex-oi-remove-candidate:focus {
+  color: var(--pontifex-black) !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Kandidaat toevoegen rechts (alleen tekst, oranje, underline, geen plus of icoon) */
+.pontifex-oi-candidate-addrow {
+  margin-block-start: clamp(0.4rem, 0.5vw + 0.2rem, 0.8rem) !important;
+  text-align: right !important;
+  width: 100% !important;
+}
+.pontifex-oi-add-candidate {
+  background: none !important;
+  border: none !important;
+  color: var(--pontifex-orange) !important;
+  font-family: var(--pontifex-font-main) !important;
+  font-size: clamp(0.9rem, 1vw + 0.3rem, 1rem) !important;
+  cursor: pointer !important;
+  display: inline !important;
+  text-decoration: underline !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-transform: none !important;
+}
+.pontifex-oi-add-candidate:hover {
+  color: var(--pontifex-black) !important;
+}
+.pontifex-oi-add-candidate:focus {
+  color: var(--pontifex-orange) !important;
+}
+
+/* ---------- Required field styling ---------- */
+.required {
+  color: #d60000 !important;
+  font-weight: bold !important;
+}
+
+input.invalid-field,
+select.invalid-field,
+textarea.invalid-field {
+  background-color: #ffe6e6 !important;
+  border: 2px solid #cc0000 !important;
+  color: #222 !important;
+  transition: background 0.18s, border 0.18s;
+}
+
+/* ---------- Twee kolommen ---------- */
+.pontifex-oi-flex-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: clamp(2rem, 2vw + 0.5rem, 3rem);
+  align-items: flex-start;
+  margin-block-start: clamp(1.5rem, 2vw + 0.7rem, 2.5rem);
+}
+.pontifex-oi-order-form,
+.pontifex-oi-order-summary {
+  flex: 0 0 50%;
+  max-width: 50%;
+  float: none;
+  clear: none;
+}
+
+/* Linkerkolom formulierblokken */
+.pontifex-oi-row-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: clamp(0.3rem, 0.4vw + 0.2rem, 0.5rem) !important;
+  margin-block-end: clamp(1rem, 1.5vw + 0.5rem, 1.5rem) !important;
+}
+.pontifex-oi-name-row,
+.pontifex-oi-adres-row,
+.pontifex-oi-contact-row {
+  display: flex !important;
+  gap: clamp(0.8rem, 1vw + 0.3rem, 1.2rem) !important;
+  flex-wrap: wrap !important;
+}
+.pontifex-oi-contact-row-labels {
+  display: flex !important;
+  gap: clamp(0.8rem, 1vw + 0.3rem, 1.2rem) !important;
+  justify-content: space-between !important;
+}
+.pontifex-oi-contact-row-labels label {
+  flex: 1 1 0 !important;
+}
+.pontifex-oi-name-row input,
+.pontifex-oi-adres-row input,
+.pontifex-oi-contact-row input {
+  flex: 1 1 0 !important;
+  min-width: clamp(100px, 10vw, 140px) !important;
+}
+
+.pontifex-oi-order-form label {
+  font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem);
+  font-weight: 600 !important;
+}
+
+.pontifex-oi-summary-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: clamp(1rem, 1vw + 0.2rem, 1.05rem) !important;
+}
+
+/* Horizontale divider ONDER een blok, voor visuele scheiding in besteloverzicht */
+.bo-divider {
+  border-bottom: 1px solid #e0e0e0;
+  margin: 8px 0 10px 0;
+  width: 100%;
+  display: block;
+}
+
+.pontifex-oi-summary-table td {
+  padding-block: 0.4em !important;
+  padding-inline: 0.2em !important;
+}
+.pontifex-oi-summary-label {
+  text-align: right !important;
+  color: #333 !important;
+}
+.pontifex-oi-summary-label-total {
+  font-weight: bold !important;
+  text-align: right !important;
+}
+.pontifex-oi-table-divider {
+  border-block-start: 1px solid #c7e6ff !important;
+  height: 1rem !important;
+}
+.pontifex-oi-total {
+  font-weight: bold !important;
+}
+.pontifex-oi-empty-row {
+  height: 1rem !important;
+}
+.pontifex-oi-exam {
+  font-weight: 600 !important;
+}
+.pontifex-oi-datetime-location {
+  color: #666 !important;
+  font-size: clamp(0.85rem, 1vw + 0.1rem, 0.97rem) !important;
+}
+
+/* Sectietitels overal gelijk */
+.pontifex-oi-section-label,
+.select-exam-label,
+.select-language-label,
+.select-material-label {
+  padding-block-end: 0 !important;
+  margin-block-end: clamp(0.8rem, 1vw + 0.4rem, 1rem) !important;
+  font-family: var(--pontifex-font-main) !important;
+  font-size: var(--pontifex-title-size) !important;
+  font-weight: var(--pontifex-title-weight) !important;
+  line-height: 1.2 !important;
+  color: var(--pontifex-orange) !important;
+}
+
+/* Terugknop */
+.pontifex-oi-back-link,
+.pontifex-oi-back-button {
+  color: var(--pontifex-orange) !important;
+  cursor: pointer !important;
+  font-weight: 600 !important;
+  text-decoration: underline !important;
+  font-family: var(--pontifex-font-main) !important;
+  font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem) !important;
+  border: none !important;
+  background: none !important;
+  padding: 0 !important;
+  transition: color 0.2s !important;
+}
+.pontifex-oi-back-link:hover,
+.pontifex-oi-back-link:focus,
+.pontifex-oi-back-button:hover,
+.pontifex-oi-back-button:focus {
+  color: var(--pontifex-black) !important;
+  outline: none !important;
+}
+
+.besteloverzicht-stap2 {
+  background: #f9f9f9 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  padding-block: clamp(1rem, 1.5vw + 0.7rem, 1.5rem) !important;
+  padding-inline: clamp(1.5rem, 2vw + 0.7rem, 2.5rem) !important;
+  margin-block: 30px 20px;
+  margin-inline-end: 37px;
+  font-family: var(--pontifex-font-main, Arial, sans-serif) !important;
+}
+
+.bo-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-block-end: 12px !important;
+  font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem) !important;
+  border-block-end: 1px solid #e0e0e0 !important;
+  padding-block-end: 6px !important;
+  font-weight: 400 !important;
+  color: #222 !important;
+}
+
+.bo-item:last-child,
+.bo-item.totaal {
+  border-block-end: none !important;
+  font-size: clamp(1rem, 1vw + 0.3rem, 1.1rem) !important;
+  font-weight: 600 !important;
+  color: var(--pontifex-orange) !important;
+  margin-block-start: 18px !important;
+  letter-spacing: 0.02em !important;
+}
+
+.bo-item strong {
+  font-weight: 500 !important;
+  color: #333 !important;
+  min-width: clamp(90px, 10vw, 110px) !important;
+  display: inline-block !important;
+}
+
+.bo-item span {
+  text-align: right !important;
+  min-width: clamp(50px, 8vw, 70px) !important;
+  display: inline-block !important;
+  letter-spacing: 0.01em !important;
+}
+
+.pontifex-oi-terms {
+  margin-block-start: 20px !important;
+}
+.pontifex-oi-terms label {
+  font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem) !important;
+}
+.pontifex-oi-terms input[type="checkbox"] {
+  margin-inline-end: 0.45rem !important;
+}
+.pontifex-oi-terms a {
+  color: var(--pontifex-orange) !important;
+  text-decoration: underline !important;
+  transition: color 0.18s !important;
+}
+.pontifex-oi-terms a:hover {
+  color: var(--pontifex-black) !important;
+}
+
+.pontifex-oi-submit:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Alleen rode styling als deze class expliciet toegevoegd wordt door JS */
+.pontifex-oi-candidate-form input.invalid-field,
+.pontifex-oi-candidate-form select.invalid-field,
+.pontifex-oi-candidate-form textarea.invalid-field {
+  background-color: #ffe6e6 !important;
+  border: 2px solid #cc0000 !important;
+}
+
+.pontifex-oi-candidate-form input.invalid-field:focus,
+.pontifex-oi-candidate-form select.invalid-field:focus,
+.pontifex-oi-candidate-form textarea.invalid-field:focus {
+  outline: none !important;
+  box-shadow: 0 0 5px 1px #cc0000 !important;
+}
+
+/* Container voor checkboxgroep */
+.pontifex-oi-checkbox-group {
+  margin-block-end: clamp(1rem, 1.5vw + 0.5rem, 1.5rem) !important;
+}
+
+/* Titel boven checkboxgroep */
+.pontifex-oi-checkbox-group-title {
+  font-family: var(--pontifex-font-main) !important;
+  font-size: var(--pontifex-title-size) !important;
+  font-weight: var(--pontifex-title-weight) !important;
+  color: var(--pontifex-orange) !important;
+  margin-block-end: clamp(0.5rem, 0.7vw + 0.3rem, 0.8rem) !important;
+  line-height: 1.2 !important;
+}
+
+/* Individuele checkbox rij */
+.pontifex-oi-checkbox-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: clamp(0.4rem, 0.5vw + 0.2rem, 0.8rem) !important;
+  margin-block-end: clamp(0.4rem, 0.5vw + 0.2rem, 0.8rem) !important;
+  cursor: pointer !important;
+  font-family: var(--pontifex-font-main) !important;
+  font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem) !important;
+  color: #333 !important;
+  user-select: none !important;
+}
+
+/* Checkbox zelf */
+.pontifex-oi-checkbox-row input[type="checkbox"] {
+  width: clamp(16px, 1vw + 14px, 20px) !important;
+  height: clamp(16px, 1vw + 14px, 20px) !important;
+  cursor: pointer !important;
+  border: 1.8px solid var(--pontifex-border) !important;
+  border-radius: 4px !important;
+  transition: border-color 0.2s, background-color 0.2s !important;
+  flex-shrink: 0 !important;
+}
+
+/* Buttons met icoon rechts */
+.pontifex-oi-submit-order,
+.pontifex-oi-save-btn,
+.pontifex-oi-home-button {
+  display: inline-flex;
+  align-items: center;
+}
+.pontifex-oi-submit-order i,
+.pontifex-oi-submit-order .icon-arrow,
+.pontifex-oi-save-btn i,
+.pontifex-oi-home-button i {
+  margin-left: 7px;
+}
+
+/* Checkbox checked state */
+.pontifex-oi-checkbox-row input[type="checkbox"]:checked {
+  background-color: var(--pontifex-orange) !important;
+  border-color: var(--pontifex-orange) !important;
+}
+
+/* Label tekst naast checkbox */
+.pontifex-oi-checkbox-row label {
+  cursor: pointer !important;
+  color: #333 !important;
+  line-height: 1.2 !important;
+}
+
+/* Hover/focus effect op label en checkbox */
+.pontifex-oi-checkbox-row:hover label,
+.pontifex-oi-checkbox-row input[type="checkbox"]:focus + label {
+  color: var(--pontifex-black) !important;
+}
+
+/* Ruimte tussen checkbox en label tekst */
+.pontifex-oi-checkbox-row input[type="checkbox"] + label {
+  margin-inline-start: clamp(3px, 0.3vw + 2px, 6px) !important;
+}
+
+.kandidaat-titel {
+  font-size: clamp(1.2rem, 1.5vw + 0.5rem, 1.4rem) !important;
+  font-weight: 800 !important;
+  color: var(--pontifex-orange) !important;
+  font-family: var(--pontifex-font-main, Arial, sans-serif) !important;
+  margin-block-end: 0;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .pontifex-oi-flex-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: clamp(0.8rem, 1vw + 0.3rem, 1.2rem) !important;
+    margin-block-start: clamp(0.75rem, 1vw + 0.3rem, 1rem);
+  }
+  .pontifex-oi-order-form,
+  .pontifex-oi-order-summary {
+    max-width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .pontifex-oi-candidates-list {
+    width: 100%;
+  }
+
+  .pontifex-oi-remove-candidate {
+    right: -2.125rem;
+    top: 67%;
+  }
+  .besteloverzicht-stap2 {
+    margin-block-start: 2rem;
+    margin-inline: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .pontifex-oi-name-row,
+  .pontifex-oi-adres-row,
+  .pontifex-oi-contact-row {
+    flex-direction: column !important;
+    gap: clamp(0.4rem, 0.5vw + 0.2rem, 0.8rem) !important;
+  }
+  .pontifex-oi-candidate-addrow {
+    text-align: right !important;
+    padding-inline-end: clamp(0.25rem, 0.3vw + 0.1rem, 0.5rem) !important;
+  }
+
+  .pontifex-oi-remove-candidate {
+    right: -1.8rem;
+    top: 67%;
+  }
+}
+
+@media (max-width: 600px) {
+  .besteloverzicht-stap2 {
+    padding-block: clamp(0.75rem, 1vw + 0.3rem, 1rem) !important;
+    padding-inline: clamp(0.4rem, 0.5vw + 0.2rem, 0.8rem) !important;
+    max-width: 98vw !important;
+    margin-block: 0;
+    margin-inline-end: 0;
+  }
+  .bo-item strong,
+  .bo-item span {
+    font-size: clamp(0.85rem, 0.9vw + 0.2rem, 0.97rem) !important;
+  }
+
+  .pontifex-oi-candidate-row label {
+    font-size: clamp(0.8rem, 0.8vw + 0.2rem, 0.94rem) !important;
+    line-height: 1em !important;
+  }
+
+  .pontifex-oi-order-form label {
+    font-size: clamp(0.8rem, 0.8vw + 0.2rem, 0.94rem) !important;
+  }
+
+  .pontifex-oi-flex-row {
+    gap: 0 !important;
+  }
+  .pontifex-oi-submit-order {
+    margin-block-start: 1rem !important;
+    margin-inline: auto !important;
+  }
+
+  .pontifex-oi-back-link {
+    margin-right: -3rem;
+    margin-top: 7px;
+  }
+}

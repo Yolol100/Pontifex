@@ -1,0 +1,14 @@
+{
+  "name": "certipro/pontifex-oi",
+  "description": "Pontifex Open Inschrijvingen (planning/inschrijvingen/Mollie).",
+  "type": "wordpress-plugin",
+  "require": {
+    "php": "^8.0",
+    "mollie/mollie-api-php": "^2.76"
+  },
+  "autoload": {
+    "psr-4": {
+      "PontifexOI\\": "includes/"
+    }
+  }
+}
