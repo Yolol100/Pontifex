@@ -1,51 +1,70 @@
 /**
  * sidebar.js
  *
- * Injects a mobile-only filter sidebar that mirrors your desktop filters
- * en houdt alles in sync, met AJAX “apply filters” (geen page reload).
+ * Mobiele filter-sidebar; talen worden dynamisch beperkt o.b.v. beschikbare prijzen per examensoort.
  */
-(function(window, $) {
+(function (window, $) {
   'use strict';
 
+  if (!$ || !window) return;
+
+  const cfg = window.PontifexOIConfigData || window.PontifexOIConfig || {};
   const PontifexOI = (window.PontifexOI = window.PontifexOI || {});
+  const examProducts = cfg.examProducts || cfg.EXAM_PRODUCTS || {};
 
-  // Weekend-examens voor taal‐logica
-  PontifexOI.examWeekend = ['vca-basis-weekend', 'vca-vol-weekend'];
+  const ALL_LANGS = cfg.availableLanguages || [];
+  const LABELS = cfg.availableLanguageLabels || {};
 
-  // Taalopties (bewust hard gedefinieerd i.v.m. iOS select-bug)
-  const languageOptions = [{
-    id: '',
-    name: 'Toon alles'
-  }, {
-    id: 'nl',
-    name: 'Nederlands'
-  }, {
-    id: 'en',
-    name: 'Engels'
-  }, ];
+  const mq = window.matchMedia('(max-width: 480px)');
+  let isBound = false;
 
-  /**
-   * Injecteert de sidebar + toggle-knop (alleen ≤ 480px) en vult selects.
-   */
-  PontifexOI.addAndPopulateSidebar = function() {
-    const isMobile = $(window).width() <= 480;
+  function debounce(fn, wait) {
+    let t;
+    return function () {
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(this, arguments), wait);
+    };
+  }
 
-    if (!isMobile) {
-      $('.pontifex-oi-filters-toggle-btn, .pontifex-oi-filters-sidebar, .pontifex-oi-filters-sidebar-overlay').remove();
-      return;
+  function normalizeExam(v) {
+    if (!v) return v;
+    switch (v) {
+      case 'vca-basis': return 'los-examen-vca-basis';
+      case 'vca-vol':   return 'los-examen-vca-vol';
+      case 'los-examen-vil-vcu': return 'los-examen-vca-vil';
+      default: return v;
     }
+  }
 
-    // Niet dubbel injecteren
+  function getExamLanguages(exam) {
+    const ex = normalizeExam(exam);
+    const prices = examProducts[ex] && examProducts[ex].prices ? examProducts[ex].prices : {};
+    const fromPrices = Object.keys(prices);
+    // Als er geen lijst in prijzen zit (of leeg) → val terug op alle talen
+    return fromPrices.length ? fromPrices : ALL_LANGS.slice();
+  }
+
+  function buildLanguageOptionsHtml(allowed) {
+    const options = [''].concat(allowed); // '' = Toon alles
+    return options.map((code) => {
+      if (code === '') return `<option value="">Toon alles</option>`;
+      const label = LABELS[code] || code.toUpperCase();
+      return `<option value="${code}">${label}</option>`;
+    }).join('');
+  }
+
+  function buildSidebar() {
     if ($('.pontifex-oi-filters-toggle-btn').length) return;
 
-    // Markup met icoon in de toggle-knop én in “Filters toepassen”
+    const $anchor = $('.pontifex-oi-filters');
+    if (!$anchor.length) return;
+
     const sidebarHtml = `
       <button type="button" class="pontifex-oi-filters-toggle-btn">
-        <i class="fas fa-filter" aria-hidden="true"></i>
-        Filters
+        <i class="fas fa-filter" aria-hidden="true"></i> Filters
       </button>
-      <div class="pontifex-oi-filters-sidebar-overlay"></div>
-      <aside class="pontifex-oi-filters-sidebar" aria-modal="true" role="dialog" tabindex="0">
+      <div class="pontifex-oi-filters-sidebar-overlay" hidden></div>
+      <aside class="pontifex-oi-filters-sidebar" aria-modal="true" role="dialog" tabindex="0" hidden>
         <button class="pontifex-oi-filters-sidebar-close" aria-label="Sluit filters">&times;</button>
         <form class="pontifex-oi-filters-sidebar-form" autocomplete="off">
           <h2>Selecteer een examen</h2>
@@ -98,17 +117,14 @@
       </aside>
     `;
 
-    // Invoegen vóór de desktop-filters
-    $(sidebarHtml).insertBefore('.pontifex-oi-filters');
+    $(sidebarHtml).insertBefore($anchor);
 
-    // Desktop → sidebar (taal NIET kopiëren; die vullen we via JS i.v.m. iOS)
     const mapping = [
       ['#exam_type-select', 'sidebar-exam_type'],
-      // ['#language-select', 'sidebar-language'], // bewust niet
       ['#month-select', 'sidebar-month'],
       ['#province-select', 'sidebar-province'],
       ['#location-select', 'sidebar-location'],
-      ['#timeslot-select', 'sidebar-timeslot'],
+      ['#timeslot-select', 'sidebar-timeslot']
     ];
 
     mapping.forEach(([desktopSel, sidebarId]) => {
@@ -120,104 +136,162 @@
       }
     });
 
-    // Taalopties vullen / beperken (iOS-proof)
-    updateSidebarLanguageOptions();
-  };
+    populateAndSyncSidebarLanguageOptions();
+  }
 
-  /**
-   * Herbouwt de taal <select> op basis van exam_type (workaround iOS).
-   */
-  function updateSidebarLanguageOptions() {
+  function destroySidebar() {
+    $('.pontifex-oi-filters-toggle-btn, .pontifex-oi-filters-sidebar, .pontifex-oi-filters-sidebar-overlay').remove();
+  }
+
+  function setOpen(open) {
+    const $aside = $('.pontifex-oi-filters-sidebar');
+    const $overlay = $('.pontifex-oi-filters-sidebar-overlay');
+    if (!$aside.length || !$overlay.length) return;
+
+    if (open) {
+      $aside.removeAttr('hidden').addClass('open').focus();
+      $overlay.removeAttr('hidden').addClass('open');
+    } else {
+      $aside.addClass('closing');
+      $overlay.addClass('closing');
+      setTimeout(() => {
+        $aside.removeClass('open closing').attr('hidden', '');
+        $overlay.removeClass('open closing').attr('hidden', '');
+      }, 150);
+    }
+  }
+
+  function populateAndSyncSidebarLanguageOptions() {
     const $exam = $('#sidebar-exam_type');
     const $lang = $('#sidebar-language');
-    const val = $exam.val();
+    const $desktopLang = $('#language-select');
 
-    let optionsToShow = languageOptions;
-    if (PontifexOI.examWeekend.includes(val)) {
-      optionsToShow = languageOptions.filter((opt) => !opt.id || opt.id === 'nl');
-    }
+    if (!$exam.length || !$lang.length) return;
 
-    const prevVal = $lang.val();
+    const examVal = $exam.val();
+    const allowed = getExamLanguages(examVal);
 
-    $lang.empty();
-    optionsToShow.forEach((opt) => {
-      $lang.append($('<option>').val(opt.id).text(opt.name));
-    });
+    $lang.html(buildLanguageOptionsHtml(allowed));
 
-    if (PontifexOI.examWeekend.includes(val)) {
-      $lang.val('nl');
-    } else if (optionsToShow.some((o) => o.id === prevVal)) {
-      $lang.val(prevVal);
+    const desktopLangVal = $desktopLang.length ? $desktopLang.val() : '';
+    if (desktopLangVal && (desktopLangVal === '' || allowed.includes(desktopLangVal))) {
+      $lang.val(desktopLangVal);
+    } else if (allowed.length) {
+      $lang.val(allowed.includes('nl') ? 'nl' : allowed[0]);
     } else {
       $lang.val('');
     }
 
-    $lang.prop('disabled', !val);
+    $lang.prop('disabled', !examVal);
   }
 
-  /**
-   * Events open/close/reset/apply
-   */
-  PontifexOI.registerSidebarEvents = function() {
-    // Openen
-    $(document).on('click', '.pontifex-oi-filters-toggle-btn', function(e) {
+  function updateSidebarLanguageOptions() {
+    const $exam = $('#sidebar-exam_type');
+    const $lang = $('#sidebar-language');
+    if (!$exam.length || !$lang.length) return;
+
+    const examId = normalizeExam($exam.val() || '');
+    const prev = $lang.val();
+    const allowed = getExamLanguages(examId);
+
+    $lang.html(buildLanguageOptionsHtml(allowed));
+
+    if (prev && allowed.includes(prev)) {
+      $lang.val(prev);
+    } else if (allowed.length) {
+      $lang.val(allowed.includes('nl') ? 'nl' : allowed[0]);
+    } else {
+      $lang.val('');
+    }
+
+    $lang.prop('disabled', !examId);
+  }
+
+  function bindEventsOnce() {
+    if (isBound) return;
+    isBound = true;
+
+    $(document).on('click', '.pontifex-oi-filters-toggle-btn', function (e) {
       e.preventDefault();
-      ['exam_type', 'month', 'province', 'location', 'timeslot'].forEach((name) => {
-        $(`#sidebar-${name}`).val($(`#${name}-select`).val());
-      });
+      ['exam_type', 'month', 'province', 'location', 'timeslot', 'language'].forEach(
+        (name) => {
+          const $desk = $(`#${name}-select`);
+          const $side = $(`#sidebar-${name}`);
+          if ($desk.length && $side.length) $side.val($desk.val());
+        }
+      );
       updateSidebarLanguageOptions();
-      $('.pontifex-oi-filters-sidebar, .pontifex-oi-filters-sidebar-overlay').addClass('open');
-      $('.pontifex-oi-filters-sidebar').focus();
+      setOpen(true);
     });
 
-    // Sluiten
-    $(document).on('click', '.pontifex-oi-filters-sidebar-overlay, .pontifex-oi-filters-sidebar-close', function(e) {
-      e.preventDefault();
-      $('.pontifex-oi-filters-sidebar, .pontifex-oi-filters-sidebar-overlay').removeClass('open');
-    });
+    $(document).on(
+      'click',
+      '.pontifex-oi-filters-sidebar-overlay, .pontifex-oi-filters-sidebar-close',
+      function (e) {
+        e.preventDefault();
+        setOpen(false);
+      }
+    );
 
-    // ESC sluit
-    $(document).on('keydown', function(e) {
+    $(document).on('keydown', function (e) {
       if (e.key === 'Escape' && $('.pontifex-oi-filters-sidebar').hasClass('open')) {
-        $('.pontifex-oi-filters-sidebar, .pontifex-oi-filters-sidebar-overlay').removeClass('open');
+        setOpen(false);
       }
     });
 
-    // Reset
-    $(document).on('click', '.pontifex-oi-reset-filter', function(e) {
+    $(document).on('click', '.pontifex-oi-reset-filter', function (e) {
       e.preventDefault();
-      $('#sidebar-month,#sidebar-province,#sidebar-location,#sidebar-timeslot').val('');
+      $('#sidebar-month, #sidebar-province, #sidebar-location, #sidebar-timeslot').val('');
     });
 
-    // Als exam_type verandert -> taalopties opnieuw toepassen
     $(document).on('change', '#sidebar-exam_type', updateSidebarLanguageOptions);
 
-    // Apply filters via AJAX
-    $(document).on('click', '.pontifex-oi-save-btn', function(e) {
+    $(document).on('click', '.pontifex-oi-save-btn', function (e) {
       e.preventDefault();
 
-      // 1) Sidebar → desktop
-      ['exam_type', 'language', 'month', 'province', 'location', 'timeslot'].forEach((name) => {
-        const v = $(`#sidebar-${name}`).val();
-        $(`#${name}-select`).val(v).trigger('change');
-      });
+      ['exam_type', 'language', 'month', 'province', 'location', 'timeslot'].forEach(
+        (name) => {
+          const v = $(`#sidebar-${name}`).val();
+          $(`#${name}-select`).val(v).trigger('change');
+        }
+      );
 
-      // 2) Tabel/cards verversen
-      if (PontifexOI.updatePontifexTable) {
-        PontifexOI.updatePontifexTable(1);
+      if (window.PontifexOI && typeof window.PontifexOI.updatePontifexTable === 'function') {
+        window.PontifexOI.updatePontifexTable(1);
       }
 
-      // 3) Sluiten
-      $('.pontifex-oi-filters-sidebar, .pontifex-oi-filters-sidebar-overlay').removeClass('open');
+      setOpen(false);
     });
+
+    $(document).on('change', '#exam_type-select', function () {
+      const v = $(this).val();
+      $('#sidebar-exam_type').val(v);
+      updateSidebarLanguageOptions();
+    });
+  }
+
+  PontifexOI.addAndPopulateSidebar = function () {
+    if (mq.matches) {
+      buildSidebar();
+    } else {
+      destroySidebar();
+    }
   };
 
-  // Init
-  $(function() {
+  PontifexOI.registerSidebarEvents = function () {
+    bindEventsOnce();
+  };
+
+  $(function () {
     PontifexOI.addAndPopulateSidebar();
     PontifexOI.registerSidebarEvents();
   });
 
-  // Op resize opnieuw injecteren/verwijderen
-  $(window).on('resize', PontifexOI.addAndPopulateSidebar);
+  const handleResize = debounce(PontifexOI.addAndPopulateSidebar, 120);
+  $(window).on('resize', handleResize);
+  if (mq.addEventListener) {
+    mq.addEventListener('change', PontifexOI.addAndPopulateSidebar);
+  } else if (mq.addListener) {
+    mq.addListener(PontifexOI.addAndPopulateSidebar);
+  }
 })(window, jQuery);

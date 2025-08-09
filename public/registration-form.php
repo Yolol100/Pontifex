@@ -14,60 +14,58 @@ $province  = isset($_GET['province'])  ? sanitize_text_field($_GET['province']) 
 $spots     = isset($_GET['spots'])     ? sanitize_text_field($_GET['spots'])     : '';
 $price_raw = isset($_GET['price'])     ? sanitize_text_field($_GET['price'])     : '';
 
+require_once PONTIFEX_OI_PATH . 'includes/config/producten-prijzen.php';
+
+// Normaliseer key
+$exam_type = pontifex_normalize_exam_key($exam_type);
+
 // Labels voor examensoorten en talen
 $exam_type_labels = [
-    'los-examen-vca-basis' => 'VCA Basis',
-    'los-examen-vca-vol'   => 'VCA Vol',
-    'vca-basis-weekend'    => 'VCA Basis Cursus Weekend',
-    'vca-vol-weekend'      => 'VCA Vol Cursus Weekend',
+    'los-examen-vca-basis'       => 'VCA Basis',
+    'los-examen-vca-basis-groen' => 'VCA Basis Groen',
+    'los-examen-vca-vol'         => 'VCA Vol',
+    'los-examen-vca-vil'         => 'VCA VIL',
+    // legacy keys fallback
+    'los-examen-vil-vcu'         => 'VCA VIL',
+    'vca-basis'                  => 'VCA Basis',
+    'vca-vol'                    => 'VCA Vol',
 ];
+
 $language_labels = [
     'nl' => 'Nederlands',
     'en' => 'Engels',
+    'de' => 'Duits',
+    'fr' => 'Frans',
+    'ar' => 'Arabisch', 'bg' => 'Bulgaars', 'lt' => 'Litouws', 'pl' => 'Pools',
+    'pt' => 'Portugees', 'ro' => 'Roemeens', 'ru' => 'Russisch', 'tr' => 'Turks',
+    'el' => 'Grieks', 'hu' => 'Hongaars', 'it' => 'Italiaans', 'hr' => 'Kroatisch',
+    'uk' => 'Oekraïens', 'sk' => 'Slowaaks', 'es' => 'Spaans', 'vi' => 'Vietnamees',
 ];
 
-// Haal de extra materiaal opties op en de EXAM_PRODUCTS array
-require_once PONTIFEX_OI_PATH . 'includes/config/producten-prijzen.php';
-global $EXAM_PRODUCTS; // Zorg dat $EXAM_PRODUCTS globaal toegankelijk is
+// Haal productconfig op
+global $EXAM_PRODUCTS, $MATERIAL_PRODUCTS, $WEEKEND_ALLOWED_BY_EXAM;
 
 $all_extra_options = get_extra_material_options();
 
-// Converteer naar het formaat dat de template verwacht
+// Maak vlakke array key: exam_taal => opties[]
 $extra_material_options = [];
-foreach ($all_extra_options as $exam_type_key => $languages) {
-    foreach ($languages as $lang_key => $options) {
-        $key = $exam_type_key . '_' . $lang_key;
-        $extra_material_options[$key] = $options;
+foreach ($all_extra_options as $exam_type_key => $langs) {
+    foreach ($langs as $lang_key => $options) {
+        $extra_material_options[$exam_type_key . '_' . $lang_key] = $options;
     }
 }
 
-// Debug: log de opties
-error_log('[Pontifex OI Debug] Extra material options: ' . print_r($extra_material_options, true));
+// Weekendcheckbox alleen tonen als toegestaan
+$weekend_allowed_langs = $WEEKEND_ALLOWED_BY_EXAM[$exam_type] ?? [];
+$show_weekend_checkbox = in_array($language, $weekend_allowed_langs, true);
 
-// Default voor extra materiaal opties
-if (!isset($extra_material_options) || !is_array($extra_material_options)) {
-    $extra_material_options = [];
-}
-
-$is_weekend_cursus = in_array($exam_type, ['vca-basis-weekend', 'vca-vol-weekend'], true);
-
-// Bepaal de numerieke prijs op basis van exam_type en language
-$price_numeric = 0; // Standaardwaarde
-
-if ($is_weekend_cursus) {
-    $price_numeric = 245.00; // Hardcode voor weekendcursus
-} else {
-    // Zoek de basisprijs op in de $EXAM_PRODUCTS array
-    if (isset($EXAM_PRODUCTS[$exam_type]['prices'][$language])) {
-        $price_numeric = $EXAM_PRODUCTS[$exam_type]['prices'][$language];
-    }
-}
+// Prijsberekening basis (zonder extra materiaal/checkboxen)
+$price_numeric = $EXAM_PRODUCTS[$exam_type]['prices'][$language] ?? ($EXAM_PRODUCTS[$exam_type]['prices']['nl'] ?? 0);
 
 $price_display = (is_numeric($price_numeric) && $price_numeric > 0)
     ? '€' . number_format($price_numeric, 2, ',', '.')
     : '-';
-
-$price_for_input = number_format($price_numeric, 2, '.', ''); // Voor JS (punt!)
+$price_for_input = number_format($price_numeric, 2, '.', ''); // voor hidden input
 ?>
 
 <div class="pontifex-oi-stepper" role="heading" aria-level="2" tabindex="0">
@@ -76,15 +74,12 @@ $price_for_input = number_format($price_numeric, 2, '.', ''); // Voor JS (punt!)
 
 <section class="pontifex-oi-section" id="step-2">
     <div class="pontifex-oi-title-row">
-        <h2 class="pontifex-oi-section-label">
-            <?php esc_html_e('Gegevens kandidaat','pontifex-oi'); ?>
-        </h2>
-        <a href="/cursus-zoeken/" class="pontifex-oi-back-link" tabindex="0">
-            <?php esc_html_e('Terug naar planning','pontifex-oi'); ?>
-        </a>
+        <h2 class="pontifex-oi-section-label"><?php esc_html_e('Gegevens kandidaat','pontifex-oi'); ?></h2>
+        <a href="/cursus-zoeken/" class="pontifex-oi-back-link" tabindex="0"><?php esc_html_e('Terug naar planning','pontifex-oi'); ?></a>
     </div>
 
     <form class="pontifex-oi-candidate-form" method="post" autocomplete="off" novalidate>
+        <!-- Verborgen velden -->
         <input type="hidden" id="exam_type" name="exam_type" value="<?php echo esc_attr($exam_type); ?>">
         <input type="hidden" id="language" name="language" value="<?php echo esc_attr($language); ?>">
         <input type="hidden" id="material" name="material" value="<?php echo esc_attr($material); ?>">
@@ -97,124 +92,55 @@ $price_for_input = number_format($price_numeric, 2, '.', ''); // Voor JS (punt!)
         <div class="pontifex-oi-candidates-list">
             <div class="pontifex-oi-candidate-row">
                 <div>
-                    <label for="candidate_fullname_1">
-                        <?php esc_html_e('Naam','pontifex-oi'); ?>
-                        <span class="required">*</span>
-                    </label>
-                    <input type="text"
-                           id="candidate_fullname_1"
-                           name="candidate_fullname[]"
-                           required
-                           placeholder="<?php esc_attr_e('Bijv. Jan','pontifex-oi'); ?>">
+                    <label><?php esc_html_e('Naam','pontifex-oi'); ?> <span class="required">*</span></label>
+                    <input type="text" name="candidate_fullname[]" required placeholder="<?php esc_attr_e('Bijv. Jan','pontifex-oi'); ?>">
                 </div>
                 <div>
-                    <label for="candidate_infix_1">
-                        <?php esc_html_e('Tussenvoegsel','pontifex-oi'); ?>
-                    </label>
-                    <input type="text"
-                           id="candidate_infix_1"
-                           name="candidate_infix[]"
-                           placeholder="<?php esc_attr_e('Tussenvoegsel','pontifex-oi'); ?>">
+                    <label><?php esc_html_e('Tussenvoegsel','pontifex-oi'); ?></label>
+                    <input type="text" name="candidate_infix[]" placeholder="<?php esc_attr_e('Tussenvoegsel','pontifex-oi'); ?>">
                 </div>
                 <div>
-                    <label for="candidate_lastname_1">
-                        <?php esc_html_e('Achternaam','pontifex-oi'); ?>
-                        <span class="required">*</span>
-                    </label>
-                    <input type="text"
-                           id="candidate_lastname_1"
-                           name="candidate_lastname[]"
-                           required
-                           placeholder="<?php esc_attr_e('Achternaam','pontifex-oi'); ?>">
+                    <label><?php esc_html_e('Achternaam','pontifex-oi'); ?> <span class="required">*</span></label>
+                    <input type="text" name="candidate_lastname[]" required placeholder="<?php esc_attr_e('Achternaam','pontifex-oi'); ?>">
                 </div>
-                <div class="pontifex-oi-candidate-birthdate-wrapper"
-                     style="position:relative; min-width:180px;">
-                    <label for="candidate_birthdate_1">
-                        <?php esc_html_e('Geboortedatum','pontifex-oi'); ?>
-                        <span class="required">*</span>
-                    </label>
-                    <input type="text"
-                           id="candidate_birthdate_1"
-                           name="candidate_birthdate[]"
-                           required
-                           pattern="\d{2}-\d{2}-\d{4}"
-                           placeholder="30-06-1992"
-                           autocomplete="off">
-                    <button type="button"
-                            class="pontifex-oi-remove-candidate"
-                            title="<?php esc_attr_e('Kandidaat verwijderen','pontifex-oi'); ?>"
-                            style="display:none;">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                <div class="pontifex-oi-candidate-birthdate-wrapper">
+                    <label><?php esc_html_e('Geboortedatum','pontifex-oi'); ?> <span class="required">*</span></label>
+                    <input type="text" name="candidate_birthdate[]" required pattern="\d{2}-\d{2}-\d{4}" placeholder="30-06-1992">
                 </div>
             </div>
         </div>
 
         <div class="pontifex-oi-candidate-addrow">
-            <button type="button" class="pontifex-oi-add-candidate" tabindex="0">
-                <?php esc_html_e('Kandidaat toevoegen','pontifex-oi'); ?>
-            </button>
+            <button type="button" class="pontifex-oi-add-candidate"><?php esc_html_e('Kandidaat toevoegen','pontifex-oi'); ?></button>
         </div>
 
         <div class="pontifex-oi-flex-row">
             <div class="pontifex-oi-order-form">
-                <h2 class="pontifex-oi-section-label">
-                    <?php esc_html_e('Bestelgegevens','pontifex-oi'); ?>
-                </h2>
+                <h2 class="pontifex-oi-section-label"><?php esc_html_e('Bestelgegevens','pontifex-oi'); ?></h2>
 
+                <!-- Naam en contact -->
                 <div class="pontifex-oi-row-group">
-                    <label for="order_initials">
-                        <?php esc_html_e('Naam','pontifex-oi'); ?> <span class="required">*</span>
-                    </label>
+                    <label><?php esc_html_e('Naam','pontifex-oi'); ?> <span class="required">*</span></label>
                     <div class="pontifex-oi-name-row">
-                        <input type="text"
-                               id="order_initials"
-                               name="order_initials"
-                               required
-                               placeholder="<?php esc_attr_e('Voorletters','pontifex-oi'); ?>">
-                        <input type="text"
-                               name="order_infix"
-                               placeholder="<?php esc_attr_e('Tussenvoegsel (optioneel)','pontifex-oi'); ?>">
-                        <input type="text"
-                               id="order_lastname"
-                               name="order_lastname"
-                               required
-                               placeholder="<?php esc_attr_e('Achternaam','pontifex-oi'); ?>">
+                        <input type="text" name="order_initials" required placeholder="<?php esc_attr_e('Voorletters','pontifex-oi'); ?>">
+                        <input type="text" name="order_infix" placeholder="<?php esc_attr_e('Tussenvoegsel (optioneel)','pontifex-oi'); ?>">
+                        <input type="text" name="order_lastname" required placeholder="<?php esc_attr_e('Achternaam','pontifex-oi'); ?>">
                     </div>
                 </div>
 
                 <div class="pontifex-oi-row-group">
-                    <label for="order_postcode">
-                        <?php esc_html_e('Postcode en huisnummer','pontifex-oi'); ?> <span class="required">*</span>
-                    </label>
+                    <label><?php esc_html_e('Postcode en huisnummer','pontifex-oi'); ?> <span class="required">*</span></label>
                     <div class="pontifex-oi-adres-row">
-                        <input type="text"
-                               id="order_postcode"
-                               name="order_postcode"
-                               required
-                               placeholder="<?php esc_attr_e('1234AB','pontifex-oi'); ?>">
-                        <input type="text"
-                               name="order_housenumber"
-                               required
-                               placeholder="<?php esc_attr_e('Huisnummer','pontifex-oi'); ?>">
+                        <input type="text" name="order_postcode" required placeholder="<?php esc_attr_e('1234AB','pontifex-oi'); ?>">
+                        <input type="text" name="order_housenumber" required placeholder="<?php esc_attr_e('Huisnummer','pontifex-oi'); ?>">
                     </div>
                 </div>
 
                 <div class="pontifex-oi-row-group">
-                    <label for="order_street">
-                        <?php esc_html_e('Adres','pontifex-oi'); ?> <span class="required">*</span>
-                    </label>
+                    <label><?php esc_html_e('Adres','pontifex-oi'); ?> <span class="required">*</span></label>
                     <div class="pontifex-oi-adres-row">
-                        <input type="text"
-                               id="order_street"
-                               name="order_street"
-                               required
-                               placeholder="<?php esc_attr_e('Straat','pontifex-oi'); ?>">
-                        <input type="text"
-                               id="order_city"
-                               name="order_city"
-                               required
-                               placeholder="<?php esc_attr_e('Plaats','pontifex-oi'); ?>">
+                        <input type="text" name="order_street" required placeholder="<?php esc_attr_e('Straat','pontifex-oi'); ?>">
+                        <input type="text" name="order_city" required placeholder="<?php esc_attr_e('Plaats','pontifex-oi'); ?>">
                     </div>
                 </div>
 
@@ -224,126 +150,69 @@ $price_for_input = number_format($price_numeric, 2, '.', ''); // Voor JS (punt!)
                         <label for="order_email"><?php esc_html_e('E-mailadres','pontifex-oi'); ?> <span class="required">*</span></label>
                     </div>
                     <div class="pontifex-oi-contact-row">
-                        <input type="text"
-                               id="order_phone"
-                               name="order_phone"
-                               required
-                               placeholder="<?php esc_attr_e('0612345678','pontifex-oi'); ?>">
+                        <input type="tel"
+                           id="order_phone"
+                           name="order_phone"
+                           inputmode="tel"
+                           autocomplete="tel"
+                           required
+                           pattern="^\+?[0-9\s\-]{6,}$"
+                           placeholder="<?php esc_attr_e('0612345678','pontifex-oi'); ?>">
+                
                         <input type="email"
                                id="order_email"
                                name="order_email"
+                               inputmode="email"
+                               autocomplete="email"
                                required
                                placeholder="<?php esc_attr_e('naam@domein.nl','pontifex-oi'); ?>">
                     </div>
                 </div>
 
                 <div class="pontifex-oi-row-group">
-                    <label for="order_company"><?php esc_html_e('Bedrijfsnaam','pontifex-oi'); ?></label>
-                    <input type="text"
-                           id="order_company"
-                           name="order_company"
-                           placeholder="<?php esc_attr_e('Bedrijfsnaam','pontifex-oi'); ?>">
+                    <label><?php esc_html_e('Bedrijfsnaam','pontifex-oi'); ?></label>
+                    <input type="text" name="order_company" placeholder="<?php esc_attr_e('Bedrijfsnaam','pontifex-oi'); ?>">
                 </div>
 
                 <div class="pontifex-oi-row-group">
-                    <label for="order_vat"><?php esc_html_e('BTW-nummer','pontifex-oi'); ?></label>
-                    <input type="text"
-                           id="order_vat"
-                           name="order_vat"
-                           placeholder="<?php esc_attr_e('NL123456789B01','pontifex-oi'); ?>">
+                    <label><?php esc_html_e('BTW-nummer','pontifex-oi'); ?></label>
+                    <input type="text" name="order_vat" placeholder="<?php esc_attr_e('NL123456789B01','pontifex-oi'); ?>">
                 </div>
             </div>
 
             <div class="pontifex-oi-order-summary">
-                <h3 class="pontifex-oi-section-label">
-                    <?php esc_html_e('Gegevens van uw bestelling','pontifex-oi'); ?>
-                </h3>
+                <h3 class="pontifex-oi-section-label"><?php esc_html_e('Gegevens van uw bestelling','pontifex-oi'); ?></h3>
                 <div class="besteloverzicht-stap2">
-                    <div class="bo-item">
-                        <strong><?php esc_html_e('Examen','pontifex-oi'); ?></strong>
-                        <span>
-                            <?php
-                            $examLabel = isset($exam_type_labels[$exam_type]) ? $exam_type_labels[$exam_type] : ($exam_type ? $exam_type : '-');
-                            echo esc_html($examLabel);
-                            ?>
-                        </span>
-                    </div>
-                    <div class="bo-item">
-                        <strong><?php esc_html_e('Taal','pontifex-oi'); ?></strong>
-                        <span>
-                            <?php
-                            $lang = $language ?: ($is_weekend_cursus ? 'nl' : '');
-                            $langLabel = isset($language_labels[$lang]) ? $language_labels[$lang] : ($lang ? $lang : '-');
-                            echo esc_html($langLabel);
-                            ?>
-                        </span>
-                    </div>
+                    <div class="bo-item"><strong><?php esc_html_e('Examen','pontifex-oi'); ?></strong> <span><?php echo esc_html($exam_type_labels[$exam_type] ?? $exam_type ?: '-'); ?></span></div>
+                    <div class="bo-item"><strong><?php esc_html_e('Taal','pontifex-oi'); ?></strong> <span><?php echo esc_html($language_labels[$language] ?? $language ?: '-'); ?></span></div>
 
-                    <?php if ($is_weekend_cursus): ?>
-                    <div class="bo-item">
-                        <strong><?php esc_html_e('Lesmateriaal','pontifex-oi'); ?></strong>
-                        <span><?php esc_html_e('Niet van toepassing','pontifex-oi'); ?></span>
-                    </div>
-                    <div class="bo-divider"></div>
-                    <?php else:
-                        $key = $exam_type . '_' . $language;
-                        $heeft_extra = !empty($extra_material_options[$key]) && is_array($extra_material_options[$key]);
-                        if ($heeft_extra): ?>
-                        <div id="extra-material-checkboxes" style="margin:1em 0;">
-                            <strong><?php esc_html_e('Extra lesmateriaal nodig?','pontifex-oi'); ?></strong>
-                            <div>
-                                <?php foreach ($extra_material_options[$key] as $opt): ?>
-                                    <label style="display:block; margin:0.3em 0;">
-                                        <input type="checkbox"
-                                               class="extra-material-checkbox"
-                                               name="extra_material[]"
-                                               value="<?php echo esc_attr($opt['id']); ?>"
-                                               data-price="<?php echo esc_attr($opt['price']); ?>">
-                                        <?php echo esc_html($opt['label']); ?> (€<?php echo number_format($opt['price'],2,',','.'); ?>)
-                                    </label>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <div class="bo-divider"></div>
-                        <?php endif;
-                    endif; ?>
+                    <?php
+                    $key = $exam_type . '_' . $language;
+                    if (!empty($extra_material_options[$key])) {
+                        echo '<div id="extra-material-checkboxes"><strong>'.esc_html__('Extra lesmateriaal nodig?','pontifex-oi').'</strong>';
+                        foreach ($extra_material_options[$key] as $opt) {
+                            if ($opt['id'] === 'cursus-weekend' && !$show_weekend_checkbox) {
+                                continue;
+                            }
+                            echo '<label><input type="checkbox" class="extra-material-checkbox" name="extra_material[]" value="'.esc_attr($opt['id']).'" data-price="'.esc_attr($opt['price']).'"> '.esc_html($opt['label']).' (€'.number_format($opt['price'],2,',','.').')</label>';
+                        }
+                        echo '</div>';
+                    } else {
+                        echo '<div class="bo-item"><strong>'.esc_html__('Lesmateriaal','pontifex-oi').'</strong> <span>'.esc_html__('Geen extra opties voor deze taal','pontifex-oi').'</span></div>';
+                    }
+                    ?>
 
-                    <div class="bo-item">
-                        <strong><?php esc_html_e('Datum','pontifex-oi'); ?></strong>
-                        <span><?php echo esc_html($date ?: '-'); ?></span>
-                    </div>
-                    <div class="bo-item">
-                        <strong><?php esc_html_e('Tijd','pontifex-oi'); ?></strong>
-                        <span><?php echo esc_html($time ?: '-'); ?></span>
-                    </div>
-                    <div class="bo-item">
-                        <strong><?php esc_html_e('Locatie','pontifex-oi'); ?></strong>
-                        <span><?php echo esc_html($location ?: '-'); ?></span>
-                    </div>
-                    <div class="bo-item">
-                        <strong><?php esc_html_e('Provincie','pontifex-oi'); ?></strong>
-                        <span><?php echo esc_html($province ?: '-'); ?></span>
-                    </div>
-                    <div class="bo-item">
-                        <strong><?php esc_html_e('Aantal kandidaten','pontifex-oi'); ?></strong>
-                        <span id="candidate-count">1</span>
-                    </div>
-                    <div class="bo-item totaal">
-                        <strong><?php esc_html_e('Prijs totaal','pontifex-oi'); ?></strong>
-                        <span id="total-price"><?php echo esc_html($price_display); ?></span>
-                    </div>
+                    <div class="bo-item"><strong><?php esc_html_e('Datum','pontifex-oi'); ?></strong> <span><?php echo esc_html($date ?: '-'); ?></span></div>
+                    <div class="bo-item"><strong><?php esc_html_e('Tijd','pontifex-oi'); ?></strong> <span><?php echo esc_html($time ?: '-'); ?></span></div>
+                    <div class="bo-item"><strong><?php esc_html_e('Locatie','pontifex-oi'); ?></strong> <span><?php echo esc_html($location ?: '-'); ?></span></div>
+                    <div class="bo-item"><strong><?php esc_html_e('Provincie','pontifex-oi'); ?></strong> <span><?php echo esc_html($province ?: '-'); ?></span></div>
+                    <div class="bo-item"><strong><?php esc_html_e('Aantal kandidaten','pontifex-oi'); ?></strong> <span id="candidate-count">1</span></div>
+                    <div class="bo-item totaal"><strong><?php esc_html_e('Prijs totaal','pontifex-oi'); ?></strong> <span id="total-price"><?php echo esc_html($price_display); ?></span></div>
                 </div>
-                <button type="submit" class="pontifex-oi-submit-order">
-                    <?php esc_html_e('Bestelling plaatsen','pontifex-oi'); ?>
-                    <i class="fa fa-arrow-right"></i>
-                </button>
+                <button type="submit" class="pontifex-oi-submit-order"><?php esc_html_e('Bestelling plaatsen','pontifex-oi'); ?> <i class="fa fa-arrow-right"></i></button>
             </div>
         </div>
 
-        <input type="hidden"
-               id="payment_amount"
-               name="payment_amount"
-               value="<?php echo esc_attr($price_for_input); ?>"
-               data-base-price="<?php echo esc_attr($price_for_input); ?>">
+        <input type="hidden" id="payment_amount" name="payment_amount" value="<?php echo esc_attr(number_format($price_numeric, 2, ',', '')); ?>" data-base-price="<?php echo esc_attr(number_format($price_numeric, 2, '.', '')); ?>">
     </form>
 </section>

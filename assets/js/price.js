@@ -1,3 +1,4 @@
+// assets/js/price.js
 (function(window) {
   'use strict';
 
@@ -14,15 +15,19 @@
       EXAM_PRODUCTS: cfg.examProducts || cfg.EXAM_PRODUCTS || {},
       MATERIAL_PRODUCTS: cfg.materialProducts || cfg.MATERIAL_PRODUCTS || {},
       MATERIAL_COMBIS: cfg.materialCombis || cfg.MATERIAL_COMBIS || {},
-      EXAM_WEEKEND: cfg.examWeekend || cfg.EXAM_WEEKEND || [],
+      WEEKEND_ALLOWED_BY_EXAM: cfg.weekendAllowedByExam || {},
       ajaxUrl: cfg.ajaxUrl || ''
     };
   }
 
+  function isWeekendAllowed(exam, lang) {
+    const cfg = getCfg();
+    const allowedLangs = cfg.WEEKEND_ALLOWED_BY_EXAM[exam] || [];
+    return allowedLangs.includes(lang);
+  }
+
   function calculatePrice(exam, lang, mat) {
     const cfg = getCfg();
-
-    if (cfg.EXAM_WEEKEND.includes(exam)) return 245;
 
     let total = 0;
 
@@ -32,6 +37,13 @@
     }
 
     if (!mat || mat === '1') return total;
+
+    if (mat === 'cursus-weekend') {
+      if (isWeekendAllowed(exam, lang)) {
+        return total + (cfg.MATERIAL_PRODUCTS['cursus-weekend']?.price ?? 245);
+      }
+      return total;
+    }
 
     let combiKey = mat;
     if (['2', '4', '5', '6', '7'].includes(mat)) {
@@ -47,66 +59,157 @@
     return total;
   }
 
-  function fetchPrice(exam, lang, mat, cb, ajaxUrl = '') {
-    const cfg = getCfg();
+  // Cache
+  const _priceCache = new Map(); // key -> "€x,xx"
 
-    if (cfg.EXAM_WEEKEND.includes(exam)) {
-      cb('€245,00');
+  function cacheKey(exam, lang, mat) {
+    return `${exam}|${lang}|${mat}`;
+  }
+
+  function fetchPrice(exam, lang, mat, cb, ajaxUrl = '') {
+    const key = cacheKey(exam, lang, mat);
+    if (_priceCache.has(key)) {
+      cb(_priceCache.get(key));
       return;
     }
 
     const localPrice = calculatePrice(exam, lang, mat);
+    const localStr = '€' + localPrice.toFixed(2).replace('.', ',');
 
-    const url = ajaxUrl || cfg.ajaxUrl;
-    if (!url) {
-      cb('€' + localPrice.toFixed(2).replace('.', ','));
+    const onRegistrationPage = !!document.querySelector('#step-2');
+    if (!onRegistrationPage) {
+      _priceCache.set(key, localStr);
+      cb(localStr);
       return;
     }
 
-    if (typeof window.jQuery !== 'undefined') {
-      window.jQuery.ajax({
-        url: url,
-        method: 'POST',
-        dataType: 'json',
-        data: {
-          action: 'pontifex_oi_get_price',
-          exam_type: exam,
-          language: lang,
-          material: mat
-        },
-        success: function(resp) {
-          if (resp?.success && resp?.data?.price) cb(resp.data.price);
-          else cb('€' + localPrice.toFixed(2).replace('.', ','));
-        },
-        error: function() {
-          cb('€' + localPrice.toFixed(2).replace('.', ','));
-        }
+    const cfgAll = getCfg();
+    const url = ajaxUrl || cfgAll.ajaxUrl;
+    if (!url || typeof window.jQuery === 'undefined') {
+      _priceCache.set(key, localStr);
+      cb(localStr);
+      return;
+    }
+
+    window.jQuery.ajax({
+      url: url,
+      method: 'POST',
+      dataType: 'json',
+      data: {
+        action: 'pontifex_oi_get_price',
+        exam_type: exam,
+        language: lang,
+        material: mat
+      },
+      success: function(resp) {
+        const out = (resp?.success && resp?.data?.price) ? resp.data.price : localStr;
+        _priceCache.set(key, out);
+        cb(out);
+      },
+      error: function() {
+        _priceCache.set(key, localStr);
+        cb(localStr);
+      }
+    });
+  }
+
+  // NEW: Batch fetch
+  function fetchPricesBatch(items, cb) {
+    // items: [{exam_type, language, material}]
+    const cfgAll = getCfg();
+    const url = cfgAll.ajaxUrl || '';
+    const onRegistrationPage = !!document.querySelector('#step-2');
+
+    // Prepare request, but skip those already in cache; compute local immediately if not on registration page
+    const toRequest = [];
+    const result = {};
+
+    items.forEach(it => {
+      const key = cacheKey(it.exam_type, it.language, it.material);
+      if (_priceCache.has(key)) {
+        result[key] = _priceCache.get(key);
+      } else if (!onRegistrationPage || !url) {
+        const local = calculatePrice(it.exam_type, it.language, it.material);
+        const localStr = '€' + local.toFixed(2).replace('.', ',');
+        _priceCache.set(key, localStr);
+        result[key] = localStr;
+      } else {
+        toRequest.push(it);
+      }
+    });
+
+    if (toRequest.length === 0) {
+      cb(result);
+      return;
+    }
+
+    if (typeof window.jQuery === 'undefined') {
+      // Fallback compute local even on step 2
+      toRequest.forEach(it => {
+        const key = cacheKey(it.exam_type, it.language, it.material);
+        const local = calculatePrice(it.exam_type, it.language, it.material);
+        const localStr = '€' + local.toFixed(2).replace('.', ',');
+        _priceCache.set(key, localStr);
+        result[key] = localStr;
       });
+      cb(result);
       return;
     }
 
-    fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-          action: 'pontifex_oi_get_price',
-          exam_type: exam,
-          language: lang,
-          material: mat
-        })
-      })
-      .then(r => r.json())
-      .then(resp => {
-        if (resp?.success && resp?.data?.price) cb(resp.data.price);
-        else cb('€' + localPrice.toFixed(2).replace('.', ','));
-      })
-      .catch(() => cb('€' + localPrice.toFixed(2).replace('.', ',')));
+    window.jQuery.ajax({
+      url: url,
+      method: 'POST',
+      dataType: 'json',
+      data: {
+        action: 'pontifex_oi_get_prices_batch',
+        items: JSON.stringify(toRequest)
+      },
+      success: function(resp) {
+        if (resp?.success && resp?.data?.prices) {
+          const prices = resp.data.prices;
+          Object.keys(prices).forEach(k => {
+            _priceCache.set(k, prices[k]);
+            result[k] = prices[k];
+          });
+          // any missing -> fill local
+          toRequest.forEach(it => {
+            const k = cacheKey(it.exam_type, it.language, it.material);
+            if (!result[k]) {
+              const local = calculatePrice(it.exam_type, it.language, it.material);
+              const localStr = '€' + local.toFixed(2).replace('.', ',');
+              _priceCache.set(k, localStr);
+              result[k] = localStr;
+            }
+          });
+          cb(result);
+        } else {
+          // server failed -> local fallback
+          toRequest.forEach(it => {
+            const k = cacheKey(it.exam_type, it.language, it.material);
+            const local = calculatePrice(it.exam_type, it.language, it.material);
+            const localStr = '€' + local.toFixed(2).replace('.', ',');
+            _priceCache.set(k, localStr);
+            result[k] = localStr;
+          });
+          cb(result);
+        }
+      },
+      error: function() {
+        toRequest.forEach(it => {
+          const k = cacheKey(it.exam_type, it.language, it.material);
+          const local = calculatePrice(it.exam_type, it.language, it.material);
+          const localStr = '€' + local.toFixed(2).replace('.', ',');
+          _priceCache.set(k, localStr);
+          result[k] = localStr;
+        });
+        cb(result);
+      }
+    });
   }
 
   PontifexOI.calculatePrice = calculatePrice;
   PontifexOI.fetchPrice = fetchPrice;
+  PontifexOI.fetchPricesBatch = fetchPricesBatch;
   PontifexOI.parsePrice = parsePrice;
 
 })(window);

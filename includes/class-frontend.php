@@ -4,34 +4,24 @@ namespace PontifexOI\PublicPart;
 use PontifexOI\Helpers\PaymentHelpers;
 
 if (!defined('ABSPATH')) {
-    exit; // Exit if accessed directly
+    exit;
 }
 
-// Zorg ervoor dat de benodigde productgegevens beschikbaar zijn.
 require_once PONTIFEX_OI_PATH . 'includes/config/producten-prijzen.php';
 
 class Frontend {
     private static $instance = null;
 
-    /**
-     * Retourneert de singleton instantie van de Frontend klasse.
-     *
-     * @return Frontend
-     */
     public static function get_instance() {
         return self::$instance ?: (self::$instance = new self());
     }
 
-    /**
-     * Constructor van de Frontend klasse.
-     * Registreert shortcodes, enqueue scripts en AJAX-acties.
-     */
     private function __construct() {
         add_shortcode('pontifex_oi_planning', [$this, 'render_planning_shortcode']);
         add_shortcode('pontifex_oi_registration', [$this, 'render_registration_shortcode']);
 
         add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
-        add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']); // Voor AJAX in admin context
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
 
         add_action('wp_ajax_pontifex_oi_get_planning', [$this, 'ajax_get_planning']);
         add_action('wp_ajax_nopriv_pontifex_oi_get_planning', [$this, 'ajax_get_planning']);
@@ -50,9 +40,6 @@ class Frontend {
         });
     }
 
-    /**
-     * Voeg CSS en JS toe.
-     */
     public function enqueue_assets() {
         wp_enqueue_style('pontifex-oi-shared', PONTIFEX_OI_URL . 'assets/css/pontifex-oi-shared.css', [], PONTIFEX_OI_VERSION);
         wp_enqueue_style('pontifex-oi-planning', PONTIFEX_OI_URL . 'assets/css/pontifex-oi-planning.css', ['pontifex-oi-shared'], PONTIFEX_OI_VERSION);
@@ -63,29 +50,57 @@ class Frontend {
         wp_enqueue_script('pontifex-oi-material', PONTIFEX_OI_URL . 'assets/js/material.js', ['pontifex-oi-config', 'jquery'], PONTIFEX_OI_VERSION, true);
         wp_enqueue_script('pontifex-oi', PONTIFEX_OI_URL . 'assets/js/main.js', ['pontifex-oi-material'], PONTIFEX_OI_VERSION, true);
 
-        // Data voor config.js localiseren
+        $weekendAllowedByExam = [
+            'los-examen-vca-basis'       => ['nl', 'en'],
+            'los-examen-vca-basis-groen' => ['nl'],
+            'los-examen-vca-vol'         => ['nl'],
+            'los-examen-vil-vcu'         => ['nl', 'en'],
+        ];
+
+        // Beschikbare talen en labels centraal
+        $availableLanguages = ['nl','en','de','fr','ar','bg','lt','pl','pt','ro','ru','tr','el','hu','it','hr','uk','sk','es','vi'];
+        $availableLanguageLabels = [
+            'nl' => 'Nederlands',
+            'en' => 'Engels',
+            'de' => 'Duits',
+            'fr' => 'Frans',
+            'ar' => 'Arabisch',
+            'bg' => 'Bulgaars',
+            'lt' => 'Litouws',
+            'pl' => 'Pools',
+            'pt' => 'Portugees',
+            'ro' => 'Roemeens',
+            'ru' => 'Russisch',
+            'tr' => 'Turks',
+            'el' => 'Grieks',
+            'hu' => 'Hongaars',
+            'it' => 'Italiaans',
+            'hr' => 'Kroatisch',
+            'uk' => 'Oekraïens',
+            'sk' => 'Slowaaks',
+            'es' => 'Spaans',
+            'vi' => 'Vietnamees',
+        ];
+
         wp_localize_script('pontifex-oi-config', 'PontifexOIConfigData', array_merge(
             [
                 'ajaxUrl' => admin_url('admin-ajax.php'),
-                'registrationPageUrl' => get_permalink(2207), // Pas aan naar juiste pagina ID
+                'registrationPageUrl' => get_permalink(2207),
                 'planningPageUrl' => home_url('/cursus-zoeken/'),
-                'examWeekend' => ['vca-basis-weekend', 'vca-vol-weekend'],
+                'weekendAllowedByExam' => $weekendAllowedByExam,
+                'availableLanguages' => $availableLanguages,
+                'availableLanguageLabels' => $availableLanguageLabels,
             ],
             $this->get_product_data_for_js(),
             ['extraMaterialCheckboxes' => $this->get_extra_material_checkboxes_for_js()]
-
         ));
 
-        // AJAX-data voor main.js
         wp_localize_script('pontifex-oi', 'PontifexOiAjax', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'registration_url' => get_permalink(2207),
         ]);
     }
 
-    /**
-     * Render planning shortcode.
-     */
     public function render_planning_shortcode($atts = []) {
         $filters = array_merge([
             'exam_type' => '',
@@ -108,14 +123,16 @@ class Frontend {
         $args['exam_types'] = [
             ['id' => '', 'name' => 'Toon alles'],
             ['id' => 'los-examen-vca-basis', 'name' => 'VCA Basis'],
+            ['id' => 'los-examen-vca-basis-groen', 'name' => 'VCA Basis Groen'],
             ['id' => 'los-examen-vca-vol',   'name' => 'VCA Vol'],
-            ['id' => 'vca-basis-weekend',    'name' => 'VCA Basis Cursus Weekend'],
-            ['id' => 'vca-vol-weekend',      'name' => 'VCA Vol Cursus Weekend'],
+            ['id' => 'los-examen-vil-vcu',   'name' => 'VCA VIL-VCU']
         ];
         $args['languages'] = [
             ['id' => '', 'name' => 'Toon alles'],
             ['id' => 'nl', 'name' => 'Nederlands'],
             ['id' => 'en', 'name' => 'Engels'],
+            ['id' => 'de', 'name' => 'Duits'],
+            ['id' => 'fr', 'name' => 'Frans'],
         ];
         $args['materials'] = [
             ['id' => '', 'name' => 'Geen keuze'],
@@ -152,9 +169,6 @@ class Frontend {
         return ob_get_clean();
     }
 
-    /**
-     * Render registratie shortcode.
-     */
     public function render_registration_shortcode($atts = []) {
         $defaults = [
             'exam_type' => sanitize_text_field($_GET['exam_type'] ?? ''),
@@ -173,9 +187,6 @@ class Frontend {
         return ob_get_clean();
     }
 
-    /**
-     * AJAX: haal planning op.
-     */
     public function ajax_get_planning() {
         $filters  = $_POST['filters'] ?? [];
         $page     = max(1, (int) ($filters['page'] ?? 1));
@@ -195,9 +206,6 @@ class Frontend {
         ]);
     }
 
-    /**
-     * AJAX: filteropties ophalen.
-     */
     public function ajax_get_filter_options() {
         $filter  = sanitize_text_field($_POST['filter'] ?? '');
         $filters = $_POST['filters'] ?? [];
@@ -217,9 +225,6 @@ class Frontend {
         wp_send_json_success(['options' => $options]);
     }
 
-    /**
-     * AJAX: prijs ophalen.
-     */
     public function ajax_get_price() {
         $exam_type       = sanitize_text_field($_POST['exam_type'] ?? '');
         $language        = sanitize_text_field($_POST['language'] ?? 'nl');
@@ -241,6 +246,13 @@ class Frontend {
                     ? array_map('sanitize_text_field', $_POST['extra_material'])
                     : [],
             ];
+            $order_details['weekendAllowedByExam'] = [
+                'los-examen-vca-basis'       => ['nl', 'en'],
+                'los-examen-vca-basis-groen' => ['nl'],
+                'los-examen-vca-vol'         => ['nl'],
+                'los-examen-vil-vcu'         => ['nl', 'en'],
+            ];
+
             $price     = PaymentHelpers::calculate_total_price($order_details);
             $price_str = is_numeric($price) && $price > 0
                 ? '€' . number_format((float)$price, 2, ',', '.')
@@ -256,9 +268,6 @@ class Frontend {
         }
     }
 
-    /**
-     * AJAX: betaling verwerken.
-     */
     public function process_payment() {
         check_ajax_referer('pontifex_oi_nonce', 'nonce', false);
 
@@ -275,6 +284,13 @@ class Frontend {
         $order_data['candidate_birthdate']= array_map('sanitize_text_field', $order_data['candidate_birthdate'] ?? []);
         $order_data['candidate_count']    = count($order_data['candidate_fullname']);
 
+        $order_data['weekendAllowedByExam'] = [
+            'los-examen-vca-basis'       => ['nl', 'en'],
+            'los-examen-vca-basis-groen' => ['nl'],
+            'los-examen-vca-vol'         => ['nl'],
+            'los-examen-vil-vcu'         => ['nl', 'en'],
+        ];
+
         $calculated_total_price = PaymentHelpers::calculate_total_price($order_data);
 
         if ($amount_from_frontend <= 0 || abs($amount_from_frontend - $calculated_total_price) > 0.02) {
@@ -284,7 +300,7 @@ class Frontend {
 
         global $EXAM_PRODUCTS;
         $exam_label     = $EXAM_PRODUCTS[$order_data['exam_type']]['label'] ?? 'Onbekend Examen';
-        $language_label = ($order_data['language'] === 'nl') ? 'Nederlands' : (($order_data['language'] === 'en') ? 'Engels' : 'Onbekende Taal');
+        $language_label = $order_data['language'];
 
         $candidate_names = [];
         foreach ($order_data['candidate_fullname'] as $key => $fullname) {
@@ -321,7 +337,7 @@ class Frontend {
             );
 
             if ($payment === false) {
-                throw new \Exception('Mollie betaling kon niet worden aangemaakt via PaymentHelpers.');
+                throw new \Exception('Mollie betaling kon niet worden aangemaakt.');
             }
 
             set_transient('mollie_payment_id_for_token_' . $order_token, $payment->id, 3600);
@@ -330,16 +346,11 @@ class Frontend {
                 'payment_url' => $payment->getCheckoutUrl(),
                 'order_token' => $order_token,
             ]);
-        } catch (\Mollie\Api\Exceptions\ApiException $e) {
-            wp_send_json_error(['message' => 'Mollie API fout: ' . $e->getMessage()]);
         } catch (\Exception $e) {
-            wp_send_json_error(['message' => 'Er ging iets mis bij het starten van de betaling. Probeer het later opnieuw.']);
+            wp_send_json_error(['message' => 'Fout bij starten betaling: ' . $e->getMessage()]);
         }
     }
 
-    /**
-     * Haalt productdata op voor JS localisatie.
-     */
     private function get_product_data_for_js() {
         global $EXAM_PRODUCTS, $MATERIAL_PRODUCTS, $MATERIAL_COMBIS;
 
@@ -358,9 +369,6 @@ class Frontend {
         ];
     }
 
-    /**
-     * Haalt extra materiaal checkbox data op voor JS.
-     */
     private function get_extra_material_checkboxes_for_js() {
         $php = get_extra_material_options();
         $flat = [];

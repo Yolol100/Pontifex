@@ -3,21 +3,24 @@
  * Handles the redirection for exam registration and renders the exam planning interface.
  */
 
-// Handle registration redirection if 'aanmelden' parameter is present
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['aanmelden'])) {
+// Dynamische registratie-URL (nooit hardcoden)
+$registration_url = $args['registration_url'] ?? (function_exists('get_permalink') ? get_permalink(2207) : '/cursus-inschrijven/');
+
+// Handle registration redirection if 'go' parameter is present (veiligere naam dan 'aanmelden')
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['go'])) {
     $query = http_build_query([
-        'aanmelden'   => 1,
-        'exam_type'   => $_GET['exam_type'] ?? '',
-        'language'    => $_GET['language'] ?? '',
-        'material'    => $_GET['material'] ?? '',
-        'date'        => $_GET['date'] ?? '',
-        'time'        => $_GET['time'] ?? '',
-        'location'    => $_GET['location'] ?? '',
-        'province'    => $_GET['province'] ?? '',
-        'spots'       => $_GET['spots'] ?? '',
-        'price'       => $_GET['price'] ?? '',
+        'go'         => 1,
+        'exam_type'  => $_GET['exam_type'] ?? '',
+        'language'   => $_GET['language'] ?? '',
+        'material'   => $_GET['material'] ?? '',
+        'date'       => $_GET['date'] ?? '',
+        'time'       => $_GET['time'] ?? '',
+        'location'   => $_GET['location'] ?? '',
+        'province'   => $_GET['province'] ?? '',
+        'spots'      => $_GET['spots'] ?? '',
+        'price'      => $_GET['price'] ?? '',
     ]);
-    wp_redirect('/cursus-inschrijven/?' . $query);
+    wp_redirect( trailingslashit($registration_url) . '?' . $query );
     exit;
 }
 
@@ -33,7 +36,7 @@ if (empty($language)) $language = 'nl';
 $material = $args['filters']['material'] ?? $_GET['material'] ?? '1';
 if (empty($material)) $material = '1';
 
-$examTypes = array_filter($args['exam_types'] ?? [], fn($et) => !empty($et['id']));
+$examTypes = array_filter($args['exam_types'] ?? [], fn($et) => !empty($et['id']) || $et['id'] === '');
 $languages = $args['languages'] ?? [];
 $months     = $args['months'] ?? [];
 $provinces  = $args['provinces'] ?? [];
@@ -167,8 +170,8 @@ $total_pages = $args['total_pages'] ?? 1;
               </td>
               <td>
                 <?php if (strtoupper($row['spots'] ?? '') !== 'VOL'): ?>
-                  <form method="get" class="pontifex-oi-aanmeld-form" action="/cursus-inschrijven/">
-                    <input type="hidden" name="aanmelden" value="1">
+                  <form method="get" class="pontifex-oi-aanmeld-form" action="<?php echo esc_url($registration_url); ?>">
+                    <input type="hidden" name="go" value="1">
                     <input type="hidden" name="exam_type"  value="<?php echo esc_attr($row_exam); ?>">
                     <input type="hidden" name="language"   value="<?php echo esc_attr($row_language); ?>">
                     <input type="hidden" name="material"   value="<?php echo esc_attr($row_material); ?>">
@@ -221,17 +224,17 @@ $total_pages = $args['total_pages'] ?? 1;
               </dd>
               <dd>
                 <?php if (strtoupper($spots) !== 'VOL'): ?>
-                  <form method="get" class="pontifex-oi-aanmeld-form" action="/cursus-inschrijven/">
-                    <input type="hidden" name="aanmelden"   value="1">
-                    <input type="hidden" name="exam_type"   value="<?php echo esc_attr($row_exam); ?>">
-                    <input type="hidden" name="language"    value="<?php echo esc_attr($row_language); ?>">
-                    <input type="hidden" name="material"    value="1">
-                    <input type="hidden" name="date"        value="<?php echo esc_attr($row['date'] ?? ''); ?>">
-                    <input type="hidden" name="time"        value="<?php echo esc_attr($row['time'] ?? ''); ?>">
-                    <input type="hidden" name="location"    value="<?php echo esc_attr($row['location'] ?? ''); ?>">
-                    <input type="hidden" name="province"    value="<?php echo esc_attr($row['province'] ?? ''); ?>">
-                    <input type="hidden" name="spots"       value="<?php echo esc_attr($row['spots'] ?? ''); ?>">
-                    <input type="hidden" name="price"       value="" class="pontifex-oi-price-input">
+                  <form method="get" class="pontifex-oi-aanmeld-form" action="<?php echo esc_url($registration_url); ?>">
+                    <input type="hidden" name="go"         value="1">
+                    <input type="hidden" name="exam_type"  value="<?php echo esc_attr($row_exam); ?>">
+                    <input type="hidden" name="language"   value="<?php echo esc_attr($row_language); ?>">
+                    <input type="hidden" name="material"   value="1">
+                    <input type="hidden" name="date"       value="<?php echo esc_attr($row['date'] ?? ''); ?>">
+                    <input type="hidden" name="time"       value="<?php echo esc_attr($row['time'] ?? ''); ?>">
+                    <input type="hidden" name="location"   value="<?php echo esc_attr($row['location'] ?? ''); ?>">
+                    <input type="hidden" name="province"   value="<?php echo esc_attr($row['province'] ?? ''); ?>">
+                    <input type="hidden" name="spots"      value="<?php echo esc_attr($row['spots'] ?? ''); ?>">
+                    <input type="hidden" name="price"      value="" class="pontifex-oi-price-input">
                     <button type="submit" class="pontifex-oi-aanmelden"><?php esc_html_e('Kandidaat aanmelden','pontifex-oi'); ?></button>
                   </form>
                 <?php else: ?>
@@ -242,7 +245,6 @@ $total_pages = $args['total_pages'] ?? 1;
           </article>
           <?php endforeach; ?>
         <?php else: ?>
-          <!-- Aangepast: Geen resultaten kaart ipv simpele paragraaf -->
           <div class="pontifex-oi-card-noresults">
             <div class="pontifex-oi-card-noresults-header"><?php esc_html_e('Geen resultaten','pontifex-oi'); ?></div>
             <div class="pontifex-oi-card-noresults-body">
