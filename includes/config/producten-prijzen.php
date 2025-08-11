@@ -12,10 +12,7 @@ $EXAM_PRODUCTS = [
         'label'  => 'VCA Basis',
         'prices' => [
             // Kern-talen
-            'nl' => 129,
-            'de' => 129,
-            'en' => 129,
-            'fr' => 129,
+            'nl' => 129, 'de' => 129, 'en' => 129, 'fr' => 129,
             // Groep 1 (149)
             'ar' => 149, 'bg' => 149, 'lt' => 149, 'pl' => 149,
             'pt' => 149, 'ro' => 149, 'ru' => 149, 'tr' => 149,
@@ -35,79 +32,79 @@ $EXAM_PRODUCTS = [
     'los-examen-vca-vol' => [
         'label'  => 'VCA Vol',
         'prices' => [
-            'nl' => 129,
-            'de' => 139,
-            'en' => 139,
-            'fr' => 139,
+            'nl' => 139, 'de' => 139, 'en' => 139, 'fr' => 139,
         ],
     ],
-
+    
     // VCA VIL
     'los-examen-vca-vil' => [
         'label'  => 'VCA VIL',
         'prices' => [
-            'nl' => 129,
-            'en' => 139,
+            'nl' => 139, 'en' => 139,
         ],
     ],
 ];
 
 /**
  * Los materiaal (checkbox opties).
- * Let op: Checkbox "cursus-weekend" is alleen toegestaan voor NL/EN (zie $WEEKEND_ALLOWED_BY_EXAM)
  */
 $MATERIAL_PRODUCTS = [
     // BASIS NL
-    'e-learning-vca-basis-nl'    => ['label' => 'E-learning VCA Basis (NL)',    'price' => 29],
+    'e-learning-vca-basis-nl'      => ['label' => 'E-learning met proefexamen (NL)', 'price' => 29],
     'vca-basis-proefexamens-nl' => ['label' => 'VCA Basis Proefexamens (NL)', 'price' => 25],
-    'boek-vca-basis-nl'          => ['label' => 'Boek VCA Basis (NL)',          'price' => 36],
-    'boek-vca-combi-nl'          => ['label' => 'Boek VCA Combi (NL)',          'price' => 49],
+    'boek-vca-basis-nl'            => ['label' => 'Boek VCA Basis (NL)',         'price' => 36],
+    'boek-vca-combi-nl'            => ['label' => 'Boek VCA Combi (NL)',         'price' => 49],
 
     // VOL NL
-    'e-learning-vca-vol-nl'      => ['label' => 'E-learning VCA Vol (NL)',      'price' => 39],
-    'vca-vol-proefexamens-nl'    => ['label' => 'VCA Vol Proefexamens (NL)',    'price' => 25],
-    'boek-vca-vol-nl'            => ['label' => 'Boek VCA Vol (NL)',            'price' => 42],
-    'boek-vca-combi-vol-nl'      => ['label' => 'Boek VCA Combi (NL)',          'price' => 49],
+    'e-learning-vca-vol-nl'      => ['label' => 'E-learning met proefexamen (NL)', 'price' => 39],
+    'vca-vol-proefexamens-nl'      => ['label' => 'VCA Vol Proefexamens (NL)',       'price' => 25],
+    'boek-vca-vol-nl'              => ['label' => 'Boek VCA Vol (NL)',               'price' => 42],
+    'boek-vca-combi-vol-nl'        => ['label' => 'Boek VCA Combi (NL)',         'price' => 49],
 
     // BASIS EN
-    'e-learning-vca-basis-en'    => ['label' => 'E-learning VCA Basis (EN)',    'price' => 49],
-    'boek-vca-basis-en'          => ['label' => 'Boek VCA Basis (EN)',          'price' => 56],
-    'boek-vca-combi-en'          => ['label' => 'Boek VCA Combi (EN)',          'price' => 69],
+    'e-learning-vca-basis-en'      => ['label' => 'E-learning met proefexamen (EN)', 'price' => 49],
+    'boek-vca-basis-en'            => ['label' => 'Boek VCA Basis (EN)',         'price' => 56],
+    'boek-vca-combi-en'            => ['label' => 'Boek VCA Combi (EN)',         'price' => 69],
 
     // VOL EN
-    'e-learning-vca-vol-en'      => ['label' => 'E-learning VCA Vol (EN)',      'price' => 59],
-    'boek-vca-vol-en'            => ['label' => 'Boek VCA Vol (EN)',            'price' => 62],
-    'boek-vca-combi-vol-en'      => ['label' => 'Boek VCA Combi (EN)',          'price' => 69],
-
+    'e-learning-vca-vol-en'      => ['label' => 'E-learning met proefexamen (EN)', 'price' => 59],
+    'boek-vca-vol-en'              => ['label' => 'Boek VCA Vol (EN)',               'price' => 62],
+    'boek-vca-combi-vol-en'        => ['label' => 'Boek VCA Combi (EN)',         'price' => 69],
+    
     // WEEKEND (checkbox extra)
-    'cursus-weekend'             => ['label' => 'Cursus weekend',               'price' => 245],
+    'cursus-weekend'               => ['label' => 'Weekendcursus met los examen in DH', 'price' => 245],
+    
+    'proefexamens-en' => [
+        'label' => 'Proefexamens (EN)',
+        'price' => 25.00
+    ],
 ];
 
 /**
  * Mapping voor pakketten (dropdown "Lesmateriaal").
  */
 $MATERIAL_COMBIS = [
-    '1'        => [], // Geen materiaal
-    '2_basis'  => ['boek-vca-basis-nl'],
-    '2_vol'    => ['boek-vca-vol-nl'],
-    '4_basis'  => ['e-learning-vca-basis-nl'],
-    '4_vol'    => ['e-learning-vca-vol-nl'],
-    '5_basis'  => ['vca-basis-proefexamens-nl'],
-    '5_vol'    => ['vca-vol-proefexamens-nl'],
-    '6_basis'  => ['boek-vca-basis-nl', 'vca-basis-proefexamens-nl'],
-    '6_vol'    => ['boek-vca-vol-nl', 'vca-vol-proefexamens-nl'],
-    '7_basis'  => ['e-learning-vca-basis-nl', 'vca-basis-proefexamens-nl'],
-    '7_vol'    => ['e-learning-vca-vol-nl', 'vca-vol-proefexamens-nl'],
+    '1'          => [], // Geen materiaal
+    '2_basis'    => ['boek-vca-basis-nl'],
+    '2_vol'      => ['boek-vca-vol-nl'],
+    '4_basis'    => ['e-learning-vca-basis-nl'],
+    '4_vol'      => ['e-learning-vca-vol-nl'],
+    '5_basis'    => ['vca-basis-proefexamens-nl'],
+    '5_vol'      => ['vca-vol-proefexamens-nl'],
+    '6_basis'    => ['boek-vca-basis-nl', 'vca-basis-proefexamens-nl'],
+    '6_vol'      => ['boek-vca-vol-nl', 'vca-vol-proefexamens-nl'],
+    '7_basis'    => ['e-learning-vca-basis-nl', 'vca-basis-proefexamens-nl'],
+    '7_vol'      => ['e-learning-vca-vol-nl', 'vca-vol-proefexamens-nl'],
 ];
 
 /**
- * Weekend toegestaan per examensoort (checkbox zichtbaar) — alleen NL en EN.
+ * Weekend toegestaan per examensoort (checkbox zichtbaar) — Groen/VIL uitgeschakeld
  */
 $WEEKEND_ALLOWED_BY_EXAM = [
-    'los-examen-vca-basis'         => ['nl','en'],
-    'los-examen-vca-basis-groen' => ['nl'],       // Alleen NL omdat dit examensoort alleen NL heeft
-    'los-examen-vca-vol'           => ['nl','en'],
-    'los-examen-vca-vil'           => ['nl','en'],
+    'los-examen-vca-basis' => ['nl','en'],
+    'los-examen-vca-vol'   => ['nl','en'],
+    'los-examen-vca-basis-groen' => [], // uit
+    'los-examen-vca-vil'           => [], // uit
 ];
 
 /**
@@ -116,7 +113,6 @@ $WEEKEND_ALLOWED_BY_EXAM = [
 function get_product_price($exam_type, $language = 'nl', $material = '') {
     global $EXAM_PRODUCTS, $MATERIAL_PRODUCTS, $MATERIAL_COMBIS;
 
-    // Normaliseer keys
     $exam_type = pontifex_normalize_exam_key($exam_type);
 
     $total = 0;
@@ -132,7 +128,7 @@ function get_product_price($exam_type, $language = 'nl', $material = '') {
 
     $combiKey = $material;
     if (in_array($material, ['2', '4', '5', '6', '7'], true)) {
-        $suffix = (strpos($exam_type, 'vol') !== false) ? 'vol' : 'basis';
+        $suffix = (strpos($exam_type, 'vol') !== false || strpos($exam_type, 'vil') !== false) ? 'vol' : 'basis';
         $combiKey = "{$material}_{$suffix}";
     }
 
@@ -151,24 +147,26 @@ function get_product_price($exam_type, $language = 'nl', $material = '') {
 function get_total_price_with_extras($exam_type, $language = 'nl', $material = '', $extra_material = []) {
     global $MATERIAL_PRODUCTS, $WEEKEND_ALLOWED_BY_EXAM;
 
-    // Normaliseer keys
     $exam_type = pontifex_normalize_exam_key($exam_type);
 
+    // 1) basis som (examen + evt. combi's)
     $total = get_product_price($exam_type, $language, $material);
-    if (!is_array($extra_material)) {
-        $extra_material = [];
+
+    // 2) Weekend override: vaste €245 voor Basis/VOL
+    $weekend_selected = is_array($extra_material) && in_array('cursus-weekend', $extra_material, true);
+    $is_basis_or_vol  = in_array($exam_type, ['los-examen-vca-basis','los-examen-vca-vol'], true);
+    if ($weekend_selected && $is_basis_or_vol) {
+        $total = 245;
     }
 
-    foreach ($extra_material as $extra_id) {
-        if ($extra_id === 'cursus-weekend') {
-            $allowed = $WEEKEND_ALLOWED_BY_EXAM[$exam_type] ?? [];
-            if (!in_array($language, $allowed, true)) {
-                continue;
-            }
+    // 3) Tel overige extras op (exclude weekend zelf)
+    if (is_array($extra_material)) {
+        foreach ($extra_material as $extra_id) {
+            if ($extra_id === 'cursus-weekend' && $is_basis_or_vol) { continue; }
+            $total += (float)($MATERIAL_PRODUCTS[$extra_id]['price'] ?? 0);
         }
-        $item_price = $MATERIAL_PRODUCTS[$extra_id]['price'] ?? 0;
-        $total += $item_price;
     }
+
     return $total;
 }
 
@@ -190,62 +188,60 @@ function get_all_material_products() {
 
 /**
  * Extra materiaal-opties per examen+taal.
- * Weekend wordt bij NL én EN aangeboden waar toegestaan.
  */
 function get_extra_material_options() {
     return [
         'los-examen-vca-basis' => [
             'nl' => [
-                ['id' => 'e-learning-vca-basis-nl', 'label' => 'E-learning VCA Basis (NL)', 'price' => 29],
                 ['id' => 'vca-basis-proefexamens-nl', 'label' => 'VCA Basis Proefexamens (NL)', 'price' => 25],
+                ['id' => 'e-learning-vca-basis-nl', 'label' => 'E-learning met proefexamen (NL)', 'price' => 29],
                 ['id' => 'boek-vca-basis-nl', 'label' => 'Boek VCA Basis (NL)', 'price' => 36],
                 ['id' => 'boek-vca-combi-nl', 'label' => 'Boek VCA Combi (NL)', 'price' => 49],
-                ['id' => 'cursus-weekend', 'label' => 'Cursus weekend', 'price' => 245],
+                ['id' => 'cursus-weekend', 'label' => 'Weekendcursus met los examen in DH', 'price' => 245],
             ],
             'en' => [
-                ['id' => 'e-learning-vca-basis-en', 'label' => 'E-learning VCA Basis (EN)', 'price' => 49],
+                ['id' => 'proefexamens-en', 'label' => 'Proefexamens (EN)', 'price' => 25.00],
+                ['id' => 'e-learning-vca-basis-en', 'label' => 'E-learning met proefexamen (EN)', 'price' => 49],
                 ['id' => 'boek-vca-basis-en', 'label' => 'Boek VCA Basis (EN)', 'price' => 56],
                 ['id' => 'boek-vca-combi-en', 'label' => 'Boek VCA Combi (EN)', 'price' => 69],
-                ['id' => 'cursus-weekend', 'label' => 'Cursus weekend', 'price' => 245],
+                ['id' => 'cursus-weekend', 'label' => 'Weekendcursus met los examen in DH', 'price' => 245],
             ],
         ],
         'los-examen-vca-basis-groen' => [
             'nl' => [
-                ['id' => 'e-learning-vca-basis-nl', 'label' => 'E-learning VCA Basis (NL)', 'price' => 29],
+                ['id' => 'e-learning-vca-basis-nl', 'label' => 'E-learning met proefexamen (NL)', 'price' => 29],
                 ['id' => 'vca-basis-proefexamens-nl', 'label' => 'VCA Basis Proefexamens (NL)', 'price' => 25],
                 ['id' => 'boek-vca-basis-nl', 'label' => 'Boek VCA Basis (NL)', 'price' => 36],
                 ['id' => 'boek-vca-combi-nl', 'label' => 'Boek VCA Combi (NL)', 'price' => 49],
-                ['id' => 'cursus-weekend', 'label' => 'Cursus weekend', 'price' => 245],
             ],
         ],
         'los-examen-vca-vol' => [
             'nl' => [
-                ['id' => 'e-learning-vca-vol-nl', 'label' => 'E-learning VCA Vol (NL)', 'price' => 39],
                 ['id' => 'vca-vol-proefexamens-nl', 'label' => 'VCA Vol Proefexamens (NL)', 'price' => 25],
+                ['id' => 'e-learning-vca-vol-nl', 'label' => 'E-learning met proefexamen (NL)', 'price' => 39],
                 ['id' => 'boek-vca-vol-nl', 'label' => 'Boek VCA Vol (NL)', 'price' => 42],
                 ['id' => 'boek-vca-combi-vol-nl', 'label' => 'Boek VCA Combi (NL)', 'price' => 49],
-                ['id' => 'cursus-weekend', 'label' => 'Cursus weekend', 'price' => 245],
+                ['id' => 'cursus-weekend', 'label' => 'Weekendcursus met los examen in DH', 'price' => 245],
             ],
             'en' => [
-                ['id' => 'e-learning-vca-vol-en', 'label' => 'E-learning VCA Vol (EN)', 'price' => 59],
+                ['id' => 'proefexamens-en', 'label' => 'Proefexamens (EN)', 'price' => 25.00],
+                ['id' => 'e-learning-vca-vol-en', 'label' => 'E-learning met proefexamen (EN)', 'price' => 59],
                 ['id' => 'boek-vca-vol-en', 'label' => 'Boek VCA Vol (EN)', 'price' => 62],
                 ['id' => 'boek-vca-combi-vol-en', 'label' => 'Boek VCA Combi (EN)', 'price' => 69],
-                ['id' => 'cursus-weekend', 'label' => 'Cursus weekend', 'price' => 245],
+                ['id' => 'cursus-weekend', 'label' => 'Weekendcursus met los examen in DH', 'price' => 245],
             ],
         ],
         'los-examen-vca-vil' => [
             'nl' => [
-                ['id' => 'e-learning-vca-vol-nl', 'label' => 'E-learning VCA Vol (NL)', 'price' => 39],
+                ['id' => 'e-learning-vca-vol-nl', 'label' => 'E-learning met proefexamen (NL)', 'price' => 39],
                 ['id' => 'vca-vol-proefexamens-nl', 'label' => 'VCA Vol Proefexamens (NL)', 'price' => 25],
                 ['id' => 'boek-vca-vol-nl', 'label' => 'Boek VCA Vol (NL)', 'price' => 42],
                 ['id' => 'boek-vca-combi-vol-nl', 'label' => 'Boek VCA Combi (NL)', 'price' => 49],
-                ['id' => 'cursus-weekend', 'label' => 'Cursus weekend', 'price' => 245],
             ],
             'en' => [
-                ['id' => 'e-learning-vca-vol-en', 'label' => 'E-learning VCA Vol (EN)', 'price' => 59],
+                ['id' => 'e-learning-vca-vol-en', 'label' => 'E-learning met proefexamen (EN)', 'price' => 59],
                 ['id' => 'boek-vca-vol-en', 'label' => 'Boek VCA Vol (EN)', 'price' => 62],
                 ['id' => 'boek-vca-combi-vol-en', 'label' => 'Boek VCA Combi (EN)', 'price' => 69],
-                ['id' => 'cursus-weekend', 'label' => 'Cursus weekend', 'price' => 245],
             ],
         ],
     ];
@@ -266,7 +262,7 @@ function pontifex_oi_get_product_data_for_js() {
     }
 
     return [
-        'examProducts'       => $exam_products_simple,
+        'examProducts'           => $exam_products_simple,
         'materialProducts' => $MATERIAL_PRODUCTS,
         'materialCombis'   => $MATERIAL_COMBIS,
         'weekendAllowedByExam' => $WEEKEND_ALLOWED_BY_EXAM,
@@ -292,11 +288,11 @@ function pontifex_oi_get_extra_material_checkboxes_for_js() {
  */
 function pontifex_normalize_exam_key($key) {
     $map = [
-        'vca-basis'           => 'los-examen-vca-basis',
-        'vca-vol'             => 'los-examen-vca-vol',
-        'los-examen-vil-vcu'  => 'los-examen-vca-vil',
-        'vca-basis-weekend'   => 'los-examen-vca-basis',
-        'vca-vol-weekend'     => 'los-examen-vca-vol',
+        'vca-basis'         => 'los-examen-vca-basis',
+        'vca-vol'           => 'los-examen-vca-vol',
+        'los-examen-vil-vcu'   => 'los-examen-vca-vil',
+        'vca-basis-weekend'    => 'los-examen-vca-basis',
+        'vca-vol-weekend'      => 'los-examen-vca-vol',
     ];
     return $map[$key] ?? $key;
 }

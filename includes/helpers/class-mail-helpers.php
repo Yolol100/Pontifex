@@ -3,10 +3,12 @@ namespace PontifexOI\Helpers;
 
 if (!defined('ABSPATH')) exit;
 
+require_once PONTIFEX_OI_PATH . 'includes/config/producten-prijzen.php';
+
 class MailHelpers
 {
     // Helper om label te krijgen uit examen ID
-    private static function get_exam_label($id) {
+    public static function get_exam_label($id) {
         $exam_labels = [
             'los-examen-vca-basis' => 'VCA Basis',
             'los-examen-vca-vol'   => 'VCA Vol',
@@ -17,7 +19,7 @@ class MailHelpers
     }
 
     // Helper om label te krijgen uit taal ID
-    private static function get_language_label($id) {
+    public static function get_language_label($id) {
         $language_labels = [
             'nl' => 'Nederlands',
             'en' => 'Engels',
@@ -26,9 +28,9 @@ class MailHelpers
     }
 
     // Helper om label te krijgen uit materiaal-combinatie ID
-    private static function get_material_combination_label($id) {
+    public static function get_material_combination_label($id) {
         $material_labels = [
-            '1' => 'Los examen',
+            '1' => 'Examen', // <-- was 'Los examen'
             '2' => 'Examen + boek',
             '4' => 'Examen + e-learning',
             '5' => 'Examen + proefexamens',
@@ -38,8 +40,9 @@ class MailHelpers
         return $material_labels[$id] ?? 'Geen keuze';
     }
 
-    // ✅ Publiek gemaakt zodat templates niet meer hun eigen functie hoeven te definiëren
-    public static function get_material_label($id) {
+    // Publiek gemaakt zodat templates niet meer hun eigen functie hoeven te definiëren
+    public static function get_material_label($id)
+    {
         global $MATERIAL_PRODUCTS;
         return $MATERIAL_PRODUCTS[$id]['label'] ?? $id;
     }
@@ -64,7 +67,7 @@ class MailHelpers
         include PONTIFEX_OI_PATH . 'public/payment-success-email-template.php';
         $klantmail = ob_get_clean();
 
-        $to_klant       = $order['order_email'] ?? '';
+        $to_klant      = $order['order_email'] ?? '';
         $subject_klant  = 'Betaling is gelukt';
         $headers_klant  = [
             'Content-Type: text/html; charset=UTF-8',
@@ -81,8 +84,14 @@ class MailHelpers
         $eigenaarmail = ob_get_clean();
 
         // Voor subject
-        $kandidaat_fullname  = $order['candidate_fullname'][0] ?? '';
-        $kandidaat_achternaam= $order['candidate_lastname'][0] ?? '';
+        $kandidaat_fullname   = $order['candidate_fullname'][0] ?? '';
+        $kandidaat_achternaam = $order['candidate_lastname'][0] ?? '';
+
+        $examKey  = \pontifex_normalize_exam_key($order['exam_type'] ?? '');
+        $extras   = is_array($order['extra_material'] ?? null) ? $order['extra_material'] : [];
+        $isWeekend = in_array('cursus-weekend', $extras, true)
+                     && in_array($examKey, ['los-examen-vca-basis','los-examen-vca-vol'], true);
+        $examSummaryLabel = self::format_exam_label_for_summary($order);
 
         // Excel-achtige HTML tabel maken
         $htmlTable  = '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;">';
@@ -112,21 +121,25 @@ class MailHelpers
         }
 
         $htmlTable .= '<tr><th colspan="2" style="background:#28a745; color:#fff;">Betaalgegevens</th></tr>';
-        $htmlTable .= '<tr><td>Examen</td><td>' . htmlspecialchars($order['exam_label']) . '</td></tr>';
+        $htmlTable .= '<tr><td>Examen</td><td>' . htmlspecialchars($examSummaryLabel) . '</td></tr>';
         $htmlTable .= '<tr><td>Taal</td><td>' . htmlspecialchars($order['language_label']) . '</td></tr>';
-        $htmlTable .= '<tr><td>Lesmateriaal</td><td>' . htmlspecialchars($order['material_label']) . '</td></tr>';
+        $htmlTable .= '<tr><td>Lesmateriaal</td><td>' 
+                   . htmlspecialchars($isWeekend ? 'Niet van toepassing' : ($order['material_label'] ?? '')) 
+                   . '</td></tr>';
         $htmlTable .= '<tr><td>Locatie</td><td>' . htmlspecialchars($order['location'] ?? '') . '</td></tr>';
         $htmlTable .= '<tr><td>Datum</td><td>' . htmlspecialchars($order['date'] ?? '') . '</td></tr>';
         $htmlTable .= '<tr><td>Tijd</td><td>' . htmlspecialchars($order['time'] ?? '') . '</td></tr>';
         $htmlTable .= '<tr><td>Aantal kandidaten</td><td>' . count($order['candidate_fullname']) . '</td></tr>';
 
-        if (!empty($order['extra_material']) && is_array($order['extra_material'])) {
+        if (!$isWeekend && !empty($order['extra_material']) && is_array($order['extra_material'])) {
             $extraLabels = [];
             foreach ($order['extra_material'] as $extraId) {
                 $extraLabels[] = self::get_material_label($extraId);
             }
             if ($extraLabels) {
-                $htmlTable .= '<tr><td>Extra lesmateriaal</td><td>' . htmlspecialchars(implode(', ', $extraLabels)) . '</td></tr>';
+                $htmlTable .= '<tr><td>Extra lesmateriaal</td><td>' 
+                           . htmlspecialchars(implode(', ', $extraLabels)) 
+                           . '</td></tr>';
             }
         }
 
@@ -141,7 +154,7 @@ class MailHelpers
         file_put_contents($filepath, $htmlTable);
 
         // Mail met bijlage
-        $to_owner       = 'planning@certipro.nl';
+        $to_owner      = 'planning@certipro.nl';
         $subject_owner  = 'Nieuwe inschrijving van ' . trim($kandidaat_fullname . ' ' . $kandidaat_achternaam);
         $headers_owner  = [
             'Content-Type: text/html; charset=UTF-8',
@@ -155,5 +168,23 @@ class MailHelpers
         if (file_exists($filepath)) {
             unlink($filepath);
         }
+    }
+
+    public static function format_exam_label_for_summary(array $order): string
+    {
+        $examRaw = $order['exam_type'] ?? '';
+        $examKey = \pontifex_normalize_exam_key($examRaw);
+
+        // label uit config of fallback uit order
+        global $EXAM_PRODUCTS;
+        $label = $EXAM_PRODUCTS[$examKey]['label'] ?? ($order['exam_label'] ?? 'Examen');
+
+        // weekend via extra_material
+        $extras   = isset($order['extra_material']) && is_array($order['extra_material']) ? $order['extra_material'] : [];
+        $weekend  = in_array('cursus-weekend', $extras, true)
+                      && in_array($examKey, ['los-examen-vca-basis','los-examen-vca-vol'], true);
+
+        // Use the simplified logic
+        return $weekend ? ($label . ' met cursusweekend en examen') : ($label . ' met examen');
     }
 }

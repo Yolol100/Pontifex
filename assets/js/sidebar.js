@@ -3,7 +3,7 @@
  *
  * Mobiele filter-sidebar; talen worden dynamisch beperkt o.b.v. beschikbare prijzen per examensoort.
  */
-(function (window, $) {
+(function(window, $) {
   'use strict';
 
   if (!$ || !window) return;
@@ -18,26 +18,8 @@
   const mq = window.matchMedia('(max-width: 480px)');
   let isBound = false;
 
-  function debounce(fn, wait) {
-    let t;
-    return function () {
-      clearTimeout(t);
-      t = setTimeout(() => fn.apply(this, arguments), wait);
-    };
-  }
-
-  function normalizeExam(v) {
-    if (!v) return v;
-    switch (v) {
-      case 'vca-basis': return 'los-examen-vca-basis';
-      case 'vca-vol':   return 'los-examen-vca-vol';
-      case 'los-examen-vil-vcu': return 'los-examen-vca-vil';
-      default: return v;
-    }
-  }
-
   function getExamLanguages(exam) {
-    const ex = normalizeExam(exam);
+    const ex = PontifexOI.normalizeExam(exam);
     const prices = examProducts[ex] && examProducts[ex].prices ? examProducts[ex].prices : {};
     const fromPrices = Object.keys(prices);
     // Als er geen lijst in prijzen zit (of leeg) → val terug op alle talen
@@ -45,12 +27,14 @@
   }
 
   function buildLanguageOptionsHtml(allowed) {
-    const options = [''].concat(allowed); // '' = Toon alles
-    return options.map((code) => {
-      if (code === '') return `<option value="">Toon alles</option>`;
-      const label = LABELS[code] || code.toUpperCase();
-      return `<option value="${code}">${label}</option>`;
-    }).join('');
+    const options = [''].concat(allowed); // '' = Kies taal
+    return options
+      .map(code => {
+        if (code === '') return `<option value="">Kies taal</option>`;
+        const label = LABELS[code] || code.toUpperCase();
+        return `<option value="${code}">${label}</option>`;
+      })
+      .join('');
   }
 
   function buildSidebar() {
@@ -124,7 +108,7 @@
       ['#month-select', 'sidebar-month'],
       ['#province-select', 'sidebar-province'],
       ['#location-select', 'sidebar-location'],
-      ['#timeslot-select', 'sidebar-timeslot']
+      ['#timeslot-select', 'sidebar-timeslot'],
     ];
 
     mapping.forEach(([desktopSel, sidebarId]) => {
@@ -190,7 +174,7 @@
     const $lang = $('#sidebar-language');
     if (!$exam.length || !$lang.length) return;
 
-    const examId = normalizeExam($exam.val() || '');
+    const examId = PontifexOI.normalizeExam($exam.val() || '');
     const prev = $lang.val();
     const allowed = getExamLanguages(examId);
 
@@ -211,10 +195,10 @@
     if (isBound) return;
     isBound = true;
 
-    $(document).on('click', '.pontifex-oi-filters-toggle-btn', function (e) {
+    $(document).on('click', '.pontifex-oi-filters-toggle-btn', function(e) {
       e.preventDefault();
       ['exam_type', 'month', 'province', 'location', 'timeslot', 'language'].forEach(
-        (name) => {
+        name => {
           const $desk = $(`#${name}-select`);
           const $side = $(`#sidebar-${name}`);
           if ($desk.length && $side.length) $side.val($desk.val());
@@ -227,30 +211,30 @@
     $(document).on(
       'click',
       '.pontifex-oi-filters-sidebar-overlay, .pontifex-oi-filters-sidebar-close',
-      function (e) {
+      function(e) {
         e.preventDefault();
         setOpen(false);
       }
     );
 
-    $(document).on('keydown', function (e) {
+    $(document).on('keydown', function(e) {
       if (e.key === 'Escape' && $('.pontifex-oi-filters-sidebar').hasClass('open')) {
         setOpen(false);
       }
     });
 
-    $(document).on('click', '.pontifex-oi-reset-filter', function (e) {
+    $(document).on('click', '.pontifex-oi-reset-filter', function(e) {
       e.preventDefault();
       $('#sidebar-month, #sidebar-province, #sidebar-location, #sidebar-timeslot').val('');
     });
 
     $(document).on('change', '#sidebar-exam_type', updateSidebarLanguageOptions);
 
-    $(document).on('click', '.pontifex-oi-save-btn', function (e) {
+    $(document).on('click', '.pontifex-oi-save-btn', function(e) {
       e.preventDefault();
 
       ['exam_type', 'language', 'month', 'province', 'location', 'timeslot'].forEach(
-        (name) => {
+        name => {
           const v = $(`#sidebar-${name}`).val();
           $(`#${name}-select`).val(v).trigger('change');
         }
@@ -263,14 +247,14 @@
       setOpen(false);
     });
 
-    $(document).on('change', '#exam_type-select', function () {
+    $(document).on('change', '#exam_type-select', function() {
       const v = $(this).val();
       $('#sidebar-exam_type').val(v);
       updateSidebarLanguageOptions();
     });
   }
 
-  PontifexOI.addAndPopulateSidebar = function () {
+  PontifexOI.addAndPopulateSidebar = function() {
     if (mq.matches) {
       buildSidebar();
     } else {
@@ -278,16 +262,19 @@
     }
   };
 
-  PontifexOI.registerSidebarEvents = function () {
+  PontifexOI.registerSidebarEvents = function() {
     bindEventsOnce();
   };
 
-  $(function () {
+  $(function() {
     PontifexOI.addAndPopulateSidebar();
     PontifexOI.registerSidebarEvents();
   });
 
-  const handleResize = debounce(PontifexOI.addAndPopulateSidebar, 120);
+  // Use a safe debounce function to prevent errors if PontifexOI.debounce isn't defined
+  const safeDebounce = PontifexOI.debounce || function(f, w) { return f; };
+  const handleResize = safeDebounce(PontifexOI.addAndPopulateSidebar, 120);
+
   $(window).on('resize', handleResize);
   if (mq.addEventListener) {
     mq.addEventListener('change', PontifexOI.addAndPopulateSidebar);

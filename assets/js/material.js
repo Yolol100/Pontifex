@@ -1,86 +1,142 @@
-// material.js
 (function(window, $) {
   'use strict';
 
   const PontifexOI = window.PontifexOI = window.PontifexOI || {};
   const cfg = window.PontifexOIConfigData || window.PontifexOIConfig || {};
+  const extraMaterialCheckboxes = cfg?.extraMaterialCheckboxes || {};
   const examWeekend = ['vca-basis-weekend', 'vca-vol-weekend'];
 
-  const extraMaterialCheckboxes = (cfg && cfg.extraMaterialCheckboxes) || {};
+  // Cached DOM elements
+  const $prov = $('#province');
+  const $loc = $('#location');
+  const $totalPrice = $('#total-price');
+  const $paymentAmount = $('#payment_amount');
+  const $container = $('#extra-material-checkboxes');
 
-  function getUrlParams() {
-    const params = new URLSearchParams(window.location.search);
+  const getExamLangFromDOM = () => {
+    const examVal = PontifexOI.normalizeExam(
+      $('select[name="exam_type"]').val() ||
+      $('#exam_type').val() ||
+      PontifexOI.getUrlParams().exam_type || ''
+    );
+    const langVal = $('select[name="language"]').val() ||
+      $('#language').val() ||
+      PontifexOI.getUrlParams().language || '';
     return {
-      exam_type: params.get('exam_type') || '',
-      language: params.get('language') || ''
+      examVal,
+      langVal
     };
-  }
+  };
 
-  function parsePrice(str) {
-    if (!str) return 0;
-    return parseFloat(str.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-  }
+  const buildCheckboxList = (exam, lang) => {
+    const key = `${exam}_${lang}`;
+    const raw = extraMaterialCheckboxes[key] || [];
+    return raw.filter(opt => opt.id !== 'cursus-weekend' || PontifexOI.isWeekendAllowed(exam, lang));
+  };
 
-  function isWeekendAllowed(exam, lang) {
-    const map = cfg.weekendAllowedByExam || {};
-    const allowed = map[exam] || [];
-    return allowed.includes(lang) || examWeekend.includes(exam);
-  }
+  const weekendChecked = () =>
+    $('#extra-material-checkboxes input[value="cursus-weekend"]').is(':checked');
 
-  function updateTotalPriceWithCheckboxes() {
-    const $totalPrice = $('#total-price');
-    const $paymentAmount = $('#payment_amount');
-    let basePrice = parsePrice($paymentAmount.data('base-price') || $paymentAmount.val() || getUrlParams().price);
-    if (isNaN(basePrice)) basePrice = 0;
+  // Main functions
+  const updateWeekendLocks = () => {
+    if (!$prov.length || !$loc.length) return;
+
+    const {
+      examVal
+    } = getExamLangFromDOM();
+    const isBasisOfVol = examVal === 'los-examen-vca-basis' || examVal === 'los-examen-vca-vol';
+
+    if (weekendChecked() && isBasisOfVol) {
+      if ($prov.data('prev') === undefined) $prov.data('prev', $prov.val());
+      if ($loc.data('prev') === undefined) $loc.data('prev', $loc.val());
+      $prov.val('Zuid-Holland');
+      $loc.val('Den Haag');
+
+      $('.besteloverzicht-stap2 .bo-item strong').each(function() {
+        const label = $(this).text().trim().toLowerCase();
+        if (label.startsWith('provincie')) $(this).next('span').text('Zuid-Holland');
+        if (label.startsWith('locatie')) $(this).next('span').text('Den Haag');
+      });
+    } else {
+      if ($prov.data('prev') !== undefined) $prov.val($prov.data('prev'));
+      if ($loc.data('prev') !== undefined) $loc.val($loc.data('prev'));
+      $prov.removeData('prev');
+      $loc.removeData('prev');
+
+      $('.besteloverzicht-stap2 .bo-item strong').each(function() {
+        const label = $(this).text().trim().toLowerCase();
+        if (label.startsWith('provincie')) $(this).next('span').text($prov.val() || '-');
+        if (label.startsWith('locatie')) $(this).next('span').text($loc.val() || '-');
+      });
+    }
+  };
+
+  const updateOrderSummaryText = () => {
+    const {
+      examVal
+    } = getExamLangFromDOM();
+    const weekendOn = weekendChecked() &&
+      (examVal === 'los-examen-vca-basis' || examVal === 'los-examen-vca-vol');
+
+    const $targets = $('.besteloverzicht-stap2 .bo-item, .besteloverzicht .bo-item, .bo-item--exam, [data-summary="exam"]');
+
+    $targets.each(function() {
+      const $row = $(this);
+      const $strong = $row.find('strong,label,.bo-label').first();
+      const labelTxt = ($strong.text() || '').toLowerCase();
+      if (!labelTxt.includes('examensoort') && !labelTxt.includes('examen')) return;
+
+      const $val = $row.find('span,.bo-value').first();
+      if (!$val.length) return;
+
+      const base = $val.text().trim().replace(/\s+met.*$/i, '');
+      $val.text(weekendOn ? `${base} met cursusweekend en examen` : `${base} met examen`);
+    });
+  };
+
+  const updateTotalPriceWithCheckboxes = () => {
+    if (!$totalPrice.length || !$paymentAmount.length) return;
+
+    const {
+      examVal
+    } = getExamLangFromDOM();
+    let basePrice = PontifexOI.parsePrice($paymentAmount.data('base-price') || $paymentAmount.val() || PontifexOI.getUrlParams().price);
+
+    if (weekendChecked() && (examVal === 'los-examen-vca-basis' || examVal === 'los-examen-vca-vol')) {
+      basePrice = 245;
+    }
 
     let extraTotal = 0;
-    $('.extra-material-checkbox:checked').each(function () {
+    $('.extra-material-checkbox:checked').each(function() {
+      const id = String($(this).val());
+      if (id === 'cursus-weekend') return;
       extraTotal += parseFloat($(this).data('price')) || 0;
     });
 
     const candidateCount = $('.pontifex-oi-candidates-list .pontifex-oi-candidate-row').length || 1;
     const newTotal = (basePrice + extraTotal) * candidateCount;
 
-    $totalPrice.text('€' + newTotal.toFixed(2).replace('.', ','));
+    $totalPrice.text(`€${newTotal.toFixed(2).replace('.', ',')}`);
     $paymentAmount.val(newTotal.toFixed(2));
+  };
 
-    if (typeof PontifexOI.updateTotalPriceWithCheckboxes === 'function' && PontifexOI.updateTotalPriceWithCheckboxes !== updateTotalPriceWithCheckboxes) {
-      PontifexOI.updateTotalPriceWithCheckboxes();
-    }
-  }
-
-  function buildCheckboxList(exam, lang) {
-    const key = `${exam}_${lang}`;
-    const raw = extraMaterialCheckboxes[key] || [];
-
-    return raw.filter(opt => {
-      if (opt.id === 'cursus-weekend') {
-        return isWeekendAllowed(exam, lang);
-      }
-      return true;
-    });
-  }
-
-  function updateExtraMaterialCheckboxes() {
-    const $container = $('#extra-material-checkboxes');
+  const renderExtraMaterial = () => {
     if (!$container.length) return;
 
-    let examVal = $('select[name="exam_type"]').val() || $('#exam_type').val() || getUrlParams().exam_type || '';
-    let langVal = $('select[name="language"]').val() || $('#language').val() || getUrlParams().language || '';
-
-    if (examVal === 'vca-basis') examVal = 'los-examen-vca-basis';
-    if (examVal === 'vca-vol')   examVal = 'los-examen-vca-vol';
-    if (examVal === 'los-examen-vil-vcu') examVal = 'los-examen-vca-vil';
-
+    const {
+      examVal,
+      langVal
+    } = getExamLangFromDOM();
     const options = buildCheckboxList(examVal, langVal);
 
     let html = '<strong>Extra lesmateriaal nodig?</strong><div>';
-    if (options.length > 0) {
+    if (options.length) {
       options.forEach(opt => {
-        html += `<label style="display:block; margin:0.3em 0;">
-            <input type="checkbox" class="extra-material-checkbox" name="extra_material[]" value="${opt.id}" data-price="${opt.price}">
-            ${opt.label} (€${opt.price.toFixed(2).replace('.', ',')})
-          </label>`;
+        const priceStr = Number(opt.price).toFixed(2).replace('.', ',');
+        html += `<label style="display:block;margin:.3em 0;">
+                    <input type="checkbox" class="extra-material-checkbox" name="extra_material[]" value="${opt.id}" data-price="${opt.price}" aria-label="${opt.label} (€${priceStr})">
+                    ${opt.label} (€${priceStr})
+                </label>`;
       });
     } else {
       html += 'Geen extra lesmateriaal beschikbaar.';
@@ -88,21 +144,29 @@
     html += '</div>';
 
     $container.html(html).show();
+    $container.off('change.material').on('change.material', '.extra-material-checkbox', () => {
+      updateWeekendLocks();
+      updateOrderSummaryText();
+      updateTotalPriceWithCheckboxes();
+    });
 
-    $container.off('change.material').on('change.material', '.extra-material-checkbox', updateTotalPriceWithCheckboxes);
-
+    updateWeekendLocks();
+    updateOrderSummaryText();
     updateTotalPriceWithCheckboxes();
-  }
+  };
 
-  $(document).ready(function () {
-    updateExtraMaterialCheckboxes();
+  // Init
+  $(document).ready(() => {
+    renderExtraMaterial();
+    updateOrderSummaryText();
   });
 
-  $(document).on('change', 'select[name="exam_type"], select[name="language"]', function () {
-    updateExtraMaterialCheckboxes();
-  });
+  // Re-render on changes
+  $(document).on('change', 'select[name="exam_type"], select[name="language"]', renderExtraMaterial);
+  $(document).on('change', '#extra-material-checkboxes input, select[name="exam_type"], select[name="language"]', updateOrderSummaryText);
 
-  PontifexOI.updateExtraMaterialCheckboxes = updateExtraMaterialCheckboxes;
+  // Expose functions
+  PontifexOI.updateExtraMaterialCheckboxes = renderExtraMaterial;
   PontifexOI.updateTotalPriceWithCheckboxes = updateTotalPriceWithCheckboxes;
 
 })(window, jQuery);

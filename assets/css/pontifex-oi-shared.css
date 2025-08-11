@@ -6,44 +6,33 @@
   --pontifex-table-even: #f8f6f2 !important;
   --pontifex-table-hover: #fff7eb !important;
   --pontifex-border: #D1D1D1 !important;
-  --pontifex-border-light: #dddddd !important;
   --pontifex-disabled: #bbbbbb !important;
-  --pontifex-shadow: 0 4px 16px 0 rgba(0,0,0,0.07) !important;
-  --pontifex-shadow-btn: 0 2px 12px rgba(255,153,0,0.08) !important;
-  --pontifex-shadow-stepper: 0 2px 10px 0 rgba(0,0,0,0.09) !important;
-  --pontifex-shadow-table: 0 2px 16px 0 rgba(0,0,0,0.07) !important;
+  --pontifex-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.07) !important;
+  --pontifex-shadow-btn: 0 2px 12px rgba(255, 153, 0, 0.08) !important;
+  --pontifex-shadow-stepper: 0 2px 10px 0 rgba(0, 0, 0, 0.09) !important;
+  --pontifex-shadow-table: 0 2px 16px 0 rgba(0, 0, 0, 0.07) !important;
   --pontifex-radius: 7px !important;
   --pontifex-radius-sm: 5px !important;
   --pontifex-font-main: 'Poppins', Arial, sans-serif !important;
   --pontifex-font-size-base: clamp(0.875rem, 1vw + 0.3rem, 1.125rem) !important;
-  --pontifex-font-size-sm: clamp(0.9rem, 1vw + 0.4rem, 1.15rem) !important;
-  --pontifex-font-size-md: clamp(0.95rem, 1vw + 0.5rem, 1.2rem) !important;
-  --pontifex-font-size-lg: clamp(1rem, 1.2vw + 0.6rem, 1.3rem) !important;
   --pontifex-font-size-xl: clamp(1.4rem, 2vw + 0.8rem, 1.7rem) !important;
-  --pontifex-font-size-h1: clamp(2rem, 4vw + 1rem, 4rem) !important;
   --pontifex-label-size: clamp(0.875rem, 1vw + 0.3rem, 1rem) !important;
-  --pontifex-label-weight: 500 !important;
   --pontifex-title-size: clamp(1.2rem, 1.5vw + 0.6rem, 1.6rem) !important;
   --pontifex-title-weight: 700 !important;
-  --pontifex-step-size: clamp(1.5rem, 2vw + 0.5rem, 2.5rem) !important;
   --pontifex-step-weight: 700 !important;
   --pontifex-font-weight-bold: 700 !important;
   --pontifex-font-weight-normal: 400 !important;
-  --pontifex-spacing-xxxs: clamp(0.15rem, 0.3vw + 0.1rem, 0.25rem) !important;
-  --pontifex-spacing-xxs: clamp(0.18rem, 0.4vw + 0.1rem, 0.3rem) !important;
   --pontifex-spacing-xs: clamp(0.4rem, 0.7vw + 0.2rem, 0.6rem) !important;
-  --pontifex-spacing-sm: clamp(0.6rem, 0.8vw + 0.3rem, 0.9rem) !important;
-  --pontifex-spacing-md: clamp(0.9rem, 1vw + 0.3rem, 1.2rem) !important;
   --pontifex-spacing-lg: clamp(1rem, 1.2vw + 0.4rem, 1.4rem) !important;
-  --pontifex-spacing-xl: clamp(1.3rem, 1.5vw + 0.6rem, 1.7rem) !important;
-  --pontifex-spacing-xxl: clamp(1.6rem, 2vw + 0.7rem, 2.2rem) !important;
-  --pontifex-spacing-xxxl: clamp(2rem, 3vw + 0.8rem, 2.7rem) !important;
-  --pontifex-spacing-xxxlx: clamp(2.5rem, 4vw + 1rem, 3.5rem) !important;
-  --pontifex-select-bg: #fafafa !important;
 }
 
 body {
   background: var(--pontifex-grey-bg) !important;
+}
+
+/* Utilities */
+.hidden {
+  display: none !important;
 }
 
 /* Stepper-balk bovenin */
@@ -68,8 +57,8 @@ body {
   background: var(--pontifex-white) !important;
   border-radius: 0 var(--pontifex-radius) var(--pontifex-radius) var(--pontifex-radius) !important;
   box-shadow: var(--pontifex-shadow) !important;
-  padding-block: clamp(1.5rem, 2vw + 0.7rem, 2.5rem);
-  padding-inline: clamp(1.5rem, 2vw + 0.7rem, 2.5rem);
+  padding-block: clamp(1rem, 2vw + 0.7rem, 2.5rem);
+  padding-inline: clamp(1rem, 2vw + 0.7rem, 2.5rem);
   inline-size: 1280px !important;
   max-inline-size: 100%;
   margin-block: 0 clamp(2rem, 3vw, 4rem);
@@ -85,6 +74,7 @@ body {
   margin-block-end: clamp(1rem, 1.5vw, 2rem);
   inline-size: 100%;
 }
+
 .pontifex-oi-title-row h2,
 .pontifex-oi-header-row h2 {
   margin-block-end: 0 !important;
@@ -108,10 +98,12 @@ body {
   border-radius: var(--pontifex-radius);
   transition: color 0.2s;
 }
+
 .pontifex-oi-back-link:before {
   content: "\2190";
   margin-inline-end: 0.5em;
 }
+
 .pontifex-oi-back-link:hover,
 .pontifex-oi-back-link:focus,
 .pontifex-oi-back-button:hover,
@@ -136,6 +128,34 @@ body {
   color: var(--pontifex-orange) !important;
 }
 
+/* Success title and check circle */
+.pontifex-oi-success-title {
+  font-family: var(--pontifex-font-main) !important;
+  font-size: clamp(1.4rem, 5vw, 1.7rem) !important;
+  font-weight: var(--pontifex-font-weight-bold) !important;
+  color: var(--pontifex-black) !important;
+  margin-block-end: clamp(0.75rem, 3vw, 1.125rem) !important;
+}
+
+.pontifex-oi-check-circle {
+  inline-size: 100px;
+  block-size: 100px;
+  background-color: var(--pontifex-orange);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-block-end: clamp(1rem, 4vw, 1.25rem);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: popIn 0.5s ease-out forwards;
+}
+
+.pontifex-oi-check-circle svg {
+  fill: var(--pontifex-white);
+  inline-size: 65px;
+  block-size: 65px;
+}
+
 /* Tabel-styling */
 .pontifex-oi-table {
   inline-size: 100% !important;
@@ -144,6 +164,7 @@ body {
   border-radius: var(--pontifex-radius) !important;
   box-shadow: var(--pontifex-shadow-table) !important;
 }
+
 .pontifex-oi-table th,
 .pontifex-oi-table td {
   text-align: left !important;
@@ -152,6 +173,7 @@ body {
   font-weight: var(--pontifex-font-weight-normal) !important;
   color: var(--pontifex-black) !important;
 }
+
 .pontifex-oi-table th {
   background: var(--pontifex-orange) !important;
   color: var(--pontifex-white) !important;
@@ -159,12 +181,15 @@ body {
   border-block-end: 2px solid var(--pontifex-grey-bg) !important;
   letter-spacing: 0.5px !important;
 }
+
 .pontifex-oi-table tbody tr {
   transition: background 0.14s !important;
 }
+
 .pontifex-oi-table tbody tr:hover {
   background: var(--pontifex-table-hover) !important;
 }
+
 .pontifex-oi-table tbody tr:nth-child(even) {
   background: var(--pontifex-table-even) !important;
 }
@@ -182,11 +207,13 @@ body {
   padding-block: 0 !important;
   padding-inline: 0 !important;
 }
+
 .pontifex-oi-aanmelden:hover,
 .pontifex-oi-aanmelden:focus {
   color: var(--pontifex-black) !important;
   text-decoration-color: var(--pontifex-black) !important;
 }
+
 .pontifex-oi-vol {
   color: var(--pontifex-disabled) !important;
   font-style: italic !important;
@@ -204,8 +231,10 @@ body {
   cursor: pointer !important;
   transition: background .18s ease, color .18s ease, box-shadow .18s ease;
 }
+
 .pontifex-oi-submit,
-.pontifex-oi-submit-order {
+.pontifex-oi-submit-order,
+.pontifex-admin-submit {
   background: var(--pontifex-orange) !important;
   color: var(--pontifex-white) !important;
   border: none !important;
@@ -214,6 +243,7 @@ body {
   padding-block: clamp(0.75rem, 1vw + 0.5rem, 0.9rem);
   padding-inline: clamp(1rem, 1vw + 0.7rem, 1.4rem);
 }
+
 .pontifex-oi-submit:hover:not(:disabled),
 .pontifex-oi-submit-order:hover,
 .pontifex-oi-submit-order:focus,
@@ -222,161 +252,22 @@ body {
   background: var(--pontifex-black) !important;
   color: var(--pontifex-white) !important;
 }
+
 .pontifex-oi-submit:disabled,
 .pontifex-admin-submit:disabled {
   opacity: 0.5 !important;
   cursor: not-allowed !important;
 }
 
-/* Checkbox-row algemeen */
-.pontifex-oi-checkbox-row {
-  display: flex !important;
-  align-items: center !important;
-  gap: var(--pontifex-spacing-xs) !important;
-  margin-block-end: var(--pontifex-spacing-xs) !important;
-  cursor: pointer !important;
-  font-family: var(--pontifex-font-main) !important;
-  font-size: var(--pontifex-font-size-base) !important;
-  color: #333 !important;
-  user-select: none !important;
-}
-.pontifex-oi-checkbox-row input[type="checkbox"] {
-  inline-size: clamp(16px, 1vw + 12px, 20px) !important;
-  block-size: clamp(16px, 1vw + 12px, 20px) !important;
-  cursor: pointer !important;
-  border: 1.8px solid var(--pontifex-border) !important;
-  border-radius: 4px !important;
-  transition: border-color 0.2s, background-color 0.2s !important;
-  flex-shrink: 0 !important;
-}
-.pontifex-oi-checkbox-row input[type="checkbox"]:checked {
-  background-color: var(--pontifex-orange) !important;
-  border-color: var(--pontifex-orange) !important;
-}
-.pontifex-oi-checkbox-row label {
-  cursor: pointer !important;
-  color: #333 !important;
-  line-height: 1.2 !important;
-}
-.pontifex-oi-checkbox-row:hover label,
-.pontifex-oi-checkbox-row input[type="checkbox"]:focus + label {
-  color: var(--pontifex-black) !important;
-}
-.pontifex-oi-checkbox-row input[type="checkbox"] + label {
-  margin-inline-start: 4px !important;
-}
-
-/* Formulier validatie (invalid) */
-.pontifex-oi-candidate-form input.invalid-field,
-.pontifex-oi-candidate-form select.invalid-field,
-.pontifex-oi-candidate-form textarea.invalid-field,
-.pontifex-admin-input.invalid,
-.pontifex-admin-textarea.invalid,
-.pontifex-admin-select.invalid {
-  background-color: #ffe6e6 !important;
-  border: 2px solid #cc0000 !important;
-}
-.pontifex-oi-candidate-form input.invalid-field:focus,
-.pontifex-oi-candidate-form select.invalid-field:focus,
-.pontifex-oi-candidate-form textarea.invalid-field:focus,
-.pontifex-admin-input.invalid:focus,
-.pontifex-admin-textarea.invalid:focus,
-.pontifex-admin-select.invalid:focus {
-  outline: none !important;
-  box-shadow: 0 0 5px 1px #cc0000 !important;
-}
-
-/* Admin form basics (herhaald in admin.css) */
-.pontifex-admin-label {
-  font-family: var(--pontifex-font-main) !important;
-  font-weight: var(--pontifex-font-weight-bold) !important;
-  font-size: var(--pontifex-label-size) !important;
-  margin-block-end: 0.5rem !important;
-  display: block !important;
-  color: var(--pontifex-black) !important;
-}
-.pontifex-admin-input,
-.pontifex-admin-textarea,
-.pontifex-admin-select {
-  inline-size: 100% !important;
-  padding-block: clamp(0.4rem, 0.7vw + 0.2rem, 0.6rem);
-  padding-inline: clamp(0.6rem, 1vw + 0.5rem, 0.9rem);
-  border: 1px solid var(--pontifex-border) !important;
-  border-radius: var(--pontifex-radius-sm) !important;
-  font-family: var(--pontifex-font-main) !important;
-  font-size: var(--pontifex-font-size-base) !important;
-  font-weight: var(--pontifex-font-weight-normal) !important;
-  box-sizing: border-box !important;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
-  background-color: var(--pontifex-white) !important;
-  color: var(--pontifex-black) !important;
-}
-.pontifex-admin-input:focus,
-.pontifex-admin-textarea:focus,
-.pontifex-admin-select:focus {
-  border-color: var(--pontifex-orange) !important;
-  outline: none !important;
-  box-shadow: 0 0 6px 2px var(--pontifex-orange) !important;
-}
-.pontifex-admin-textarea {
-  min-block-size: 100px !important;
-  resize: vertical !important;
-}
-.pontifex-admin-select {
-  max-inline-size: 100% !important;
-}
-.pontifex-admin-btn-group {
-  display: flex !important;
-  gap: var(--pontifex-spacing-lg) !important;
-}
-.pontifex-admin-checkbox,
-.pontifex-admin-radio {
-  margin-inline-end: 0.5rem !important;
-  vertical-align: middle !important;
-  cursor: pointer !important;
-}
-.pontifex-admin-label-inline {
-  display: inline-block !important;
-  margin-inline-end: 1rem !important;
-  vertical-align: middle !important;
-  font-weight: var(--pontifex-font-weight-bold) !important;
-}
-.pontifex-admin-description {
-  font-family: var(--pontifex-font-main) !important;
-  font-size: clamp(0.75rem, 1vw + 0.1rem, 0.9rem) !important;
-  color: #666 !important;
-  margin-block-start: 0.25rem !important;
-}
-.pontifex-admin-form-row {
-  margin-block-end: clamp(1rem, 1.5vw, 1.5rem) !important;
-  inline-size: 100% !important;
-}
-
-/* pontifex-oi-submit modifiers (duplicaat in jouw code, samengevoegd) */
 .pontifex-oi-submit {
   display: block !important;
   inline-size: 95% !important;
   padding-block: clamp(0.75rem, 1vw + 0.5rem, 0.9rem) !important;
   padding-inline: clamp(1rem, 1vw + 0.7rem, 1.4rem) !important;
   margin-block-start: 1.375rem !important;
-  background: var(--pontifex-orange) !important;
-  color: var(--pontifex-white) !important;
-  border: none !important;
-  border-radius: var(--pontifex-radius) !important;
-  font-family: var(--pontifex-font-main) !important;
   font-size: clamp(1rem, 1vw + 0.4rem, 1.1rem) !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  box-shadow: var(--pontifex-shadow-btn) !important;
-  transition: background .18s ease !important;
 }
-.pontifex-oi-submit:hover:not(:disabled) {
-  background: var(--pontifex-black) !important;
-}
-.pontifex-oi-submit:disabled {
-  opacity: 0.5 !important;
-  cursor: not-allowed !important;
-}
+
 .pontifex-oi-submit-order {
   display: block !important;
   inline-size: 100% !important;
@@ -384,65 +275,23 @@ body {
   margin-block-start: 2rem !important;
   margin-inline: auto !important;
   padding-block: clamp(0.75rem, 1vw + 0.5rem, 0.9rem) !important;
-  font-size: clamp(0.95rem, 1vw + 0.3rem, 1rem) !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.01em !important;
-  transition:
-    transform 0.18s cubic-bezier(0.4,0,0.2,1) !important,
-    background 0.18s !important,
-    color 0.18s !important;
-}
-.pontifex-oi-submit-order:hover,
-.pontifex-oi-submit-order:focus {
-  background: var(--pontifex-black) !important;
-  color: var(--pontifex-white) !important;
-  transform: translateY(-4px) !important;
+  font-size: clamp(0.95rem, 1vw + 0.3rem, 1.05rem) !important;
 }
 
-/* Responsive aanpassingen algemeen */
-@media (max-width: 1024px) {
-  .pontifex-oi-section {
-    padding-block: clamp(2rem, 1.5vw + 0.7rem, 2rem) !important;
-    padding-inline: clamp(2rem, 1.5vw + 0.7rem, 2rem) !important;
-    margin: 0 !important;
+/* Animations */
+@keyframes popIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
-@media (max-width: 768px) {
-  .pontifex-admin-form-row {
-    margin-block-end: 1rem !important;
-  }
-  /* Stepper-balk bovenin */
-  .pontifex-oi-stepper {
-    font-size: clamp(1.3rem, 1.5vw + 0.5rem, 1.7rem) !important;
-    line-height: 1.2em;
-  }
-
-  .pontifex-oi-submit {
-    inline-size: 95% !important;
-    padding-block: clamp(0.75rem, 1vw + 0.5rem, 0.9rem) !important;
-    margin-block-start: 1.375rem !important;
-    font-size: clamp(1rem, 1vw + 0.4rem, 1.05rem) !important;
-  }
-  .pontifex-oi-submit-order {
-    inline-size: 100% !important;
-    max-inline-size: 320px !important;
-    padding-block: clamp(0.75rem, 1vw + 0.5rem, 0.9rem) !important;
-    margin-block-start: 2rem !important;
-    font-size: clamp(0.95rem, 1vw + 0.3rem, 1rem) !important;
-  }
-}
-
-@media (max-width: 767px) {
-  .pontifex-oi-section {
-    padding-block: 1rem !important;
-    padding-inline: 1rem !important;
-    border-radius: 0 0 var(--pontifex-radius) var(--pontifex-radius) !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .pontifex-oi-submit-order {
-    max-inline-size: 100% !important;
-  }
+@media (max-width: 600px) { 
+    .pontifex-oi-section-label{
+        line-height: 1.2em !important;
+    }
 }

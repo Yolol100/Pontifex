@@ -4,7 +4,8 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: clamp(1.25rem, 6vw, 2rem);
+  padding-block: clamp(1.25rem, 6vw, 2rem);
+  padding-inline: clamp(1.25rem, 6vw, 2rem);
   background-color: var(--pontifex-white);
   border-radius: var(--pontifex-radius);
   box-shadow: var(--pontifex-shadow);
@@ -15,33 +16,6 @@
   container-type: inline-size;
   content-visibility: auto;
   contain-intrinsic-size: 650px 500px;
-}
-
-.pontifex-oi-check-circle {
-  inline-size: 100px;
-  block-size: 100px;
-  background-color: var(--pontifex-orange);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-block-end: clamp(1rem, 4vw, 1.25rem);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  animation: popIn 0.5s ease-out forwards;
-}
-
-.pontifex-oi-check-circle svg {
-  fill: var(--pontifex-white);
-  inline-size: 65px;
-  block-size: 65px;
-}
-
-.pontifex-oi-success-title {
-  font-family: var(--pontifex-font-main) !important;
-  font-size: clamp(1.4rem, 5vw, 1.7rem) !important;
-  font-weight: var(--pontifex-font-weight-bold) !important;
-  color: var(--pontifex-black) !important;
-  margin-block-end: clamp(0.75rem, 3vw, 1.125rem) !important;
 }
 
 .pontifex-oi-success-message {
@@ -79,60 +53,56 @@
 
 /* Animations */
 @keyframes fadeIn {
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
 
-@keyframes popIn {
-  0% { transform: scale(0.6); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @container (min-width: 48rem) {
   .pontifex-oi-payment-success-simplified {
-    padding: 2rem;
+    padding-block: 2rem;
+    padding-inline: 2rem;
     margin-block: 3.75rem;
   }
-  .pontifex-oi-check-circle { margin-block-end: 1.5625rem; }
-  .pontifex-oi-success-title { margin-block-end: 1.125rem; }
 }
 
 /* Responsive media queries */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .pontifex-oi-payment-success-simplified {
-    padding: clamp(1rem, 4vw, 2rem);
+    padding-block: clamp(1rem, 4vw, 2rem);
+    padding-inline: clamp(1rem, 4vw, 2rem);
     margin-block: clamp(1.5rem, 6vw, 2.5rem);
     margin-inline: 15px;
     max-inline-size: 100%;
   }
-  .pontifex-oi-check-circle {
-    inline-size: 90px;
-    block-size: 90px;
-    margin-block-end: 1rem;
-  }
-  .pontifex-oi-check-circle svg {
-    inline-size: 55px;
-    block-size: 55px;
-  }
-  .pontifex-oi-success-title {
-    font-size: 1.4rem;
-    margin-block-end: 15px;
-  }
+
   .pontifex-oi-success-message {
     font-size: 1.1rem;
     margin-block-end: 20px;
     line-height: 1.4;
   }
+
   .pontifex-oi-home-button {
     padding-block: 12px;
     padding-inline: 24px;
     font-size: 1rem;
   }
+  
+  .pontifex-oi-check-circle {
+    inline-size: 105px;
+    block-size: 105px;
+  }
 }
 
-@media (max-width: 480px) {
-  .pontifex-oi-check-circle {
+@media (width <= 480px) { 
+    .pontifex-oi-check-circle {
     inline-size: 90px;
     block-size: 90px;
-  }
+    }
 }

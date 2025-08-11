@@ -24,66 +24,67 @@ class PaymentHelpers {
             require_once PONTIFEX_OI_PATH . 'includes/config/producten-prijzen.php';
         }
 
-        $total_price = 0.00;
-
         $exam_type       = $order_details['exam_type'] ?? '';
         $language        = $order_details['language'] ?? 'nl';
         $material_type   = $order_details['material'] ?? '';
-        $extra_materials = $order_details['extra_material'] ?? [];
-        $candidate_count = $order_details['candidate_count'] ?? 1;
+        $extra_materials = is_array($order_details['extra_material'] ?? []) ? $order_details['extra_material'] : [];
+        $candidate_count = max(1, (int)($order_details['candidate_count'] ?? 1));
 
-        // Basis examen prijs
-        if (isset($EXAM_PRODUCTS[$exam_type])) {
-            $prices     = $EXAM_PRODUCTS[$exam_type]['prices'];
-            $exam_price = $prices[$language] ?? $prices['nl'] ?? 0;
-            $total_price += $exam_price;
-        } else {
-            error_log('[Pontifex OI Error] Onbekend examen type: ' . $exam_type . ' in calculate_total_price.');
+        // Normaliseer legacy key
+        $exam_type_normalized = $exam_type;
+        if ($exam_type === 'los-examen-vil-vcu') {
+            $exam_type_normalized = 'los-examen-vca-vil';
+        }
+        
+        $weekend_selected = in_array('cursus-weekend', $extra_materials, true);
+        $is_basis_or_vol_exam = in_array($exam_type_normalized, ['los-examen-vca-basis', 'los-examen-vca-vol'], true);
+        $is_weekend_exam = in_array($exam_type, ['vca-basis-weekend', 'vca-vol-weekend'], true);
+
+        // Basis examenprijs
+        $exam_price = 0.0;
+        if (isset($EXAM_PRODUCTS[$exam_type_normalized])) {
+            $prices = $EXAM_PRODUCTS[$exam_type_normalized]['prices'];
+            if ($exam_type_normalized === 'los-examen-vca-vil' && in_array($language, ['nl', 'en'], true)) {
+                $exam_price = 139; // Speciale regel
+            } else {
+                $exam_price = (float)($prices[$language] ?? $prices['nl'] ?? 0);
+            }
         }
 
-        $is_weekend_cursus = in_array($exam_type, ['vca-basis-weekend', 'vca-vol-weekend'], true);
+        // Weekend override: vaste €245 i.p.v. (129/139/…)
+        $base = ($weekend_selected && $is_basis_or_vol_exam) ? 245.0 : $exam_price;
 
-        if (!$is_weekend_cursus) {
-            $combiKey = $material_type;
-            if (in_array($material_type, ['2', '4', '5', '6', '7'], true)) {
-                $suffix  = (strpos($exam_type, 'vca-vol') !== false) ? 'vol' : 'basis';
-                $combiKey = "{$material_type}_{$suffix}";
-            }
-
-            if (isset($MATERIAL_COMBIS[$combiKey])) {
-                foreach ($MATERIAL_COMBIS[$combiKey] as $prod) {
-                    if (isset($MATERIAL_PRODUCTS[$prod])) {
-                        $item_price  = $MATERIAL_PRODUCTS[$prod]['price'] ?? 0;
-                        $total_price += $item_price;
-                    } else {
-                        error_log('[Pontifex OI Error] Onbekend product in materiaal combinatie: ' . $prod);
+        // Materiaal combi
+        if (!$is_weekend_exam) { // Apply material combo only if it's not a weekend exam type
+            if (!empty($material_type) && $material_type !== '1') {
+                $combiKey = $material_type;
+                if (in_array($material_type, ['2', '4', '5', '6', '7'], true)) {
+                    $suffix = (strpos($exam_type_normalized, 'vca-vol') !== false || strpos($exam_type_normalized, 'vca-vil') !== false) ? 'vol' : 'basis';
+                    $combiKey = "{$material_type}_{$suffix}";
+                }
+                if (isset($MATERIAL_COMBIS[$combiKey])) {
+                    foreach ($MATERIAL_COMBIS[$combiKey] as $prodId) {
+                        $base += (float)($MATERIAL_PRODUCTS[$prodId]['price'] ?? 0);
                     }
                 }
             }
         }
+        
 
-        // Extra materialen
-        foreach ($extra_materials as $extra_mat_id) {
-            if (isset($MATERIAL_PRODUCTS[$extra_mat_id]['price'])) {
-                $total_price += $MATERIAL_PRODUCTS[$extra_mat_id]['price'];
-            } else {
-                error_log('[Pontifex OI Error] Onbekend extra materiaal ID: ' . $extra_mat_id . ' in calculate_total_price.');
+        // Extra losse materialen (excl. weekend; weekend zit al in $base bij override)
+        foreach ($extra_materials as $extra_id) {
+            if ($extra_id === 'cursus-weekend' && $is_basis_or_vol_exam) {
+                continue;
             }
+            $base += (float)($MATERIAL_PRODUCTS[$extra_id]['price'] ?? 0);
         }
 
-        $total_price *= max(1, (int) $candidate_count);
-
-        error_log('[Pontifex OI Debug] Berekende totale prijs (in PaymentHelpers): ' . $total_price);
-        return (float) $total_price;
+        return round($base * $candidate_count, 2);
     }
-
-    /**
-     * Creëert een Mollie-betaling.
-     */
+    
     public static function create_mollie_payment(float $total_amount, string $return_url, array $order_details, string $customer_email = '', string $description = '') {
         require_once PONTIFEX_OI_PATH . 'vendor/autoload.php';
 
-        // --- DEBUG: Toon ALLE inputwaarden ---
         error_log('[Pontifex OI DEBUG] Aangeroepen create_mollie_payment met: ' . print_r([
             'total_amount'   => $total_amount,
             'return_url'     => $return_url,

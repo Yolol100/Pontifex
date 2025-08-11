@@ -3,6 +3,8 @@ namespace PontifexOI\Admin;
 
 defined('ABSPATH') || exit;
 
+require_once PONTIFEX_OI_PATH . 'includes/helpers/ajax-soap-fetch-handler.php';
+
 class Admin {
     private static $instance = null;
 
@@ -20,13 +22,48 @@ class Admin {
     }
 
     public function enqueue_admin_assets($hook) {
+        // Robuuster screen-check
+        $is_pontifex = false;
+
         if (strpos($hook, 'pontifex_oi') !== false) {
-            wp_enqueue_style(
-                'pontifex-oi-admin',
-                PONTIFEX_OI_URL . 'assets/css/pontifex-oi-admin.css',
-                [],
-                PONTIFEX_OI_VERSION
-            );
+            $is_pontifex = true;
+        } else {
+            if (function_exists('get_current_screen')) {
+                $screen = get_current_screen();
+                if ($screen && (
+                    str_contains($screen->id, 'pontifex_oi') ||
+                    in_array($screen->id, [
+                        'toplevel_page_pontifex_oi_main',
+                        'pontifex_oi_main_page_pontifex_oi_soap',
+                    ], true)
+                )) {
+                    $is_pontifex = true;
+                }
+            }
+        }
+
+        if (!$is_pontifex) {
+            return;
+        }
+
+        // 1) Shared variabelen eerst (gebruikt door admin.css)
+        wp_enqueue_style(
+            'pontifex-oi-shared',
+            PONTIFEX_OI_URL . 'assets/css/pontifex-oi-shared.css',
+            [],
+            PONTIFEX_OI_VERSION
+        );
+
+        // 2) Admin styles, afhankelijk van shared
+        wp_enqueue_style(
+            'pontifex-oi-admin',
+            PONTIFEX_OI_URL . 'assets/css/pontifex-oi-admin.css',
+            ['pontifex-oi-shared'],
+            PONTIFEX_OI_VERSION
+        );
+
+        // (optioneel) admin JS
+        if (file_exists(PONTIFEX_OI_PATH . 'assets/js/pontifex-oi-admin.js')) {
             wp_enqueue_script(
                 'pontifex-oi-admin',
                 PONTIFEX_OI_URL . 'assets/js/pontifex-oi-admin.js',
@@ -70,7 +107,7 @@ class Admin {
         );
 
         // Verwijder standaard dubbel submenu-item
-        add_action('admin_head', function() {
+        add_action('admin_head', function () {
             remove_submenu_page('pontifex_oi_main', 'pontifex_oi_main');
         });
     }
@@ -80,7 +117,7 @@ class Admin {
         register_setting('pontifex_oi_mollie_group', 'pontifex_oi_mollie_live_api_key');
         register_setting('pontifex_oi_mollie_group', 'pontifex_oi_mollie_test_api_key');
         register_setting('pontifex_oi_mollie_group', 'pontifex_oi_mollie_test_mode', [
-            'type'    => 'boolean',
+            'type' => 'boolean',
             'default' => false,
         ]);
 
@@ -92,14 +129,15 @@ class Admin {
     }
 
     public function settings_page() {
-        $live_key  = esc_attr(get_option('pontifex_oi_mollie_live_api_key', ''));
-        $test_key  = esc_attr(get_option('pontifex_oi_mollie_test_api_key', ''));
+        $live_key = esc_attr(get_option('pontifex_oi_mollie_live_api_key', ''));
+        $test_key = esc_attr(get_option('pontifex_oi_mollie_test_api_key', ''));
         $test_mode = get_option('pontifex_oi_mollie_test_mode') ? 'checked' : '';
         ?>
         <div class="pontifex-admin-wrap">
             <div class="pontifex-admin-card">
                 <?php if (isset($_GET['settings-updated']) && $_GET['settings-updated']) : ?>
-                    <div id="message" class="updated notice notice-success is-dismissible" style="margin:0 0 1rem 0 !important; width:85%;">
+                    <div id="message" class="updated notice notice-success is-dismissible"
+                         style="margin:0 0 1rem 0 !important; width:85%;">
                         <p><?php esc_html_e('Instellingen zijn opgeslagen.', 'pontifex-oi'); ?></p>
                     </div>
                 <?php endif; ?>
@@ -112,7 +150,8 @@ class Admin {
                         <div class="pontifex-admin-desc">
                             <?php esc_html_e('Voer hier je live Mollie API key in (begin meestal met live_).', 'pontifex-oi'); ?>
                         </div>
-                        <input type="text" id="pontifex_oi_mollie_live_api_key" name="pontifex_oi_mollie_live_api_key" class="pontifex-admin-input" value="<?php echo $live_key; ?>" autocomplete="off" />
+                        <input type="text" id="pontifex_oi_mollie_live_api_key" name="pontifex_oi_mollie_live_api_key"
+                               class="pontifex-admin-input" value="<?php echo $live_key; ?>" autocomplete="off"/>
                     </div>
 
                     <div class="pontifex-admin-row">
@@ -122,7 +161,8 @@ class Admin {
                         <div class="pontifex-admin-desc">
                             <?php esc_html_e('Voer hier je test Mollie API key in (begin meestal met test_).', 'pontifex-oi'); ?>
                         </div>
-                        <input type="text" id="pontifex_oi_mollie_test_api_key" name="pontifex_oi_mollie_test_api_key" class="pontifex-admin-input" value="<?php echo $test_key; ?>" autocomplete="off" />
+                        <input type="text" id="pontifex_oi_mollie_test_api_key" name="pontifex_oi_mollie_test_api_key"
+                               class="pontifex-admin-input" value="<?php echo $test_key; ?>" autocomplete="off"/>
                     </div>
 
                     <div class="pontifex-admin-row pontifex-admin-toggle-row">
@@ -130,7 +170,8 @@ class Admin {
                             <?php esc_html_e('Testmodus', 'pontifex-oi'); ?>
                         </label>
                         <label class="pontifex-toggle-switch<?php echo $test_mode ? ' checked' : ''; ?>">
-                            <input type="checkbox" id="pontifex_oi_mollie_test_mode" name="pontifex_oi_mollie_test_mode" value="1" style="display:none;" <?php echo $test_mode; ?>>
+                            <input type="checkbox" id="pontifex_oi_mollie_test_mode" name="pontifex_oi_mollie_test_mode"
+                                   value="1" style="display:none;" <?php echo $test_mode; ?>>
                             <span class="pontifex-toggle-knob"></span>
                         </label>
                         <span class="pontifex-toggle-label">
@@ -138,7 +179,8 @@ class Admin {
                         </span>
                     </div>
 
-                    <button type="submit" class="pontifex-admin-submit"><?php esc_html_e('Opslaan', 'pontifex-oi'); ?></button>
+                    <button type="submit"
+                            class="pontifex-admin-submit"><?php esc_html_e('Opslaan', 'pontifex-oi'); ?></button>
                 </form>
             </div>
         </div>
@@ -151,16 +193,4 @@ class Admin {
 }
 
 // ==== AJAX HANDLER BUITEN DE CLASS ====
-add_action('wp_ajax_pontifex_oi_fetch_soap_data', function() {
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => __('Geen toegang.', 'pontifex-oi')]);
-    }
-
-    try {
-        $soapClient = new \PontifexOI\Api\SoapClient();
-        $soapClient->fetchAndStorePlanning();
-        wp_send_json_success(['message' => __('Gegevens succesvol opgehaald en opgeslagen.', 'pontifex-oi')]);
-    } catch (\Exception $e) {
-        wp_send_json_error(['message' => $e->getMessage()]);
-    }
-});
+add_action('wp_ajax_pontifex_oi_fetch_soap_data', 'pontifex_oi_fetch_soap_data_handler');

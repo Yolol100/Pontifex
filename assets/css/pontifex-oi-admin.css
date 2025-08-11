@@ -1,235 +1,96 @@
 /* Admin wrapper */
-.pontifex-admin-wrap {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    inline-size: 100%;
-    block-size: 100vh;
-    box-sizing: border-box;
+.pontifex-admin-wrap{
+  display:flex;align-items:center;justify-content:center;
+  inline-size:100%;block-size:100vh;box-sizing:border-box
 }
 
 /* Admin card */
-.pontifex-admin-card {
-    background: #fff;
-    border-radius: 0.4375rem; /* 7px */
-    box-shadow: 0 0.4375rem 2rem 0 color-mix(in srgb, #000 8%, transparent);
-    border: 0.10625rem solid #ddd; /* 1.7px */
-    max-inline-size: clamp(20rem, 33.75rem, 33.75rem);
-    margin: 0;
-    padding: 2rem 2rem 1rem 2rem;
-    position: relative;
-    box-sizing: border-box;
+.pontifex-admin-card{
+  background:#fff;border-radius:.4375rem;
+  box-shadow:0 .4375rem 2rem 0 color-mix(in srgb,#000 8%,transparent);
+  border:.10625rem solid #ddd;max-inline-size:clamp(20rem,33.75rem,33.75rem);
+  margin:0;padding:2rem 2rem 1rem;position:relative;box-sizing:border-box
 }
 
-/* Input row */
-.pontifex-admin-row {
-    margin-block-end: clamp(1.5rem, 2.5vw, 2rem);
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-}
+/* Rows (compact) */
+.pontifex-admin-row{margin-block-end:.9rem;display:flex;flex-direction:column;gap:.2rem}
 
-/* Label */
-.pontifex-admin-label {
-    font-weight: 600;
-    color: #000;
-    font-size: clamp(1rem, 1vw + 0.2rem, 1.07rem);
-    margin-block-end: 0.14rem;
-}
+/* Labels */
+.pontifex-admin-label{font-weight:600;color:#000;font-size:clamp(.95rem,.7vw + .6rem,1.05rem);margin:.25rem 0 .35rem}
 
-/* Uitleg */
-.pontifex-admin-desc {
-    font-size: clamp(0.9rem, 1vw, 0.99rem);
-    color: #888;
-    margin-block-end: 0.3rem;
-}
+/* Help text */
+.pontifex-admin-desc{font-size:clamp(.9rem,1vw,.99rem);color:#888;margin-block-end:.3rem}
 
-/* Input */
+/* Inputs – Material-3 like */
 .pontifex-admin-input,
-.pontifex-admin-input:focus {
-    inline-size: 100%;
-    border: 0.10625rem solid #D1D1D1;
-    border-radius: 0.4375rem;
-    font-size: clamp(1rem, 1vw + 0.1rem, 1.08rem);
-    padding-block: 0.63rem;
-    padding-inline: 0.89rem;
-    background: #f7f7f7;
-    color: #000;
-    transition: border 0.14s ease;
-    box-sizing: border-box;
+.pontifex-admin-select,
+.pontifex-admin-textarea{
+  appearance:none;background:#fff;border:1.5px solid #D1D1D1;border-radius:5px;
+  padding-block:.55rem;padding-inline:.85rem;font-size:clamp(.95rem,.7vw + .55rem,1.05rem);
+  line-height:1.35;box-shadow:0 1px 0 rgba(0,0,0,.02);transition:border-color .16s,box-shadow .16s,background .16s
 }
-
-.pontifex-admin-input:focus {
-    outline: none;
-    border-color: #FF9900;
-    background: #fffbe7;
+.pontifex-admin-input:hover,.pontifex-admin-select:hover,.pontifex-admin-textarea:hover{border-color:#B7B7B7}
+.pontifex-admin-input:focus,.pontifex-admin-select:focus,.pontifex-admin-textarea:focus{
+  border-color:var(--pontifex-orange);background:#fff;outline:none;box-shadow:0 0 0 4px rgba(255,153,0,.18)
 }
+.pontifex-admin-textarea{min-block-size:120px;resize:vertical}
+.pontifex-admin-input::placeholder,.pontifex-admin-textarea::placeholder{color:#9aa1a9;opacity:1}
 
 /* Toggle row */
-.pontifex-admin-toggle-row {
-    display: flex;
-    align-items: center;
-    gap: clamp(0.8rem, 1vw, 1.1rem);
+.pontifex-admin-toggle-row{display:flex;align-items:center;gap:clamp(.8rem,1vw,1.1rem)}
+.pontifex-toggle-switch{inline-size:2.75rem;block-size:1.5rem;background:#ddd;border-radius:.9375rem;position:relative;cursor:pointer;transition:background .19s;border:.09375rem solid #D1D1D1;margin-inline-end:.625rem;flex-shrink:0}
+.pontifex-toggle-switch.checked{background:#FF9900;border-color:#FF9900}
+.pontifex-toggle-knob{position:absolute;inset-block-start:.1375rem;inset-inline-start:.1375rem;inline-size:1.1875rem;block-size:1.1875rem;border-radius:50%;background:#fff;box-shadow:0 .0625rem .3125rem color-mix(in srgb,#000 5%,transparent);transition:inset-inline-start .19s}
+.pontifex-toggle-switch.checked .pontifex-toggle-knob{inset-inline-start:1.3125rem}
+.pontifex-toggle-label{font-weight:600;color:#000;font-size:clamp(1rem,1vw,1.05rem);user-select:none}
+
+/* Submit area centered */
+.pontifex-admin-btn-row,
+.pontifex-admin-card p.submit,
+.pontifex-admin-card .submit,
+#pontifex-soap .pontifex-admin-btn-row,
+#pontifex-soap-settings .pontifex-admin-btn-row,
+[id*="mollie"] .pontifex-admin-btn-row{
+  display:flex !important;justify-content:center !important;align-items:center !important;text-align:center !important
 }
 
-/* Toggle switch */
-.pontifex-toggle-switch {
-    inline-size: 2.75rem;
-    block-size: 1.5rem;
-    background: #ddd;
-    border-radius: 0.9375rem;
-    position: relative;
-    cursor: pointer;
-    transition: background 0.19s ease;
-    border: 0.09375rem solid #D1D1D1;
-    margin-inline-end: 0.625rem;
-    flex-shrink: 0;
+/* Submit button */
+.pontifex-admin-submit{
+  display:block !important;margin:1rem auto 0 !important;line-height:1 !important;
+  background:var(--pontifex-orange) !important;color:#fff !important;border:none !important;
+  font-weight:600 !important;box-shadow:var(--pontifex-shadow-btn) !important;
+  padding-block:clamp(.75rem,1vw + .5rem,.9rem) !important;padding-inline:clamp(1rem,1vw + .7rem,1.4rem) !important;
+  border-radius:var(--pontifex-radius) !important;cursor:pointer !important;transition:background .18s,color .18s,box-shadow .18s
+}
+.pontifex-admin-submit:hover,.pontifex-admin-submit:focus{background:#000 !important;color:#fff !important}
+
+/* Buttons row */
+.pontifex-admin-btn-row{flex-direction:row;gap:clamp(.5rem,1vw,.75rem);margin-block-end:1.2rem}
+.pontifex-admin-btn-row .pontifex-admin-submit{inline-size:auto;min-inline-size:clamp(12rem,12.5rem,12.5rem);margin-block-end:0}
+
+/* Titles */
+.pontifex-admin-card h1,
+.pontifex-admin-card h2,
+#pontifex-soap h2,#pontifex-soap-settings h2,[id*="mollie"] h2{
+  font-size:clamp(1.35rem,1.2vw + .9rem,1.75rem);font-weight:700;letter-spacing:.005em;
+  margin:.25rem 0 1rem;padding-bottom:.35rem;border-bottom:2px solid color-mix(in srgb,var(--pontifex-orange) 22%,transparent)
 }
 
-.pontifex-toggle-switch.checked {
-    background: #FF9900;
-    border-color: #FF9900;
-}
+/* SOAP feedback (single definition) */
+#pontifex-soap-fetch-feedback{display:none;opacity:0;margin-block-start:0;transition:opacity .35s cubic-bezier(.4,0,.2,1)}
+#pontifex-soap-fetch-feedback.active{display:flex;opacity:1;margin-block-start:.75rem}
+.pontifex-soap-feedback{display:flex;align-items:center;font-size:clamp(1rem,1vw,1.09rem);padding:.5625rem .75rem;border-radius:.4375rem;inline-size:fit-content;box-shadow:0 .0625rem .4375rem 0 color-mix(in srgb,#000 5%,transparent);margin-block-end:.625rem}
+.pontifex-soap-feedback.success{background:#d6f7e4;color:#121212;border:.08125rem solid #1eaa56}
+.pontifex-soap-feedback.error{background:#ffe5e5;color:#111;border:.08125rem solid #e12d2d}
+.pontifex-feedback-icon{font-size:1.43em;font-weight:900;margin-inline-end:.625rem;vertical-align:middle}
 
-.pontifex-toggle-knob {
-    position: absolute;
-    inset-block-start: 0.1375rem;
-    inset-inline-start: 0.1375rem;
-    inline-size: 1.1875rem;
-    block-size: 1.1875rem;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 0.0625rem 0.3125rem color-mix(in srgb, #000 5%, transparent);
-    transition: inset-inline-start 0.19s ease;
-}
-
-.pontifex-toggle-switch.checked .pontifex-toggle-knob {
-    inset-inline-start: 1.3125rem;
-}
-
-/* Toggle label */
-.pontifex-toggle-label {
-    font-weight: 600;
-    color: #000;
-    font-size: clamp(1rem, 1vw, 1.05rem);
-    user-select: none;
-}
-
-/* Submit knop (ook voor SOAP!) */
-.pontifex-admin-submit {
-    inline-size: 100%;
-    background-color: #FF9900;
-    color: #fff;
-    border: none;
-    border-radius: 0.4375rem;
-    font-size: clamp(1rem, 1vw + 0.1rem, 1.09rem);
-    font-weight: 600;
-    padding-block-start: 0.5625rem;
-    padding-block-end: 0.75rem;
-    cursor: pointer;
-    box-shadow: 0 0.125rem 0.875rem 0 color-mix(in srgb, #FF9900 10%, transparent);
-    letter-spacing: 0.01em;
-    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.pontifex-admin-submit:hover,
-.pontifex-admin-submit:focus {
-    background-color: #000;
-    color: #fff;
-    font-weight: 600;
-}
-
-/* SOAP: Buttons naast elkaar */
-.pontifex-admin-btn-row {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: clamp(0.5rem, 1vw, 0.75rem);
-    margin-block-end: 1.2rem;
-}
-
-.pontifex-admin-btn-row .pontifex-admin-submit {
-    inline-size: auto;
-    min-inline-size: clamp(12rem, 12.5rem, 12.5rem);
-    margin-block-end: 0;
-}
-
-/* SOAP: Feedback styling */
-#pontifex-soap-fetch-feedback {
-    display: none;
-    margin-block-start: 0; /* GEEN marge standaard */
-}
-
-#pontifex-soap-fetch-feedback.active {
-    display: flex;
-    margin-block-start: 0.75rem; /* Marge ALLEEN als zichtbaar */
-}
-
-.pontifex-soap-feedback {
-    display: flex;
-    align-items: center;
-    font-size: clamp(1rem, 1vw, 1.09rem);
-    padding: 0.5625rem 0.75rem;
-    border-radius: 0.4375rem;
-    inline-size: fit-content;
-    box-shadow: 0 0.0625rem 0.4375rem 0 color-mix(in srgb, #000 5%, transparent);
-    margin-block-end: 0.625rem;
-}
-
-.pontifex-soap-feedback.success {
-    background: #d6f7e4;
-    color: #121212;
-    border: 0.08125rem solid #1eaa56;
-}
-
-.pontifex-soap-feedback.error {
-    background: #ffe5e5;
-    color: #111;
-    border: 0.08125rem solid #e12d2d;
-}
-
-.pontifex-feedback-icon {
-    font-size: 1.43em;
-    font-weight: 900;
-    margin-inline-end: 0.625rem;
-    vertical-align: middle;
-}
-
-#message.updated.notice-success {
-  opacity: 1;
-  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#message.updated.notice-success.hide {
-  opacity: 0;
-}
-
-#pontifex-soap-fetch-feedback {
-  opacity: 0;
-  transition: opacity 0.35s cubic-bezier(0.4,0,0.2,1);
-  display: none;
-}
-
-#pontifex-soap-fetch-feedback.active {
-  display: flex;
-  opacity: 1;
-}
+/* WP notice fade */
+#message.updated.notice-success{opacity:1;transition:opacity .5s cubic-bezier(.4,0,.2,1)}
+#message.updated.notice-success.hide{opacity:0}
 
 /* Responsive */
-@media (inline-size <= 37.5rem) {
-    .pontifex-admin-card {
-        padding-block: 1.3rem;
-        padding-inline: 0.7rem;
-    }
-    
-    .pontifex-admin-btn-row {
-        flex-direction: column;
-        gap: 0.5625rem;
-        align-items: stretch;
-    }
-    
-    .pontifex-admin-btn-row .pontifex-admin-submit {
-        inline-size: 100%;
-        min-inline-size: 0;
-    }
+@media (inline-size <= 37.5rem){
+  .pontifex-admin-card{padding-block:1.3rem;padding-inline:.7rem}
+  .pontifex-admin-btn-row{flex-direction:column;gap:.5625rem;align-items:stretch}
+  .pontifex-admin-btn-row .pontifex-admin-submit{inline-size:100%;min-inline-size:0}
 }

@@ -3,12 +3,49 @@
 
   const PontifexOI = window.PontifexOI = window.PontifexOI || {};
 
+  // Globale config reader (gebruikt door price.js & table.js)
+  PontifexOI.getCfg = function () {
+    const cfg = window.PontifexOIConfigData || window.PontifexOIConfig || {};
+    return {
+      EXAM_PRODUCTS: cfg.examProducts || cfg.EXAM_PRODUCTS || {},
+      MATERIAL_PRODUCTS: cfg.materialProducts || cfg.MATERIAL_PRODUCTS || {},
+      MATERIAL_COMBIS: cfg.materialCombis || cfg.MATERIAL_COMBIS || {},
+      WEEKEND_ALLOWED_BY_EXAM: cfg.weekendAllowedByExam || {},
+      ajaxUrl: cfg.ajaxUrl || ''
+    };
+  };
+
+  // Weekend-toeslag toegestaan?
+  PontifexOI.isWeekendAllowed = function (exam, lang) {
+    const cfg = PontifexOI.getCfg();
+    const allowed = cfg.WEEKEND_ALLOWED_BY_EXAM[exam] || [];
+    if (allowed.includes(lang)) return true;
+    // veilige fallback als een exam-id expliciet 'weekend' bevat
+    return /weekend/i.test(exam);
+  };
+
+  // Normaliseer exam-id's naar uniforme keys
+  PontifexOI.normalizeExam = function (v) {
+    if (!v) return v;
+    switch (v) {
+      case 'vca-basis':
+        return 'los-examen-vca-basis';
+      case 'vca-vol':
+        return 'los-examen-vca-vol';
+      case 'los-examen-vil-vcu':
+        return 'los-examen-vca-vil';
+      default:
+        return v;
+    }
+  };
+
   PontifexOI.debounce = function(func, wait, immediate) {
     let timeout;
-    return function () {
-      const context = this, args = arguments;
+    return function() {
+      const context = this,
+        args = arguments;
       clearTimeout(timeout);
-      timeout = setTimeout(function () {
+      timeout = setTimeout(function() {
         timeout = null;
         if (!immediate) func.apply(context, args);
       }, wait);
@@ -29,14 +66,6 @@
       spots: params.get('spots') || '',
       price: params.get('price') || ''
     };
-  };
-
-  PontifexOI.saveFilterState = function() {
-    const $ = window.jQuery;
-    if (!$) return;
-    localStorage.setItem('exam_type', $('select[name="exam_type"]').val());
-    localStorage.setItem('language', $('select[name="language"]').val());
-    localStorage.setItem('material', $('select[name="material"]').val());
   };
 
   PontifexOI.loadFilterState = function() {

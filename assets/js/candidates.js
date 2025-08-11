@@ -8,28 +8,6 @@
   const maxCandidates = 4;
 
   /**
-   * Parses a price string by removing non-numeric characters and converting it
-   * to a float.
-   *
-   * @param {string} str - The price string to be parsed.
-   * @returns {number} The parsed price as a float, or 0 if the string is invalid.
-   */
-  function parsePrice(str) {
-    if (!str) return 0;
-    return parseFloat(str.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-  }
-
-  /**
-   * Retrieves specific URL parameters.
-   *
-   * @returns {object} An object with the 'price' parameter from the URL.
-   */
-  function getUrlParams() {
-    const params = new URLSearchParams(window.location.search);
-    return { price: params.get('price') || '' };
-  }
-
-  /**
    * Updates the number of candidates in the UI and recalculates the total price.
    */
   function updateCandidateCountAndPrice() {
@@ -37,20 +15,21 @@
     const count = $rows.length;
     $('#candidate-count').text(count);
 
-    let baseRaw = $('#payment_amount').data('base-price') || getUrlParams().price;
+    let baseRaw = $('#payment_amount').data('base-price') || PontifexOI.getUrlParams().price;
     if (!baseRaw) {
       baseRaw = $('#payment_amount').val();
       $('#payment_amount').data('base-price', baseRaw);
     }
     
-    let basePrice = parsePrice(baseRaw);
+    let basePrice = PontifexOI.parsePrice(baseRaw);
     if (isNaN(basePrice)) basePrice = 0;
     const total = basePrice * count;
 
+    const totalStr = total.toFixed(2);
     if ($('#total-price').length) {
-      $('#total-price').text('€' + total.toFixed(2).replace('.', ','));
+      $('#total-price').text('€' + totalStr.replace('.', ','));
     }
-    $('#payment_amount').val(total.toFixed(2).replace('.', ','));
+    $('#payment_amount').val(totalStr);
 
     // If 'material.js' exists and needs to account for extras, let it handle the final total.
     // This is the improved logic from the new version.
@@ -78,12 +57,9 @@
         $(this).find('.pontifex-oi-remove-candidate').show();
       }
     });
-
-    if ($list.find('.pontifex-oi-candidate-row').length >= maxCandidates) {
-      $('.pontifex-oi-candidate-addrow').hide();
-    } else {
-      $('.pontifex-oi-candidate-addrow').show();
-    }
+    
+    // Probleem 2: Fix voor inconsistente class-namen
+    $('.pontifex-oi-add-candidate').toggle($list.find('.pontifex-oi-candidate-row').length < maxCandidates);
   }
 
   /**
@@ -97,19 +73,37 @@
 
       if (count >= maxCandidates) return;
       
-      // Clone the first row, clear the fields, and update IDs and 'for' attributes.
+      // Clone the first row.
       const $firstRow = $list.find('.pontifex-oi-candidate-row').first();
       const $newRow = $firstRow.clone();
-      $newRow.find('input').val('');
-      
-      $newRow.find('label').each(function() {
-        const oldFor = $(this).attr('for');
-        if (oldFor) $(this).attr('for', oldFor.replace(/\d+$/, count + 1));
-      });
-      
+
+      // Probleem 3: Klonen met unieke name/id + reset checkboxes
       $newRow.find('input').each(function() {
-        const oldId = $(this).attr('id');
-        if (oldId) $(this).attr('id', oldId.replace(/\d+$/, count + 1));
+        const $el = $(this);
+        // leegmaken + uncheck
+        if ($el.is(':checkbox,:radio')) { $el.prop('checked', false); }
+        else { $el.val(''); }
+
+        // id/for/name bijwerken
+        const oldId = $el.attr('id');
+        if (oldId) $el.attr('id', oldId.replace(/\d+$/, count + 1) || (oldId + '-' + (count + 1)));
+
+        const oldName = $el.attr('name');
+        if (oldName) {
+          // support zowel naam_1 als naam[1]
+          if (/\[\d+\]$/.test(oldName)) {
+            $el.attr('name', oldName.replace(/\[\d+\]$/, '[' + (count + 1) + ']'));
+          } else if (/\d+$/.test(oldName)) {
+            $el.attr('name', oldName.replace(/\d+$/, (count + 1)));
+          } else {
+            $el.attr('name', oldName + '[' + (count + 1) + ']');
+          }
+        }
+      });
+      $newRow.find('label[for]').each(function() {
+        const $lb = $(this);
+        const oldFor = $lb.attr('for');
+        if (oldFor) $lb.attr('for', oldFor.replace(/\d+$/, count + 1) || (oldFor + '-' + (count + 1)));
       });
       
       $list.append($newRow);

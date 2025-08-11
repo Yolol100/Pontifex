@@ -4,30 +4,8 @@
 
   const PontifexOI = window.PontifexOI = window.PontifexOI || {};
 
-  function parsePrice(str) {
-    if (!str) return 0;
-    return parseFloat(str.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-  }
-
-  function getCfg() {
-    const cfg = window.PontifexOIConfigData || window.PontifexOIConfig || {};
-    return {
-      EXAM_PRODUCTS: cfg.examProducts || cfg.EXAM_PRODUCTS || {},
-      MATERIAL_PRODUCTS: cfg.materialProducts || cfg.MATERIAL_PRODUCTS || {},
-      MATERIAL_COMBIS: cfg.materialCombis || cfg.MATERIAL_COMBIS || {},
-      WEEKEND_ALLOWED_BY_EXAM: cfg.weekendAllowedByExam || {},
-      ajaxUrl: cfg.ajaxUrl || ''
-    };
-  }
-
-  function isWeekendAllowed(exam, lang) {
-    const cfg = getCfg();
-    const allowedLangs = cfg.WEEKEND_ALLOWED_BY_EXAM[exam] || [];
-    return allowedLangs.includes(lang);
-  }
-
   function calculatePrice(exam, lang, mat) {
-    const cfg = getCfg();
+    const cfg = PontifexOI.getCfg();
 
     let total = 0;
 
@@ -39,7 +17,7 @@
     if (!mat || mat === '1') return total;
 
     if (mat === 'cursus-weekend') {
-      if (isWeekendAllowed(exam, lang)) {
+      if (PontifexOI.isWeekendAllowed(exam, lang)) {
         return total + (cfg.MATERIAL_PRODUCTS['cursus-weekend']?.price ?? 245);
       }
       return total;
@@ -83,7 +61,7 @@
       return;
     }
 
-    const cfgAll = getCfg();
+    const cfgAll = PontifexOI.getCfg();
     const url = ajaxUrl || cfgAll.ajaxUrl;
     if (!url || typeof window.jQuery === 'undefined') {
       _priceCache.set(key, localStr);
@@ -116,7 +94,7 @@
   // NEW: Batch fetch
   function fetchPricesBatch(items, cb) {
     // items: [{exam_type, language, material}]
-    const cfgAll = getCfg();
+    const cfgAll = PontifexOI.getCfg();
     const url = cfgAll.ajaxUrl || '';
     const onRegistrationPage = !!document.querySelector('#step-2');
 
@@ -146,11 +124,11 @@
     if (typeof window.jQuery === 'undefined') {
       // Fallback compute local even on step 2
       toRequest.forEach(it => {
-        const key = cacheKey(it.exam_type, it.language, it.material);
+        const k = cacheKey(it.exam_type, it.language, it.material);
         const local = calculatePrice(it.exam_type, it.language, it.material);
         const localStr = '€' + local.toFixed(2).replace('.', ',');
-        _priceCache.set(key, localStr);
-        result[key] = localStr;
+        _priceCache.set(k, localStr);
+        result[k] = localStr;
       });
       cb(result);
       return;
@@ -210,6 +188,5 @@
   PontifexOI.calculatePrice = calculatePrice;
   PontifexOI.fetchPrice = fetchPrice;
   PontifexOI.fetchPricesBatch = fetchPricesBatch;
-  PontifexOI.parsePrice = parsePrice;
 
 })(window);

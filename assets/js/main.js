@@ -58,3 +58,29 @@ jQuery(function($) {
 
   console.log('pontifex-oi: init complete.');
 });
+
+// Voeg onderaan bestand toe (of maak bestand aan als het nog niet bestaat)
+(function () {
+  function qs(name){ try{ return new URLSearchParams(location.search).get(name); }catch(e){ return null; } }
+
+  // Preselecteer examensoort via ?exam_type=... of ?exam=...
+  document.addEventListener('DOMContentLoaded', function(){
+    var pre = qs('exam_type') || qs('exam');
+    var sel = document.querySelector('#exam_type-select, select[name="exam_type"]');
+    if (pre && sel) {
+      sel.value = pre;
+      sel.dispatchEvent(new Event('change'));
+    }
+  });
+
+  // Linkmaker: <a class="js-exam-link" data-exam-link="los-examen-vca-basis">…</a>
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('.js-exam-link,[data-exam-link]');
+    if (!t) return;
+    e.preventDefault();
+    var ex = t.getAttribute('data-exam-link');
+    if (!ex) return;
+    var base = (window.PontifexOIConfigData && PontifexOIConfigData.planningPageUrl) || '/cursus-zoeken/';
+    location.href = base + '?exam_type=' + encodeURIComponent(ex);
+  });
+})();

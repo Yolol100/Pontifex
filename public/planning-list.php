@@ -3,13 +3,17 @@
  * Handles the redirection for exam registration and renders the exam planning interface.
  */
 
-// Dynamische registratie-URL (nooit hardcoden)
-$registration_url = $args['registration_url'] ?? (function_exists('get_permalink') ? get_permalink(2207) : '/cursus-inschrijven/');
+use function PontifexOI\Helpers\render_select;
 
-// Handle registration redirection if 'go' parameter is present (veiligere naam dan 'aanmelden')
+// Dynamische registratie-URL (nooit hardcoden)
+$registration_url = $args['registration_url'] ?? ( function_exists('get_permalink')
+    ? ( ($id=(int)get_option('pontifex_oi_registration_page_id')) ? get_permalink($id) : home_url('/cursus-inschrijven/') )
+    : '/cursus-inschrijven/' );
+
+// Handle registration redirection if 'go' parameter is present
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['go'])) {
-    $query = http_build_query([
-        'go'         => 1,
+    $query = http_build_query(array_filter([
+        'go'        => 1,
         'exam_type'  => $_GET['exam_type'] ?? '',
         'language'   => $_GET['language'] ?? '',
         'material'   => $_GET['material'] ?? '',
@@ -19,12 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['go'])) {
         'province'   => $_GET['province'] ?? '',
         'spots'      => $_GET['spots'] ?? '',
         'price'      => $_GET['price'] ?? '',
-    ]);
+    ]));
     wp_redirect( trailingslashit($registration_url) . '?' . $query );
     exit;
 }
-
-use function PontifexOI\Helpers\render_select;
 
 // Defaults
 $exam_type = $args['filters']['exam_type'] ?? $_GET['exam_type'] ?? 'los-examen-vca-basis';
@@ -36,29 +38,29 @@ if (empty($language)) $language = 'nl';
 $material = $args['filters']['material'] ?? $_GET['material'] ?? '1';
 if (empty($material)) $material = '1';
 
+// Ophalen van opties en toevoegen van placeholders
 $examTypes = array_filter($args['exam_types'] ?? [], fn($et) => !empty($et['id']) || $et['id'] === '');
 $languages = $args['languages'] ?? [];
-$months     = $args['months'] ?? [];
-$provinces  = $args['provinces'] ?? [];
-$locations  = $args['locations'] ?? [];
-$timeslots  = $args['timeslots'] ?? [];
+$months    = $args['months'] ?? [];
+$provinces = $args['provinces'] ?? [];
+$locations = $args['locations'] ?? [];
+$timeslots = $args['timeslots'] ?? [];
 
-$add_toon_alles = function (&$arr, $label) {
+$add_placeholder = function (&$arr, $label) {
     if (!isset($arr[0]) || (isset($arr[0]['id']) && $arr[0]['id'] !== '')) {
         array_unshift($arr, ['id' => '', 'name' => $label]);
     }
 };
-if (($args['context'] ?? '') === 'filter') {
-    $add_toon_alles($languages,  __('Toon alles','pontifex-oi'));
-    $add_toon_alles($months,     __('Toon alles','pontifex-oi'));
-    $add_toon_alles($provinces,  __('Toon alles','pontifex-oi'));
-    $add_toon_alles($locations,  __('Toon alles','pontifex-oi'));
-    $add_toon_alles($timeslots,  __('Toon alles','pontifex-oi'));
-}
+
+$add_placeholder($languages, __('Kies taal','pontifex-oi'));
+$add_placeholder($months,    __('Kies maand','pontifex-oi'));
+$add_placeholder($provinces, __('Kies provincie','pontifex-oi'));
+$add_placeholder($locations, __('Kies locatie','pontifex-oi'));
+$add_placeholder($timeslots, __('Kies dagsoort','pontifex-oi'));
 
 $hide_material = in_array($exam_type, ['vca-basis-weekend','vca-vol-weekend'], true);
 
-// Voor initiële laadtijd, optioneel voor JS (kan blijven)
+// Voor initiële laadtijd
 $current_page = $args['current_page'] ?? 1;
 $total_pages = $args['total_pages'] ?? 1;
 ?>
@@ -72,7 +74,6 @@ $total_pages = $args['total_pages'] ?? 1;
     <div class="pontifex-oi-bestellen">
 
       <form class="pontifex-oi-filters" method="get" action="" aria-label="<?php esc_attr_e('Filter examens en planning','pontifex-oi'); ?>">
-        <!-- Examensoort + Taal -->
         <div class="pontifex-oi-filter-row">
           <div class="pontifex-oi-filter-group">
             <h2 class="select-exam-label"><?php esc_html_e('Selecteer een examen','pontifex-oi'); ?></h2>
@@ -80,6 +81,7 @@ $total_pages = $args['total_pages'] ?? 1;
               <div class="pontifex-oi-filter-single">
                 <label for="exam_type-select"><?php esc_html_e('Examensoort','pontifex-oi'); ?></label>
                 <select id="exam_type-select" name="exam_type" class="pontifex-oi-filter" data-filter="exam_type" required>
+                  <option value=""><?php echo esc_html__('Kies examensoort','pontifex-oi'); ?></option>
                   <?php foreach($examTypes as $opt): ?>
                     <option value="<?php echo esc_attr($opt['id']); ?>" <?php selected($exam_type, $opt['id']); ?>>
                       <?php echo esc_html($opt['name']); ?>
@@ -101,7 +103,6 @@ $total_pages = $args['total_pages'] ?? 1;
           </div>
         </div>
 
-        <!-- Datum & Locatie -->
         <h2 class="select-date-label"><?php esc_html_e('Kies een datum en locatie','pontifex-oi'); ?></h2>
         <div class="pontifex-oi-filter-row -no-gap">
           <?php foreach ([ 
@@ -127,7 +128,6 @@ $total_pages = $args['total_pages'] ?? 1;
         </div>
       </form>
 
-      <!-- Tabel weergave -->
       <table id="pontifex-oi-table" 
              class="pontifex-oi-table pontifex-oi-table-custom" 
              role="table"
@@ -147,8 +147,8 @@ $total_pages = $args['total_pages'] ?? 1;
         <tbody>
           <?php if (!empty($args['planning'])): ?>
             <?php foreach($args['planning'] as $row):
-              $row_exam     = !empty($row['exam'])     ? $row['exam']     : $exam_type;
-              $row_language = !empty($row['language']) ? $row['language'] : $language;
+              $row_exam     = !empty($row['exam'])      ? $row['exam']      : $exam_type;
+              $row_language = !empty($row['language'])  ? $row['language']  : $language;
               $row_material = '1';
             ?>
             <tr>
@@ -172,15 +172,15 @@ $total_pages = $args['total_pages'] ?? 1;
                 <?php if (strtoupper($row['spots'] ?? '') !== 'VOL'): ?>
                   <form method="get" class="pontifex-oi-aanmeld-form" action="<?php echo esc_url($registration_url); ?>">
                     <input type="hidden" name="go" value="1">
-                    <input type="hidden" name="exam_type"  value="<?php echo esc_attr($row_exam); ?>">
-                    <input type="hidden" name="language"   value="<?php echo esc_attr($row_language); ?>">
-                    <input type="hidden" name="material"   value="<?php echo esc_attr($row_material); ?>">
-                    <input type="hidden" name="date"       value="<?php echo esc_attr($row['date'] ?? ''); ?>">
-                    <input type="hidden" name="time"       value="<?php echo esc_attr($row['time'] ?? ''); ?>">
-                    <input type="hidden" name="location"   value="<?php echo esc_attr($row['location'] ?? ''); ?>">
-                    <input type="hidden" name="province"   value="<?php echo esc_attr($row['province'] ?? ''); ?>">
-                    <input type="hidden" name="spots"      value="<?php echo esc_attr($row['spots'] ?? ''); ?>">
-                    <input type="hidden" name="price"      value="" class="pontifex-oi-price-input">
+                    <input type="hidden" name="exam_type"    value="<?php echo esc_attr($row_exam); ?>">
+                    <input type="hidden" name="language"     value="<?php echo esc_attr($row_language); ?>">
+                    <input type="hidden" name="material"     value="<?php echo esc_attr($row_material); ?>">
+                    <input type="hidden" name="date"         value="<?php echo esc_attr($row['date'] ?? ''); ?>">
+                    <input type="hidden" name="time"         value="<?php echo esc_attr($row['time'] ?? ''); ?>">
+                    <input type="hidden" name="location"     value="<?php echo esc_attr($row['location'] ?? ''); ?>">
+                    <input type="hidden" name="province"     value="<?php echo esc_attr($row['province'] ?? ''); ?>">
+                    <input type="hidden" name="spots"        value="<?php echo esc_attr($row['spots'] ?? ''); ?>">
+                    <input type="hidden" name="price"        value="" class="pontifex-oi-price-input">
                     <button type="submit" class="pontifex-oi-aanmelden"><?php esc_html_e('Kandidaat aanmelden','pontifex-oi'); ?></button>
                   </form>
                 <?php else: ?>
@@ -195,12 +195,11 @@ $total_pages = $args['total_pages'] ?? 1;
         </tbody>
       </table>
 
-      <!-- Kaarten weergave (tablet/mobiel) -->
       <div id="pontifex-oi-cards-container" class="pontifex-oi-cards-container">
         <?php if (!empty($args['planning'])): ?>
           <?php foreach($args['planning'] as $row):
-            $row_exam     = !empty($row['exam'])     ? $row['exam']     : $exam_type;
-            $row_language = !empty($row['language']) ? $row['language'] : $language;
+            $row_exam     = !empty($row['exam'])      ? $row['exam']      : $exam_type;
+            $row_language = !empty($row['language'])  ? $row['language']  : $language;
             $spots        = $row['spots'] ?? '-';
           ?>
           <article class="pontifex-oi-card" role="listitem">
@@ -225,7 +224,7 @@ $total_pages = $args['total_pages'] ?? 1;
               <dd>
                 <?php if (strtoupper($spots) !== 'VOL'): ?>
                   <form method="get" class="pontifex-oi-aanmeld-form" action="<?php echo esc_url($registration_url); ?>">
-                    <input type="hidden" name="go"         value="1">
+                    <input type="hidden" name="go"       value="1">
                     <input type="hidden" name="exam_type"  value="<?php echo esc_attr($row_exam); ?>">
                     <input type="hidden" name="language"   value="<?php echo esc_attr($row_language); ?>">
                     <input type="hidden" name="material"   value="1">
@@ -254,24 +253,20 @@ $total_pages = $args['total_pages'] ?? 1;
         <?php endif; ?>
       </div>
 
-      <!-- Paginatie -->
       <div class="pontifex-oi-pagination-wrapper" role="region" aria-label="<?php esc_attr_e("Navigatie resultatenpagina's",'pontifex-oi'); ?>">
         <div class="pontifex-oi-results-per-page">
           <label for="pontifex-oi-results-per-page"><?php esc_html_e('Aantal resultaten','pontifex-oi'); ?>:</label>
           <select id="pontifex-oi-results-per-page"
-                  aria-controls="pontifex-oi-table"
-                  aria-label="<?php esc_attr_e('Aantal resultaten per pagina','pontifex-oi'); ?>">
+                   aria-controls="pontifex-oi-table"
+                   aria-label="<?php esc_attr_e('Aantal resultaten per pagina','pontifex-oi'); ?>">
             <option value="10" <?php selected(10, $args['per_page'] ?? 10); ?>>10</option>
             <option value="25" <?php selected(25, $args['per_page'] ?? 10); ?>>25</option>
             <option value="50" <?php selected(50, $args['per_page'] ?? 10); ?>>50</option>
           </select>
         </div>
-
         <nav aria-label="<?php echo esc_attr__('Paginanavigatie','pontifex-oi'); ?>">
-          <!-- Pagination links worden nu dynamisch gegenereerd via JS -->
         </nav>
       </div>
-
     </div>
   </div>
 </section>

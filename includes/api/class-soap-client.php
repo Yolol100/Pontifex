@@ -80,16 +80,16 @@ class SoapClient {
             'candidates'     => $candidates,
             // Extra velden naar behoefte mappen:
             'order' => [
-                'initials'     => (string) ($order['order_initials'] ?? ''),
-                'infix'        => (string) ($order['order_infix'] ?? ''),
-                'last_name'    => (string) ($order['order_lastname'] ?? ''),
-                'company'      => (string) ($order['order_company'] ?? ''),
-                'vat'          => (string) ($order['order_vat'] ?? ''),
-                'street'       => (string) ($order['order_street'] ?? ''),
-                'city'         => (string) ($order['order_city'] ?? ''),
-                'postcode'     => (string) ($order['order_postcode'] ?? ''),
-                'housenumber'  => (string) ($order['order_housenumber'] ?? ''),
-                'phone'        => (string) ($order['order_phone'] ?? ''),
+                'initials'       => (string) ($order['order_initials'] ?? ''),
+                'infix'          => (string) ($order['order_infix'] ?? ''),
+                'last_name'      => (string) ($order['order_lastname'] ?? ''),
+                'company'        => (string) ($order['order_company'] ?? ''),
+                'vat'            => (string) ($order['order_vat'] ?? ''),
+                'street'         => (string) ($order['order_street'] ?? ''),
+                'city'           => (string) ($order['order_city'] ?? ''),
+                'postcode'       => (string) ($order['order_postcode'] ?? ''),
+                'housenumber'    => (string) ($order['order_housenumber'] ?? ''),
+                'phone'          => (string) ($order['order_phone'] ?? ''),
             ],
             // Extra lesmateriaal (optioneel)
             'extra_material' => (array)  ($order['extra_material'] ?? []),
@@ -116,7 +116,6 @@ class SoapClient {
             // Succes – log beperkt om PII te beperken
             error_log('PontifexOI SOAP sendRegistration: succesvol verstuurd.');
             return true;
-
         } catch (Exception $e) {
             error_log('PontifexOI SOAP sendRegistration fout: ' . $e->getMessage());
             throw $e;
@@ -138,8 +137,8 @@ class SoapClient {
 
         // Debug logging
         error_log("PontifexOI DEBUG - user_identifier: " . var_export($user_identifier, true) .
-                  " | company_identifier: " . var_export($company_identifier, true) .
-                  " | hash: " . var_export($hash, true));
+            " | company_identifier: " . var_export($company_identifier, true) .
+            " | hash: " . var_export($hash, true));
 
         if (empty($user_identifier) || empty($hash)) {
             error_log("PontifexOI ERROR - Lege SOAP authenticatievelden: user_identifier=" . var_export($user_identifier,true) . ", hash=" . var_export($hash,true));
@@ -150,7 +149,7 @@ class SoapClient {
         $params = [
             'user_identifier' => (int) $user_identifier,
             'hash'            => (string) $hash,
-            // 'partner'       => (int) $company_identifier, // Niet meesturen!
+            // 'partner'         => (int) $company_identifier, // Niet meesturen!
         ];
 
         error_log("PontifexOI DEBUG - SOAP-call params: " . print_r($params, true));
@@ -181,25 +180,28 @@ class SoapClient {
                 if (is_array($planning)) {
                     $planning = (object) $planning;
                 }
-
+                
+                // Normalisatie van exam_type (aangepaste regel)
+                // DEZE REGEL IS VERWIJDERD
+                
                 $data = [
-                    'planning_identifier'   => (string) ($planning->planning_identifier ?? ''),
-                    'planning_date'         => $planning->planning_date ?? null,
-                    'planning_time'         => $planning->planning_time ?? null,
-                    'planning_start_date'   => isset($planning->planning_start_date) ? date('Y-m-d H:i:s', strtotime($planning->planning_start_date)) : null,
-                    'planning_updated'      => isset($planning->planning_updated) ? date('Y-m-d H:i:s', strtotime($planning->planning_updated)) : null,
-                    'planning_status'       => $planning->planning_status ?? null,
-                    'available_seats'       => (int) ($planning->available_seats ?? 0),
-                    'location_identifier'   => $planning->location?->location_identifier ?? null,
-                    'location_name'         => $planning->location?->location_name ?? '',
-                    'location_street'       => $planning->location?->location_street ?? '',
-                    'location_number'       => $planning->location?->location_number ?? '',
-                    'location_suffix'       => $planning->location?->location_suffix ?? '',
-                    'location_zip_code'     => $planning->location?->location_zip_code ?? '',
-                    'location_city'         => $planning->location?->location_city ?? '',
-                    'location_province'     => $planning->location?->location_province ?? '',
-                    'location_country'      => $planning->location?->location_country ?? '',
-                    'location_seats'        => (int) ($planning->location?->location_seats ?? 0),
+                    'planning_identifier'    => (string) ($planning->planning_identifier ?? ''),
+                    'planning_date'          => $planning->planning_date ?? null,
+                    'planning_time'          => $planning->planning_time ?? null,
+                    'planning_start_date'    => isset($planning->planning_start_date) ? date('Y-m-d H:i:s', strtotime($planning->planning_start_date)) : null,
+                    'planning_updated'       => isset($planning->planning_updated) ? date('Y-m-d H:i:s', strtotime($planning->planning_updated)) : null,
+                    'planning_status'        => $planning->planning_status ?? null,
+                    'available_seats'        => (int) ($planning->available_seats ?? 0),
+                    'location_identifier'    => $planning->location?->location_identifier ?? null,
+                    'location_name'          => $planning->location?->location_name ?? '',
+                    'location_street'        => $planning->location?->location_street ?? '',
+                    'location_number'        => $planning->location?->location_number ?? '',
+                    'location_suffix'        => $planning->location?->location_suffix ?? '',
+                    'location_zip_code'      => $planning->location?->location_zip_code ?? '',
+                    'location_city'          => $planning->location?->location_city ?? '',
+                    'location_province'      => $planning->location?->location_province ?? '',
+                    'location_country'       => $planning->location?->location_country ?? '',
+                    'location_seats'         => (int) ($planning->location?->location_seats ?? 0),
                 ];
 
                 // Check of planning al bestaat
@@ -344,20 +346,10 @@ class SoapClient {
 
     public function getTimeslots($filters = []) {
         return [
-            ['id' => '',        'name' => 'Toon alles'],
+            ['id' => '',      'name' => 'Toon alles'],
             ['id' => 'ochtend', 'name' => 'Ochtend'],
             ['id' => 'middag',  'name' => 'Middag'],
             ['id' => 'avond',   'name' => 'Avond'],
-        ];
-    }
-
-    public function getExamTypes($filters = []) {
-        return [
-            ['id' => '',                'name' => 'Toon alles'],
-            ['id' => 'los-examen-vca-basis', 'name' => 'VCA Basis'],
-            ['id' => 'los-examen-vca-vol',   'name' => 'VCA Vol'],
-            ['id' => 'vca-basis-weekend',    'name' => 'VCA Basis Cursus Weekend'],
-            ['id' => 'vca-vol-weekend',      'name' => 'VCA Vol Cursus Weekend'],
         ];
     }
 

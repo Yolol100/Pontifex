@@ -5,11 +5,6 @@
   const PontifexOI = window.PontifexOI = window.PontifexOI || {};
   const $ = window.jQuery;
 
-  function getCfg() {
-    const cfg = window.PontifexOIConfigData || window.PontifexOIConfig || {};
-    return { ajaxUrl: cfg.ajaxUrl || '' };
-  }
-
   PontifexOI.renderTableRows = function(planning, curPage, totPages, registrationPageUrl = '/cursus-inschrijven/') {
     if (!$) return;
 
@@ -179,7 +174,7 @@
   PontifexOI.updateAllDynamicPrices = function() {
     if (!$) return;
 
-    const cfg = getCfg();
+    const cfg = PontifexOI.getCfg();
     const ajaxUrl = cfg.ajaxUrl || '';
 
     $('.pontifex-oi-dynamic-price').each(function() {

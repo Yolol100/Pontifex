@@ -12,17 +12,17 @@ $candidate_infixes    = (array) ($order['candidate_infix'] ?? []);
 $candidate_lastnames  = (array) ($order['candidate_lastname'] ?? []);
 $candidate_birthdates = (array) ($order['candidate_birthdate'] ?? []);
 
-$order_initials    = $order['order_initials'] ?? '';
-$order_infix       = $order['order_infix'] ?? '';
-$order_lastname    = $order['order_lastname'] ?? '';
-$order_postcode    = $order['order_postcode'] ?? '';
-$order_housenumber = $order['order_housenumber'] ?? '';
-$order_street      = $order['order_street'] ?? '';
-$order_city        = $order['order_city'] ?? '';
-$order_phone       = $order['order_phone'] ?? '';
-$order_email       = $order['order_email'] ?? '';
-$order_company     = $order['order_company'] ?? '';
-$order_vat         = $order['order_vat'] ?? '';
+$order_initials     = $order['order_initials'] ?? '';
+$order_infix        = $order['order_infix'] ?? '';
+$order_lastname     = $order['order_lastname'] ?? '';
+$order_postcode     = $order['order_postcode'] ?? '';
+$order_housenumber  = $order['order_housenumber'] ?? '';
+$order_street       = $order['order_street'] ?? '';
+$order_city         = $order['order_city'] ?? '';
+$order_phone        = $order['order_phone'] ?? '';
+$order_email        = $order['order_email'] ?? '';
+$order_company      = $order['order_company'] ?? '';
+$order_vat          = $order['order_vat'] ?? '';
 
 $exam_type      = $order['exam_type'] ?? '';
 $exam_label     = $order['exam_label'] ?? '';
@@ -36,7 +36,11 @@ $amount         = $order['amount'] ?? count($candidate_fullnames);
 $price          = $order['price'] ?? '';
 $extra_material = (array) ($order['extra_material'] ?? []);
 
-$is_weekend_cursus = in_array($exam_type, ['vca-basis-weekend','vca-vol-weekend'], true);
+$extras = (array) ($order['extra_material'] ?? []);
+$normalized_exam = pontifex_normalize_exam_key($exam_type);
+$is_weekend_cursus =
+    in_array('cursus-weekend', $extras, true)
+    && in_array($normalized_exam, ['los-examen-vca-basis','los-examen-vca-vol'], true);
 ?>
 <!DOCTYPE html>
 <html lang="nl">
@@ -62,7 +66,6 @@ $is_weekend_cursus = in_array($exam_type, ['vca-basis-weekend','vca-vol-weekend'
 </head>
 <body style="margin:0; padding:0; background:#f0f0f0;">
   <center style="width:100%; background:#f0f0f0;">
-    <!--[if mso]><table role="presentation" width="700" align="center" cellpadding="0" cellspacing="0"><tr><td><![endif]-->
     <table class="container" width="700" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:30px auto; max-width:700px; background:#fff; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.08); width:100%;">
       <tr>
         <td style="padding:32px 24px 24px 24px;" class="mobile-padding">
@@ -114,7 +117,6 @@ $is_weekend_cursus = in_array($exam_type, ['vca-basis-weekend','vca-vol-weekend'
 
           <table width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr>
-              <!-- Bestelgegevens -->
               <td class="stack" width="48%" valign="top" style="padding-right:1%; vertical-align:top;">
                 <h3 style="font-size:18px; color:#444; margin:0 0 10px 0;">Bestelgegevens</h3>
                 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f9f9f9; border-radius:6px;">
@@ -167,14 +169,13 @@ $is_weekend_cursus = in_array($exam_type, ['vca-basis-weekend','vca-vol-weekend'
                 </table>
               </td>
               <td class="stack" width="4%" style="font-size:0; line-height:0;">&nbsp;</td>
-              <!-- Betaalgegevens -->
               <td class="stack" width="48%" valign="top" style="padding-left:1%; vertical-align:top;">
                 <h3 style="font-size:18px; color:#444; margin:0 0 10px 0;">Betaalgegevens</h3>
                 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f9f9f9; border-radius:6px;">
                   <tr>
                     <td style="font-size:14px; color:#333; padding:8px; border-bottom:1px solid #ddd;"><strong>Examen:</strong></td>
                     <td style="font-size:14px; color:#333; padding:8px; border-bottom:1px solid #ddd;">
-                      <?php echo htmlspecialchars($exam_label); ?>
+                      <?php echo esc_html( \PontifexOI\Helpers\MailHelpers::format_exam_label_for_summary($order) ); ?>
                     </td>
                   </tr>
                   <tr>
@@ -238,7 +239,6 @@ $is_weekend_cursus = in_array($exam_type, ['vca-basis-weekend','vca-vol-weekend'
         </td>
       </tr>
     </table>
-    <!--[if mso]></td></tr></table><![endif]-->
-  </center>
+    </center>
 </body>
 </html>
