@@ -30,7 +30,7 @@ class MailHelpers
     // Helper om label te krijgen uit materiaal-combinatie ID
     public static function get_material_combination_label($id) {
         $material_labels = [
-            '1' => 'Examen', // <-- was 'Los examen'
+            '1' => 'Examen',
             '2' => 'Examen + boek',
             '4' => 'Examen + e-learning',
             '5' => 'Examen + proefexamens',
@@ -115,6 +115,9 @@ class MailHelpers
         $htmlTable .= '<tr><td>E-mailadres</td><td>' . htmlspecialchars($order['order_email']) . '</td></tr>';
         if (!empty($order['order_company'])) {
             $htmlTable .= '<tr><td>Bedrijfsnaam</td><td>' . htmlspecialchars($order['order_company']) . '</td></tr>';
+        }
+        if (!empty($order['order_function'])) {
+            $htmlTable .= '<tr><td>Functie</td><td>' . htmlspecialchars($order['order_function']) . '</td></tr>';
         }
         if (!empty($order['order_vat'])) {
             $htmlTable .= '<tr><td>BTW-nummer</td><td>' . htmlspecialchars($order['order_vat']) . '</td></tr>';

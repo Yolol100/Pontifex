@@ -164,6 +164,9 @@
   // Re-render on changes
   $(document).on('change', 'select[name="exam_type"], select[name="language"]', renderExtraMaterial);
   $(document).on('change', '#extra-material-checkboxes input, select[name="exam_type"], select[name="language"]', updateOrderSummaryText);
+  $(document).on('click', '.pontifex-oi-add-candidate, .pontifex-oi-remove-candidate', () => {
+    PontifexOI.updateTotalPriceWithCheckboxes();
+  });
 
   // Expose functions
   PontifexOI.updateExtraMaterialCheckboxes = renderExtraMaterial;

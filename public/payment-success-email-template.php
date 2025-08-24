@@ -22,6 +22,7 @@ $order_phone        = $order['order_phone'] ?? '';
 $order_email        = $order['order_email'] ?? '';
 $order_company      = $order['order_company'] ?? '';
 $order_vat          = $order['order_vat'] ?? '';
+$order_function     = $order['order_function'] ?? '';
 
 $exam_type      = $order['exam_type'] ?? '';
 $exam_label     = $order['exam_label'] ?? '';
@@ -145,6 +146,14 @@ $is_weekend_cursus =
                                 <td style="font-size:14px; color:#333; padding:8px; border-bottom:1px solid #ddd;"><strong>Bedrijfsnaam:</strong></td>
                                 <td style="font-size:14px; color:#333; padding:8px; border-bottom:1px solid #ddd;">
                                     <?php echo htmlspecialchars($order_company); ?>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                            <?php if (!empty($order_function)) : ?>
+                            <tr>
+                                <td style="font-size:14px; color:#333; padding:8px; border-bottom:1px solid #ddd;"><strong>Functie:</strong></td>
+                                <td style="font-size:14px; color:#333; padding:8px; border-bottom:1px solid #ddd;">
+                                    <?php echo htmlspecialchars($order_function); ?>
                                 </td>
                             </tr>
                             <?php endif; ?>

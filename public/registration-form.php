@@ -102,7 +102,7 @@ $exam_display = trim($base_label) ? ($base_label . ' met examen') : '';
                 </div>
                 <div>
                     <label for="candidate_infix_1"><?php esc_html_e('Tussenvoegsel', 'pontifex-oi'); ?></label>
-                    <input type="text" id="candidate_infix_1" name="candidate_infix[]" placeholder="<?php esc_attr_e('Bijv. van der (optioneel)', 'pontifex-oi'); ?>">
+                    <input type="text" id="candidate_infix_1" name="candidate_infix[]" placeholder="<?php esc_attr_e('Bijv. van der', 'pontifex-oi'); ?>">
                 </div>
                 <div>
                     <label for="candidate_lastname_1"><?php esc_html_e('Achternaam', 'pontifex-oi'); ?> <span class="required">*</span></label>
@@ -132,7 +132,7 @@ $exam_display = trim($base_label) ? ($base_label . ' met examen') : '';
                         </div>
                         <div class="field middle-name-group">
                             <label for="order_infix"><?php esc_html_e('Tussenvoegsel', 'pontifex-oi'); ?></label>
-                            <input type="text" id="order_infix" name="order_infix" placeholder="<?php esc_attr_e('Bijv. van (optioneel)', 'pontifex-oi'); ?>">
+                            <input type="text" id="order_infix" name="order_infix" placeholder="<?php esc_attr_e('Bijv. van', 'pontifex-oi'); ?>">
                         </div>
                         <div class="field last-name-group">
                             <label for="order_lastname"><?php esc_html_e('Achternaam', 'pontifex-oi'); ?> <span class="required">*</span></label>
@@ -184,12 +184,22 @@ $exam_display = trim($base_label) ? ($base_label . ' met examen') : '';
                     <div class="pontifex-oi-two-cols">
                         <div class="field">
                             <label for="order_company"><?php esc_html_e('Bedrijfsnaam', 'pontifex-oi'); ?></label>
-                            <input type="text" id="order_company" name="order_company" placeholder="<?php esc_attr_e('Bijv. Bouw BV (optioneel)', 'pontifex-oi'); ?>">
+                            <input type="text" id="order_company" name="order_company" placeholder="<?php esc_attr_e('Bijv. Bouw BV', 'pontifex-oi'); ?>">
                         </div>
                         <div class="field">
-                            <label for="order_vat"><?php esc_html_e('BTW-nummer', 'pontifex-oi'); ?></label>
-                            <input type="text" id="order_vat" name="order_vat" placeholder="<?php esc_attr_e('Bijv. NL123456789B01 (optioneel)', 'pontifex-oi'); ?>">
+                            <label for="order_function"><?php esc_html_e('Functie', 'pontifex-oi'); ?> <span class="required">*</span></label>
+                            <input type="text" id="order_function" name="order_function" required placeholder="<?php esc_attr_e('Bijv. Voorman', 'pontifex-oi'); ?>">
                         </div>
+                    </div>
+                </div>
+
+                <div class="pontifex-oi-row-group">
+                    <div class="pontifex-oi-two-cols">
+                        <div class="field">
+                            <label for="order_vat"><?php esc_html_e('BTW-nummer', 'pontifex-oi'); ?></label>
+                            <input type="text" id="order_vat" name="order_vat" placeholder="<?php esc_attr_e('Bijv. NL123456789B01', 'pontifex-oi'); ?>">
+                        </div>
+                        <div class="field"></div>
                     </div>
                 </div>
             </div>
