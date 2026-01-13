@@ -1,6 +1,6 @@
 === Pontifex OI ===
 Contributors: andrewbaeten
-Tags: pontifex, registration, exams, SOAP API, planning, payment, shortcodes
+Tags: pontifex, exams, registration, SOAP API, planning, payments, shortcodes
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.1
@@ -10,106 +10,126 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: pontifex-oi
 Domain Path: /languages
 
-Summary:  
-Comprehensive Pontifex registration and payment integration with shortcodes and SOAP API support.
+Short Description:
+Integrates Pontifex exam planning, registrations, and payments into WordPress using shortcodes and a SOAP API.
 
 == Description ==
 
-**Pontifex OI** is a complete WordPress plugin that integrates with the Pontifex Open Inschrijvingen SOAP API.  
-Use it to display up-to-date exam planning, let candidates register, and handle secure payments — all via simple shortcodes and flexible API endpoints.
+**Pontifex OI** is a WordPress plugin that integrates with the Pontifex Open Inschrijvingen SOAP API.  
+It allows website owners to display exam planning, collect registrations, and handle payments within WordPress using a clear and structured shortcode-based workflow.
 
-Built with modern, object-oriented code, Composer-ready architecture, and extensibility in mind. Templates and logic are overrideable, and the plugin follows WordPress coding standards and best practices.
+The plugin is built with modern object-oriented PHP, follows WordPress coding standards, and is designed for long-term maintainability.  
+It supports REST endpoints, scheduled data synchronization, and overrideable templates.
 
-⚠️ **Note:** Some API settings must be configured manually (via settings page or filters) for full functionality.
+Some configuration is required before the plugin becomes fully operational.
+
+== Features ==
+
+* Display up-to-date exam planning from the Pontifex API
+* Candidate registration via frontend forms
+* Payment handling with Mollie
+* REST API endpoints for frontend and integrations
+* Daily automated synchronization using WP-Cron
+* Object-oriented and Composer-ready architecture
+* Translation-ready (i18n)
+* Template overrides supported
 
 == Installation ==
 
-1. Upload the `pontifex-oi` folder to the `/wp-content/plugins/` directory.
-2. Activate the plugin through the **Plugins** screen in WordPress.
-3. Enter your Pontifex API credentials (user_identifier, company_identifier, SHA256 hash) via the plugin settings or filter hooks.
-4. Add the provided shortcodes to your pages as described below.
+1. Upload the `pontifex-oi` directory to `/wp-content/plugins/`.
+2. Activate the plugin through the **Plugins** menu in WordPress.
+3. Configure your Pontifex API credentials using filters or the plugin settings.
+4. Create pages and insert the required shortcodes.
 
 == Shortcodes ==
 
-Use the following shortcodes on separate pages to build your front-end flow:
+Each shortcode should be placed on a **separate page**.
 
-* `[pontifex_oi_planning]`  
-  Displays the current exam planning. Ideal for your “Exams” landing page.
+### `[pontifex_oi_planning]`
+Displays the available exam planning and sessions.
 
-* `[pontifex_oi_registration]`  
-  Shows the exam registration form.  
-  _Example:_ `[pontifex_oi_registration exam_id="12345"]`
+Recommended for an overview or landing page.
 
-* `[pontifex_oi_payment_success]`  
-  Shows the payment confirmation message after a successful transaction.
+---
 
-> 💡 Use distinct pages for planning, registration, and success. This ensures clean navigation and avoids form conflicts.
+### `[pontifex_oi_registration]`
+Displays the registration form for a selected exam.
 
-== Usage ==
+Example:
+`[pontifex_oi_registration exam_id="12345"]`
 
-Below is a quick overview of how the plugin works:
+---
 
-### Shortcodes
-- **Planning View:** `[pontifex_oi_planning]` — shows exams and filters  
-- **Registration Form:** `[pontifex_oi_registration]` — user sign-up  
-- **Payment Success:** `[pontifex_oi_payment_success]` — confirmation after payment
+### `[pontifex_oi_payment_success]`
+Displays a confirmation message after a successful payment.
 
-== REST API Endpoints ==
+Use this shortcode on a thank-you page.
 
-The plugin registers REST routes for AJAX or JavaScript interactions:
+== Usage Notes ==
 
-* `GET /wp-json/pontifex-oi/v1/planning` — returns planning data  
-* `GET /wp-json/pontifex-oi/v1/price` — returns price info  
-* `POST /wp-json/pontifex-oi/v1/webhook` — Mollie payment webhook (secured via secret parameter)
+* Use separate pages for planning, registration, and confirmation.
+* WordPress pretty permalinks must be enabled.
+* Templates can be overridden by copying them into your theme.
+
+== REST API ==
+
+The plugin registers the following REST API routes:
+
+* `GET /wp-json/pontifex-oi/v1/planning`  
+  Returns exam planning data.
+
+* `GET /wp-json/pontifex-oi/v1/price`  
+  Returns pricing information.
+
+* `POST /wp-json/pontifex-oi/v1/webhook`  
+  Handles Mollie payment webhooks (secured via a shared secret).
 
 == Cron Jobs ==
 
-A daily sync with the Pontifex API is scheduled at **03:15 local time** via WordPress Cron.
+A daily synchronization with the Pontifex API runs automatically at **03:15 local time** using WordPress Cron.
 
-== Requirements & Notes ==
+== Requirements ==
 
-- **Pontifex API credentials** must be provided (settings page or filters).  
-- **Pretty Permalinks** should be enabled for REST endpoints and shortcodes to work reliably.  
-- **Template Overrides:** Copy any plugin template into your theme and edit as needed.
+* Valid Pontifex API credentials
+* PHP 8.1 or higher
+* WordPress 6.0 or higher
 
 == Frequently Asked Questions ==
 
-= Do I have to configure anything manually? =  
-Yes — you must provide your Pontifex API credentials and add the shortcodes on separate pages.
+= Do I need to configure anything after installation? =
+Yes. You must provide Pontifex API credentials and add the shortcodes to dedicated pages.
 
-= Is the plugin GDPR compliant? =  
-Yes — no personal data is stored outside what WordPress requires.
+= Does this plugin store personal data? =
+Only data required for the registration and payment process is processed.
 
-= Can I extend or customize the plugin? =  
-Yes — templates and many hooks are overrideable.
+= Can I customize the plugin? =
+Yes. Templates and hooks can be overridden or extended.
 
 == Screenshots ==
 
-1. Example values in the settings screen.  
-2. Exam planning with filters (front-end).  
-3. Exam registration form (front-end).  
-4. Payment confirmation / thank you page.
+1. Plugin settings screen  
+2. Exam planning overview (frontend)  
+3. Registration form (frontend)  
+4. Payment confirmation page
 
 == Upgrade Notice ==
 
 = 1.0.0 =
-* Initial release with planning listing, registration form and payment flow.  
-* Fully OOP, Composer-ready and extendable.  
-* Overrideable templates, internationalization (i18n) support.
+Initial public release.
 
 == Changelog ==
 
 = 1.0.0 - 2025-10-07 =
-* Initial release featuring planning, registration, and payment shortcodes.  
-* Plugin architecture ready for extensions and custom templates.
+* Initial release.
+* Exam planning, registration, and payment workflow.
+* REST API and WP-Cron integration.
 
 == Credits ==
 
-* Pontifex Certificatie for API access and documentation.  
-* Built and maintained by Andrew Baeten.
+* Pontifex Certificatie — API documentation and access  
+* Developed by Andrew Baeten
 
 == Support ==
 
-Need help or custom development?  
+For support or custom development inquiries:  
 Email: **info@andrewbaeten.nl**
-
