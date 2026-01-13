@@ -1,98 +1,114 @@
 === Pontifex OI ===
-Contributors: jouw-wordpress-gebruikersnaam
-Tags: pontifex, inschrijven, examens, soap api, planning, registratie, betaling, shortcodes
+Contributors: andrewbaeten
+Tags: pontifex, registration, exams, SOAP API, planning, payment, shortcodes
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.1
 Stable tag: 1.0.0
-License: GPLv2 of nieuwer
+License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: pontifex-oi
 Domain Path: /languages
 
-Samenvatting (max 150 tekens): 
-Meerdere shortcodes voor Pontifex-inschrijving, planning en betaling. Volledig OOP, veilig, uitbreidbaar en toekomstgericht.
+Summary:  
+Comprehensive Pontifex registration and payment integration with shortcodes and SOAP API support.
 
-== Beschrijving ==
-**Pontifex OI** biedt een complete integratie met de Pontifex Open Inschrijvingen SOAP-API. Je kunt actuele examenplanningen tonen, kandidaten laten registreren, en succesvolle betalingen afhandelen – alles via overzichtelijke shortcodes.  
-De plugin is volledig OOP, Composer-ready, i18n, AVG-proof en ontworpen voor uitbreidbaarheid: templates en hooks zijn overridebaar. **Let op:** de gebruiker dient zelf enkele instellingen te verzorgen voor volledige werking.
+== Description ==
 
-== Installatie ==
-1. Upload de map `pontifex-oi` naar `/wp-content/plugins/`.
-2. Activeer de plugin via het WordPress-dashboard.
-3. Voeg je Pontifex API-gegevens (user_identifier, company_identifier, SHA256-hash) handmatig toe in de code, bijvoorbeeld in je `wp-config.php` of via een filter (settingspagina volgt in een toekomstige update).
-4. Voeg de benodigde shortcodes toe aan de gewenste pagina’s (zie hieronder).
+**Pontifex OI** is a complete WordPress plugin that integrates with the Pontifex Open Inschrijvingen SOAP API.  
+Use it to display up-to-date exam planning, let candidates register, and handle secure payments — all via simple shortcodes and flexible API endpoints.
+
+Built with modern, object-oriented code, Composer-ready architecture, and extensibility in mind. Templates and logic are overrideable, and the plugin follows WordPress coding standards and best practices.
+
+⚠️ **Note:** Some API settings must be configured manually (via settings page or filters) for full functionality.
+
+== Installation ==
+
+1. Upload the `pontifex-oi` folder to the `/wp-content/plugins/` directory.
+2. Activate the plugin through the **Plugins** screen in WordPress.
+3. Enter your Pontifex API credentials (user_identifier, company_identifier, SHA256 hash) via the plugin settings or filter hooks.
+4. Add the provided shortcodes to your pages as described below.
 
 == Shortcodes ==
-**Deze plugin bevat meerdere shortcodes, elk met een eigen functie. Plaats ze op aparte pagina’s naar wens.**
+
+Use the following shortcodes on separate pages to build your front-end flow:
 
 * `[pontifex_oi_planning]`  
-  Toont de actuele examenplanning.  
-  _Gebruik:_ Plaats deze shortcode op de pagina waar je kandidaten het aanbod wilt laten zien.
+  Displays the current exam planning. Ideal for your “Exams” landing page.
 
 * `[pontifex_oi_registration]`  
-  Toont het inschrijfformulier voor een examen.  
-  _Gebruik:_ Voeg deze shortcode toe aan een aparte registratiepagina.  
-  _Let op:_ De shortcode verwacht standaard een examen-ID als parameter: `[pontifex_oi_registration exam_id="12345"]`
+  Shows the exam registration form.  
+  _Example:_ `[pontifex_oi_registration exam_id="12345"]`
 
 * `[pontifex_oi_payment_success]`  
-  Toont een bevestiging na succesvolle betaling.  
-  _Gebruik:_ Plaats deze shortcode op de bedanktpagina die wordt weergegeven na succesvolle betaling.
+  Shows the payment confirmation message after a successful transaction.
 
-**Let op:** Raadpleeg de documentatie voor extra parameters per shortcode. Gebruik altijd aparte pagina’s voor elke stap in het proces. Zet in je menu of flow duidelijke verwijzingen naar deze pagina’s.
+> 💡 Use distinct pages for planning, registration, and success. This ensures clean navigation and avoids form conflicts.
 
 == Usage ==
-Dit gedeelte geeft een overzicht van de belangrijkste gebruikspunten van de plugin:
 
-=== Shortcodes ===
-* `[pontifex_oi_planning]` – toont de planning
-* `[pontifex_oi_registration]` – toont het inschrijfformulier
-* `[pontifex_oi_payment_success]` – toont de bedankpagina
+Below is a quick overview of how the plugin works:
 
-== REST Endpoints ==
-De plugin registreert de volgende REST API routes:
-* `/wp-json/pontifex-oi/v1/planning`
-* `/wp-json/pontifex-oi/v1/price`
-* `/wp-json/pontifex-oi/v1/webhook?secret=YOUR_SECRET` (Mollie Webhook Handler)
+### Shortcodes
+- **Planning View:** `[pontifex_oi_planning]` — shows exams and filters  
+- **Registration Form:** `[pontifex_oi_registration]` — user sign-up  
+- **Payment Success:** `[pontifex_oi_payment_success]` — confirmation after payment
 
-== Cron ==
-* Dagelijkse synchronisatie om 03:15 lokale tijd via WordPress Cron.
+== REST API Endpoints ==
 
-== Handmatige instellingen en vereisten ==
-- **API-gegevens:** Moeten nu handmatig in code of via een filter worden toegevoegd.
-- **Permalinks:** Zorg voor werkende WordPress-permalinks om shortcodes correct te laten functioneren.
-- **Template overrides:** Wil je het uiterlijk aanpassen? Kopieer de template-bestanden naar je thema en bewerk ze daar.
-- **Standaard e-mails, hooks en filters:** Zie de broncode of vraag een overzicht aan voor alle beschikbare hooks.
+The plugin registers REST routes for AJAX or JavaScript interactions:
 
-== Veelgestelde Vragen ==
-= Moet ik iets handmatig doen na installatie? =
-Ja: je moet API-gegevens toevoegen en de shortcodes op aparte pagina’s plaatsen.
+* `GET /wp-json/pontifex-oi/v1/planning` — returns planning data  
+* `GET /wp-json/pontifex-oi/v1/price` — returns price info  
+* `POST /wp-json/pontifex-oi/v1/webhook` — Mollie payment webhook (secured via secret parameter)
 
-= Is de plugin AVG/GDPR-proof? =
-Ja, er worden geen persoonsgegevens opgeslagen in je WordPress-site.
+== Cron Jobs ==
 
-= Kan ik de plugin uitbreiden? =
-Ja, alle templates en veel functionaliteit zijn overridebaar via thema of eigen plugin.
+A daily sync with the Pontifex API is scheduled at **03:15 local time** via WordPress Cron.
+
+== Requirements & Notes ==
+
+- **Pontifex API credentials** must be provided (settings page or filters).  
+- **Pretty Permalinks** should be enabled for REST endpoints and shortcodes to work reliably.  
+- **Template Overrides:** Copy any plugin template into your theme and edit as needed.
+
+== Frequently Asked Questions ==
+
+= Do I have to configure anything manually? =  
+Yes — you must provide your Pontifex API credentials and add the shortcodes on separate pages.
+
+= Is the plugin GDPR compliant? =  
+Yes — no personal data is stored outside what WordPress requires.
+
+= Can I extend or customize the plugin? =  
+Yes — templates and many hooks are overrideable.
 
 == Screenshots ==
-1. Instellingenvoorbeeld (indien geïmplementeerd).
-2. Examenplanning met filters (front-end).
-3. Inschrijfformulier (front-end).
-4. Betaalbevestiging/bedanktpagina.
+
+1. Example values in the settings screen.  
+2. Exam planning with filters (front-end).  
+3. Exam registration form (front-end).  
+4. Payment confirmation / thank you page.
 
 == Upgrade Notice ==
+
 = 1.0.0 =
-Eerste versie: planning, inschrijving en betaling via afzonderlijke shortcodes. Handmatige instellingen noodzakelijk.
+* Initial release with planning listing, registration form and payment flow.  
+* Fully OOP, Composer-ready and extendable.  
+* Overrideable templates, internationalization (i18n) support.
 
 == Changelog ==
-= 1.0.0 - 07/10/2025 =
-* Eerste release met planning-, registratie- en betaling-shortcodes.
-* Volledig OOP, Composer-ready, testbaar en uitbreidbaar.
-* Overridebare templates, hooks en internationale ondersteuning.
+
+= 1.0.0 - 2025-10-07 =
+* Initial release featuring planning, registration, and payment shortcodes.  
+* Plugin architecture ready for extensions and custom templates.
 
 == Credits ==
-* Pontifex Certificatie voor de API
-* Bijdrage: jouw-naam-of-team
+
+* Pontifex Certificatie for API access and documentation.  
+* Built and maintained by Andrew Baeten.
 
 == Support ==
-Hulp of maatwerk nodig? Mail: [jouw-supportmail-of-link]
+
+Need help or custom development?  
+Email: **info@andrewbaeten.nl**
