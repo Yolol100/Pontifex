@@ -112,3 +112,4 @@ Yes — templates and many hooks are overrideable.
 
 Need help or custom development?  
 Email: **info@andrewbaeten.nl**
+
