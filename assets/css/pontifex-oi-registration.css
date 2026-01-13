@@ -26,7 +26,6 @@
 }
 
 .pontifex-oi-name-row,
-.pontifex-oi-adres-row,
 .pontifex-oi-contact-row {
   display: flex !important;
   gap: clamp(0.8rem, 1vw + 0.3rem, 1.2rem) !important;
@@ -95,13 +94,18 @@
   flex-wrap: nowrap !important;
 }
 
+/* Verberg * in testmodus */
+.hide-required {
+  display: none !important;
+  visibility: hidden !important;
+}
+
 .pontifex-oi-contact-row.two-cols .field {
   flex: 1 1 0;
 }
 
 /* Icons */
 .pontifex-oi-submit-order i,
-.pontifex-oi-submit-order .icon-arrow,
 .pontifex-oi-save-btn i,
 .pontifex-oi-home-button i {
   margin-inline-start: 7px;
@@ -137,16 +141,6 @@
 .required {
   color: #d60000 !important;
   font-weight: bold !important;
-}
-
-/* Checkbox size (scoped) */
-.pontifex-oi-candidate-form .pontifex-oi-checkbox-row input[type="checkbox"] {
-  inline-size: clamp(18px, 1.2vw + 14px, 22px) !important;
-  block-size: clamp(18px, 1.2vw + 14px, 22px) !important;
-}
-
-.pontifex-oi-checkbox-row input[type="checkbox"] + label {
-  margin-inline-start: clamp(3px, 0.3vw + 2px, 6px) !important;
 }
 
 /* Remove candidate */
@@ -193,7 +187,7 @@
   font-family: var(--pontifex-font-main) !important;
   font-size: clamp(0.9rem, 1vw + 0.3rem, 1rem) !important;
   cursor: pointer !important;
-  display: inline !important;
+  display: inline;
   text-decoration: underline !important;
   padding: 0 !important;
   margin: 0 !important;
@@ -208,6 +202,26 @@
   color: var(--pontifex-orange) !important;
 }
 
+/* Subtitel voor talen (Nederlands / English) */
+.pontifex-oi-extra-subtitle {
+  display: block;
+  text-align: left;
+  margin: 12px 0 0px 0px;
+  font-size: clamp(0.95rem, 1vw + 0.3rem, 1.05rem);
+  font-weight: 600;
+  color: #111;
+}
+
+/* Subtitel binnen taalblok (VCA Basis, VCA Vol) */
+.pontifex-oi-extra-mini {
+  display: block;
+  text-align: left;
+  margin: 15px 0 15px 0px;
+  font-size: clamp(0.9rem, 0.9vw + 0.2rem, 1rem);
+  font-weight: 500;
+  color: #333;
+}
+
 .pontifex-oi-add-candidate:hover {
   color: var(--pontifex-black) !important;
 }
@@ -216,29 +230,7 @@
   color: var(--pontifex-orange) !important;
 }
 
-/* Links in terms */
-.pontifex-oi-terms a {
-  color: var(--pontifex-orange) !important;
-  text-decoration: underline !important;
-  transition: color 0.18s !important;
-}
-
-.pontifex-oi-terms a:hover {
-  color: var(--pontifex-black) !important;
-}
-
 /* Summary */
-.pontifex-oi-summary-table {
-  inline-size: 100% !important;
-  border-collapse: collapse !important;
-  font-size: clamp(1rem, 1vw + 0.2rem, 1.05rem) !important;
-}
-
-.pontifex-oi-summary-table td {
-  padding-block: 0.4em !important;
-  padding-inline: 0.2em !important;
-}
-
 .besteloverzicht-stap2 {
   background: #f9f9f9 !important;
   border-radius: 8px !important;
@@ -250,6 +242,7 @@
   font-family: var(--pontifex-font-main, Arial, sans-serif) !important;
 }
 
+/* Nieuwe code voor bo-item styling */
 .bo-item {
   display: flex !important;
   justify-content: space-between !important;
@@ -262,21 +255,16 @@
   color: #222 !important;
 }
 
-.bo-item:last-child,
-.bo-item.totaal {
-  border-block-end: none !important;
-  font-size: clamp(1rem, 1vw + 0.3rem, 1.1rem) !important;
-  font-weight: 600 !important;
-  color: var(--pontifex-orange) !important;
-  margin-block-start: 18px !important;
-  letter-spacing: 0.02em !important;
+/* Alleen labels bold/zwart */
+.besteloverzicht-stap2 .bo-item strong {
+  font-weight: 700 !important;
+  color: #000 !important;
 }
 
-.bo-item strong {
-  font-weight: 500 !important;
+/* Waarden normaal/donkergrijs */
+.besteloverzicht-stap2 .bo-item span {
+  font-weight: 400 !important;
   color: #333 !important;
-  min-inline-size: clamp(90px, 10vw, 110px) !important;
-  display: inline-block !important;
 }
 
 .bo-item span {
@@ -286,56 +274,43 @@
   letter-spacing: 0.01em !important;
 }
 
-.pontifex-oi-terms {
-  margin-block-start: 20px !important;
+/* Totaalprijs specifiek in oranje (label en span) */
+.bo-item:last-child,
+.bo-item.totaal {
+  border-block-end: none !important;
+  font-size: clamp(1rem, 1vw + 0.3rem, 1.1rem) !important;
+  font-weight: 700 !important;
+  color: var(--pontifex-orange) !important;
+  margin-block-start: 18px !important;
+  letter-spacing: 0.02em !important;
 }
 
-.pontifex-oi-terms label {
-  font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem) !important;
+/* Prijs totaal specifiek in oranje (span/waarde) */
+.besteloverzicht-stap2 .bo-item.totaal span {
+  font-weight: 700 !important;
+  color: var(--pontifex-orange) !important;
 }
 
-.pontifex-oi-terms input[type="checkbox"] {
-  margin-inline-end: 0.45rem !important;
+/* Einde nieuwe code voor bo-item styling */
+
+
+/* Extra opties netjes in het grijze blok */
+.besteloverzicht-stap2 .bo-item.extra-options {
+  flex-direction: column !important;
+  align-items: flex-start !important;
 }
 
-.pontifex-oi-summary-label {
-  text-align: right !important;
-  color: #333 !important;
+.besteloverzicht-stap2 .bo-item.extra-options strong {
+  margin-bottom: 6px !important;
 }
 
-.pontifex-oi-summary-label-total {
-  font-weight: bold !important;
-  text-align: right !important;
-}
-
-.bo-divider {
-  border-block-end: 1px solid #e0e0e0;
-  margin-block: 8px 10px;
-  margin-inline: 0;
-  inline-size: 100%;
-  display: block;
-}
-
-.pontifex-oi-table-divider {
-  border-block-start: 1px solid #c7e6ff !important;
-  block-size: 1rem !important;
-}
-
-.pontifex-oi-total {
-  font-weight: bold !important;
-}
-
-.pontifex-oi-empty-row {
-  block-size: 1rem !important;
-}
-
-.pontifex-oi-exam {
-  font-weight: 600 !important;
-}
-
-.pontifex-oi-datetime-location {
-  color: #666 !important;
-  font-size: clamp(0.85rem, 1vw + 0.1rem, 0.97rem) !important;
+.besteloverzicht-stap2 .bo-item.extra-options label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  font-weight: 400 !important;
+  cursor: pointer !important;
+  margin: 3px 0 !important;
 }
 
 /* Zet de twee blokken standaard naast elkaar */
@@ -356,6 +331,12 @@
   float: none;
   clear: none;
   box-sizing: border-box;
+}
+
+/* Standaard: onder elkaar */
+.besteloverzicht-stap2 .bo-item.extra-options .pontifex-oi-extra-options-wrapper {
+  display: block;
+  width: 100%;
 }
 
 /* Responsive stacking */
@@ -382,9 +363,28 @@
   }
   /* Back-link regel toegevoegd */
   .pontifex-oi-back-link {
-    margin-inline-end: -3rem !important;
     margin-block-start: 7px !important;
     line-height: 1.3em !important;
+  }
+}
+
+/* Tablet (768px–1024px): naast elkaar */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .besteloverzicht-stap2 .bo-item.extra-options .pontifex-oi-extra-options-wrapper {
+    display: flex !important; /* forceer naast elkaar */
+    gap: 2rem !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+  }
+  .besteloverzicht-stap2 .bo-item.extra-options .pontifex-oi-extra-column {
+    flex: 1 1 50% !important;
+  }
+}
+
+/* Mobiel (<768px) en desktop (>1024px): onder elkaar */
+@media (max-width: 767px), (min-width: 1025px) {
+  .besteloverzicht-stap2 .bo-item.extra-options .pontifex-oi-extra-options-wrapper {
+    display: block !important;
   }
 }
 
@@ -421,9 +421,6 @@
     inset-inline-end: -1.15rem;
     inset-block-start: 79%;
   }
-  .pontifex-oi-contact-row-labels {
-    display: none !important;
-  }
   .pontifex-oi-submit-order {
     margin-block-start: 1rem !important;
     margin-inline: auto !important;
@@ -440,13 +437,13 @@
   }
   .bo-item strong,
   .bo-item span {
-    font-size: clamp(0.85rem, 0.9vw + 0.2rem, 0.97rem) !important;
+    font-size: clamp(0.9rem, 0.9vw + 0.2rem, 0.97rem) !important;
   }
   .pontifex-oi-candidate-row label {
     font-size: clamp(0.8rem, 0.8vw + 0.2rem, 0.94rem) !important;
     line-height: 1em !important;
   }
   .pontifex-oi-order-form label {
-    font-size: clamp(0.8rem, 0.8vw + 0.2rem, 0.94rem) !important;
+    font-size: clamp(0.9rem, 0.8vw + 0.2rem, 0.94rem) !important;
   }
 }

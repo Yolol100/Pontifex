@@ -6,7 +6,7 @@ defined('ABSPATH') || exit;
 $soap_url   = esc_attr(get_option('pontifex_oi_soap_url', 'https://staging-webservice.pontifexcertificatie.nl/service.php/?wsdl'));
 $user_id    = esc_attr(get_option('pontifex_oi_soap_user_id', ''));
 $company_id = esc_attr(get_option('pontifex_oi_soap_company_id', ''));
-$hash       = esc_attr(get_option('pontifex_oi_soap_hash', ''));
+$hash        = esc_attr(get_option('pontifex_oi_soap_hash', ''));
 ?>
 
 <div class="pontifex-admin-wrap">
@@ -17,7 +17,7 @@ $hash       = esc_attr(get_option('pontifex_oi_soap_hash', ''));
       <?php if (isset($_GET['settings-updated']) && $_GET['settings-updated']) : ?>
         <div id="message"
              class="updated notice notice-success is-dismissible"
-             style="margin: 0 0 1rem 0 !important; width:85%;">
+             style="margin: 0 0 1rem 0 !important; width:89%;">
           <p>Instellingen zijn opgeslagen.</p>
         </div>
       <?php endif; ?>
@@ -60,7 +60,7 @@ $hash       = esc_attr(get_option('pontifex_oi_soap_hash', ''));
 
       <div class="pontifex-admin-row">
         <label for="pontifex_oi_soap_hash" class="pontifex-admin-label">Hash</label>
-        <input type="text"
+        <input type="password"
                id="pontifex_oi_soap_hash"
                name="pontifex_oi_soap_hash"
                class="pontifex-admin-input"
@@ -80,7 +80,6 @@ $hash       = esc_attr(get_option('pontifex_oi_soap_hash', ''));
           Haal gegevens op
         </button>
       </div>
-      <!-- LET OP: Deze feedback-div MOET direct onder de knoppen staan! -->
       <div id="pontifex-soap-fetch-feedback"></div>
     </form>
   </div>

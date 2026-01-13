@@ -3,161 +3,91 @@ namespace PontifexOI\Api;
 
 use Exception;
 
-class SoapClient {
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class SoapClient
+{
     private $client = null;
     private $endpoint;
     private $options = [
-        'trace'              => 1,
-        'exceptions'         => 1,
-        'cache_wsdl'         => WSDL_CACHE_BOTH,
+        'trace' => 1,
+        'exceptions' => 1,
+        'cache_wsdl' => WSDL_CACHE_BOTH,
         'connection_timeout' => 15,
-        'compression'        => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP,
-        'features'           => SOAP_SINGLE_ELEMENT_ARRAYS,
+        'compression' => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP,
+        'features' => SOAP_SINGLE_ELEMENT_ARRAYS,
     ];
 
-    public function __construct() {
-        // Altijd de staging-URL met ?wsdl als default
+    public function __construct()
+    {
         $this->endpoint = get_option(
             'pontifex_oi_soap_url',
             'https://staging-webservice.pontifexcertificatie.nl/service.php/?wsdl'
         );
     }
 
-    private function getClient() {
+    private function getClient()
+    {
         if ($this->client === null) {
             try {
+                if (!isset($this->options['cache_wsdl'])) {
+                    $this->options['cache_wsdl'] = WSDL_CACHE_BOTH;
+                }
                 $this->client = new \SoapClient($this->endpoint, $this->options);
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 error_log('PontifexOI: SOAP client aanmaken gefaald: ' . $e->getMessage());
-                throw new Exception('SOAP client kon niet worden aangemaakt: ' . $e->getMessage());
+                throw new \Exception('SOAP client kon niet worden aangemaakt: ' . $e->getMessage());
             }
         }
         return $this->client;
     }
 
     /**
-     * VERZEND INSCHRIJVING NAAR SOAP (aanroepen vanuit webhook na succesvolle betaling)
-     * Let op: pas zo nodig de operatie-naam en veldmapping aan aan de WSDL van Pontifex.
+     * Deze plugin gebruikt geen registratie via SOAP meer.
+     * Alleen planning wordt opgehaald. Deze functie logt NIET meer,
+     * aangezien de aanroep van de webhook handler zelf (extern) zal worden verwijderd
+     * of vervangen door een logregel.
+     *
+     * @param array $order De ordergegevens die ontvangen zijn (worden nu genegeerd).
+     * @return bool Altijd true.
      */
-    public function sendRegistration(array $order): bool {
-        $user_identifier = (int) get_option('pontifex_oi_soap_user_id', '');
-        $hash            = (string) get_option('pontifex_oi_soap_hash', '');
-
-        if (empty($user_identifier) || empty($hash)) {
-            error_log('PontifexOI ERROR - sendRegistration zonder geldige SOAP authenticatie.');
-            throw new Exception('SOAP authenticatiegegevens niet correct ingesteld.');
-        }
-
-        $client = $this->getClient();
-
-        // Kandidaten samenstellen uit parallelle arrays
-        $candidates = [];
-        $fullnames  = $order['candidate_fullname'] ?? [];
-        $infixes    = $order['candidate_infix'] ?? [];
-        $lastnames  = $order['candidate_lastname'] ?? [];
-        $birthdates = $order['candidate_birthdate'] ?? [];
-        $count      = max(count($fullnames), count($lastnames), count($birthdates));
-
-        for ($i = 0; $i < $count; $i++) {
-            $candidates[] = [
-                'first_name' => (string) ($fullnames[$i] ?? ''),
-                'infix'      => (string) ($infixes[$i] ?? ''),
-                'last_name'  => (string) ($lastnames[$i] ?? ''),
-                // Formaat afhankelijk van WSDL; hier als YYYY-MM-DD
-                'birth_date' => (string) ($birthdates[$i] ?? ''),
-            ];
-        }
-
-        // Basis registratie payload – PAS AAN op je WSDL contract!
-        $registration = [
-            'customer_email' => (string) ($order['order_email'] ?? ''),
-            'exam_type'      => (string) ($order['exam_type'] ?? ''),
-            'language'       => (string) ($order['language'] ?? 'nl'),
-            'material'       => (string) ($order['material'] ?? ''),
-            'location'       => (string) ($order['location'] ?? ''),
-            'date'           => (string) ($order['date'] ?? ''),
-            'time'           => (string) ($order['time'] ?? ''),
-            'candidates'     => $candidates,
-            // Extra velden naar behoefte mappen:
-            'order' => [
-                'initials'       => (string) ($order['order_initials'] ?? ''),
-                'infix'          => (string) ($order['order_infix'] ?? ''),
-                'last_name'      => (string) ($order['order_lastname'] ?? ''),
-                'company'        => (string) ($order['order_company'] ?? ''),
-                'vat'            => (string) ($order['order_vat'] ?? ''),
-                'street'         => (string) ($order['order_street'] ?? ''),
-                'city'           => (string) ($order['order_city'] ?? ''),
-                'postcode'       => (string) ($order['order_postcode'] ?? ''),
-                'housenumber'    => (string) ($order['order_housenumber'] ?? ''),
-                'phone'          => (string) ($order['order_phone'] ?? ''),
-            ],
-            // Extra lesmateriaal (optioneel)
-            'extra_material' => (array)  ($order['extra_material'] ?? []),
-            // Raw totaalprijs (optioneel)
-            'total_price'    => (string) ($order['price'] ?? ''),
-        ];
-
-        $params = [
-            'user_identifier' => $user_identifier,
-            'hash'            => $hash,
-            'registration'    => $registration,
-        ];
-
-        // Operatie-naam HIER afstemmen op WSDL, bv. 'createRegistration'
-        try {
-            $resp = $client->__soapCall('createRegistration', $params);
-
-            // Eenvoudige validatie – pas aan op jouw WSDL-respons
-            if ($resp === null) {
-                error_log('PontifexOI SOAP sendRegistration: lege response.');
-                return false;
-            }
-
-            // Succes – log beperkt om PII te beperken
-            error_log('PontifexOI SOAP sendRegistration: succesvol verstuurd.');
-            return true;
-        } catch (Exception $e) {
-            error_log('PontifexOI SOAP sendRegistration fout: ' . $e->getMessage());
-            throw $e;
-        }
+    public function sendRegistration(array $order): bool
+    {
+        // De logregel is verplaatst naar de aanroepende Webhook-handler om dubbele logging te voorkomen.
+        // Zie de notitie in de code van de Webhook-handler.
+        return true;
     }
 
     /**
      * Haalt planning op via SOAP en slaat lokaal op in DB.
      *
+     * @return array Lijst van planning_identifiers die zijn bijgewerkt.
      * @throws Exception
      */
-    public function fetchAndStorePlanning() {
+    public function fetchAndStorePlanning(): array
+    {
         global $wpdb;
         $table_name = $wpdb->prefix . 'pontifex_planning';
 
-        $user_identifier    = get_option('pontifex_oi_soap_user_id', '');
-        $company_identifier = get_option('pontifex_oi_soap_company_id', ''); // Wordt niet meegestuurd
-        $hash               = get_option('pontifex_oi_soap_hash', '');
-
-        // Debug logging
-        error_log("PontifexOI DEBUG - user_identifier: " . var_export($user_identifier, true) .
-            " | company_identifier: " . var_export($company_identifier, true) .
-            " | hash: " . var_export($hash, true));
+        $user_identifier = (int) get_option('pontifex_oi_soap_user_id');
+        $hash = trim((string) get_option('pontifex_oi_soap_hash'));
 
         if (empty($user_identifier) || empty($hash)) {
-            error_log("PontifexOI ERROR - Lege SOAP authenticatievelden: user_identifier=" . var_export($user_identifier,true) . ", hash=" . var_export($hash,true));
-            throw new Exception('SOAP authenticatiegegevens niet correct ingesteld.');
+            error_log("PontifexOI SOAP ERROR - Lege authenticatievelden.");
+            throw new \Exception('SOAP authenticatiegegevens ontbreken.');
         }
 
-        // Company_identifier NIET meesturen!
         $params = [
             'user_identifier' => (int) $user_identifier,
-            'hash'            => (string) $hash,
-            // 'partner'         => (int) $company_identifier, // Niet meesturen!
+            'hash' => $hash,
         ];
 
-        error_log("PontifexOI DEBUG - SOAP-call params: " . print_r($params, true));
-
         $client = $this->getClient();
+        $seenIds = [];
 
         try {
-            // Let op: GEEN partner meesturen!
             $response = $client->__soapCall('getWalkInPlanning', $params);
 
             // Normaliseren van mogelijke wrapper/result objecten
@@ -173,74 +103,92 @@ class SoapClient {
 
             if (!is_array($response) || empty($response)) {
                 error_log("PontifexOI ERROR - Geen planningen ontvangen van SOAP API.");
-                throw new Exception('Geen planningen ontvangen van SOAP API.');
+                return [];
             }
 
             foreach ($response as $planning) {
                 if (is_array($planning)) {
                     $planning = (object) $planning;
                 }
-                
-                // Normalisatie van exam_type (aangepaste regel)
-                // DEZE REGEL IS VERWIJDERD
-                
+
                 $data = [
-                    'planning_identifier'    => (string) ($planning->planning_identifier ?? ''),
-                    'planning_date'          => $planning->planning_date ?? null,
-                    'planning_time'          => $planning->planning_time ?? null,
-                    'planning_start_date'    => isset($planning->planning_start_date) ? date('Y-m-d H:i:s', strtotime($planning->planning_start_date)) : null,
-                    'planning_updated'       => isset($planning->planning_updated) ? date('Y-m-d H:i:s', strtotime($planning->planning_updated)) : null,
-                    'planning_status'        => $planning->planning_status ?? null,
-                    'available_seats'        => (int) ($planning->available_seats ?? 0),
-                    'location_identifier'    => $planning->location?->location_identifier ?? null,
-                    'location_name'          => $planning->location?->location_name ?? '',
-                    'location_street'        => $planning->location?->location_street ?? '',
-                    'location_number'        => $planning->location?->location_number ?? '',
-                    'location_suffix'        => $planning->location?->location_suffix ?? '',
-                    'location_zip_code'      => $planning->location?->location_zip_code ?? '',
-                    'location_city'          => $planning->location?->location_city ?? '',
-                    'location_province'      => $planning->location?->location_province ?? '',
-                    'location_country'       => $planning->location?->location_country ?? '',
-                    'location_seats'         => (int) ($planning->location?->location_seats ?? 0),
+                    'planning_identifier' => (string) ($planning->planning_identifier ?? ''),
+                    'planning_date' => $planning->planning_date ?? null,
+                    'planning_time' => $planning->planning_time ?? null,
+                    'planning_start_date' => isset($planning->planning_start_date) ? date('Y-m-d H:i:s', strtotime($planning->planning_start_date)) : null,
+                    'planning_updated' => isset($planning->planning_updated) ? date('Y-m-d H:i:s', strtotime($planning->planning_updated)) : null,
+                    'planning_status' => $planning->planning_status ?? null,
+                    'available_seats' => (int) ($planning->available_seats ?? 0),
+                    'location_identifier' => $planning->location?->location_identifier ?? null,
+                    'location_name' => $planning->location?->location_name ?? '',
+                    'location_street' => $planning->location?->location_street ?? '',
+                    'location_number' => $planning->location?->location_number ?? '',
+                    'location_suffix' => $planning->location?->location_suffix ?? '',
+                    'location_zip_code' => $planning->location?->location_zip_code ?? '',
+                    'location_city' => $planning->location?->location_city ?? '',
+                    'location_province' => $planning->location?->location_province ?? '',
+                    'location_country' => $planning->location?->location_country ?? '',
+                    'location_seats' => (int) ($planning->location?->location_seats ?? 0),
                 ];
 
-                // Check of planning al bestaat
-                $exists = $wpdb->get_var(
-                    $wpdb->prepare(
-                        "SELECT planning_identifier FROM $table_name WHERE planning_identifier = %s",
-                        $data['planning_identifier']
-                    )
-                );
+                $wpdb->query($wpdb->prepare(
+                    "INSERT INTO {$table_name}
+                     (planning_identifier, planning_date, planning_time, planning_start_date, planning_updated, planning_status, available_seats, location_identifier, location_name, location_street, location_number, location_suffix, location_zip_code, location_city, location_province, location_country, location_seats)
+                     VALUES (%s, %s, %s, %s, %s, %s, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %d)
+                     ON DUPLICATE KEY UPDATE
+                      planning_date = VALUES(planning_date),
+                      planning_time = VALUES(planning_time),
+                      planning_start_date = VALUES(planning_start_date),
+                      planning_updated = VALUES(planning_updated),
+                      planning_status = VALUES(planning_status),
+                      available_seats = VALUES(available_seats),
+                      location_identifier = VALUES(location_identifier),
+                      location_name = VALUES(location_name),
+                      location_street = VALUES(location_street),
+                      location_number = VALUES(location_number),
+                      location_suffix = VALUES(location_suffix),
+                      location_zip_code = VALUES(location_zip_code),
+                      location_city = VALUES(location_city),
+                      location_province = VALUES(location_province),
+                      location_country = VALUES(location_country),
+                      location_seats = VALUES(location_seats)",
+                    ...array_values($data)
+                ));
+                $seenIds[] = $data['planning_identifier'];
+            }
 
-                // BUGFIX: location_identifier is string → '%s' i.p.v. '%d'
-                $format = [
-                    '%s', // planning_identifier
-                    '%s', // planning_date
-                    '%s', // planning_time
-                    '%s', // planning_start_date
-                    '%s', // planning_updated
-                    '%s', // planning_status
-                    '%d', // available_seats
-                    '%s', // location_identifier (was fout: %d)
-                    '%s', // location_name
-                    '%s', // location_street
-                    '%s', // location_number
-                    '%s', // location_suffix
-                    '%s', // location_zip_code
-                    '%s', // location_city
-                    '%s', // location_province
-                    '%s', // location_country
-                    '%d', // location_seats
-                ];
+            // Verwijder planningen die niet meer in de API-respons zitten
+            if (!empty($seenIds)) {
+                $placeholders = implode(',', array_fill(0, count($seenIds), '%s'));
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM {$table_name} WHERE planning_identifier NOT IN ($placeholders) AND planning_date >= CURDATE()",
+                    ...$seenIds
+                ));
+            } else {
+                // Verwijder alle toekomstige planningen als de API niets teruggeeft
+                $wpdb->query("DELETE FROM {$table_name} WHERE planning_date >= CURDATE()");
+            }
 
-                if ($exists) {
-                    $wpdb->update($table_name, $data, ['planning_identifier' => $data['planning_identifier']], $format, ['%s']);
-                } else {
-                    $wpdb->insert($table_name, $data, $format);
+            // Bust caches
+            delete_transient('pontifex_oi_filter_months');
+            delete_transient('pontifex_oi_filter_provinces');
+            delete_transient('pontifex_oi_filter_cities');
+            global $wpdb;
+            $table = $wpdb->prefix . 'pontifex_planning';
+            $provs = $wpdb->get_col("
+                SELECT DISTINCT location_province 
+                FROM {$table}
+                WHERE location_province IS NOT NULL AND location_province <> ''
+            ");
+            if ($provs) {
+                foreach ($provs as $p) {
+                    $key = 'pontifex_oi_filter_cities_' . sanitize_title($p);
+                    delete_transient($key);
                 }
             }
 
-            return true;
+
+            return $seenIds;
 
         } catch (Exception $e) {
             error_log('PontifexOI SOAP fout: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
@@ -252,58 +200,72 @@ class SoapClient {
     }
 
     /**
-     * Haal planning op uit DB met filters
+     * Haalt planning op uit DB met filters
      * @param array $filters Associatieve array met filter criteria
+     * @param int $per_page Het aantal resultaten per pagina (0 voor alles)
+     * @param int $offset Het startpunt voor paginatie
      * @return array
      */
-    public function getPlanning($filters = []) {
+    public function getPlanning($filters = [], $per_page = 0, $offset = 0)
+    {
         global $wpdb;
         $table = $wpdb->prefix . 'pontifex_planning';
-        $where = [];
+        $where = ["p.planning_date >= CURDATE()"];
         $args = [];
 
+        $sql = "SELECT * FROM {$table} p WHERE 1=1";
+        
         if (!empty($filters['month'])) {
-            $where[] = "DATE_FORMAT(planning_date, '%Y-%m') = %s";
+            $where[] = "DATE_FORMAT(p.planning_date, '%Y-%m') = %s";
             $args[] = $filters['month'];
         }
-        if (!empty($filters['province'])) {
-            $where[] = "LOWER(location_province) = LOWER(%s)";
-            $args[] = $filters['province'];
+        // Nieuwe code: accepteer 'city' of 'location'
+        if (!empty($filters['city'])) {
+            $where[] = "p.location_city = %s";
+            $args[]  = $filters['city'];
+        } elseif (!empty($filters['location'])) {
+            $where[] = "p.location_city = %s";
+            $args[]  = $filters['location'];
         }
-        if (!empty($filters['location'])) {
-            $where[] = "location_name = %s";
-            $args[] = $filters['location'];
+
+        if (!empty($filters['province'])) {
+            $where[] = "LOWER(p.location_province) = LOWER(%s)";
+            $args[] = $filters['province'];
         }
         if (!empty($filters['timeslot'])) {
             $slot = $filters['timeslot'];
             if ($slot === 'ochtend') {
-                $where[] = "HOUR(planning_time) < 12";
+                $where[] = "HOUR(p.planning_time) < 12";
             } elseif ($slot === 'middag') {
-                $where[] = "HOUR(planning_time) >= 12 AND HOUR(planning_time) < 18";
+                $where[] = "HOUR(p.planning_time) >= 12 AND HOUR(p.planning_time) < 18";
             } elseif ($slot === 'avond') {
-                $where[] = "HOUR(planning_time) >= 18";
+                $where[] = "HOUR(p.planning_time) >= 18";
             }
         }
 
-        $sql = "SELECT * FROM $table";
         if ($where) {
-            $sql .= " WHERE " . implode(" AND ", $where);
+            $sql .= " AND " . implode(" AND ", $where);
         }
-        $sql .= " ORDER BY planning_date ASC, planning_time ASC";
+        $sql .= " ORDER BY p.planning_date ASC, p.planning_time ASC";
+        
+        // WIJZIGING: Paginatie toevoegen aan SQL via LIMIT en OFFSET
+        if ($per_page > 0) {
+            $sql .= $wpdb->prepare(' LIMIT %d OFFSET %d', $per_page, $offset);
+        }
 
-        $results = $where
+        $results = !empty($args)
             ? $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A)
             : $wpdb->get_results($sql, ARRAY_A);
 
         $out = [];
         foreach ($results as $row) {
             $out[] = [
-                'date'     => date_i18n('d-m-Y (l)', strtotime($row['planning_date'])),
-                'time'     => substr($row['planning_time'], 0, 5),
-                'location' => $row['location_name'],
+                'date' => date_i18n('d-m-Y (l)', strtotime($row['planning_date'])),
+                'time' => substr($row['planning_time'], 0, 5),
+                'location' => (!empty($row['location_city']) ? $row['location_city'] : $row['location_name']),
                 'province' => $row['location_province'],
-                'spots'    => (int)$row['available_seats'] > 0 ? $row['available_seats'] . ' plaatsen' : 'VOL',
-                'price'    => isset($row['planning_price']) && $row['planning_price']
+                'spots' => (int)$row['available_seats'] > 0 ? $row['available_seats'] . ' plaatsen' : 'VOL',
+                'price' => isset($row['planning_price']) && $row['planning_price']
                     ? '&euro; ' . number_format((float)$row['planning_price'], 2, ',', '.')
                     : '',
             ];
@@ -311,56 +273,139 @@ class SoapClient {
         return $out;
     }
 
-    public function getMonths($filters = []) {
+    /**
+     * Haalt een unieke lijst van maanden op uit de DB voor toekomstige planningen.
+     * @return array
+     */
+    public function getMonths()
+    {
+        $cache = get_transient('pontifex_oi_filter_months');
+        if ($cache !== false) {
+            return $cache;
+        }
+
         global $wpdb;
         $table = $wpdb->prefix . 'pontifex_planning';
-        $months = $wpdb->get_col("SELECT DISTINCT DATE_FORMAT(planning_date, '%Y-%m') as month FROM $table ORDER BY month ASC");
+        $months = $wpdb->get_col("
+            SELECT DISTINCT DATE_FORMAT(planning_date, '%Y-%m') AS month
+            FROM {$table}
+            WHERE planning_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+            ORDER BY month ASC
+        ");
+
         $out = [['id' => '', 'name' => 'Toon alles']];
         foreach ($months as $m) {
-            $out[] = ['id' => $m, 'name' => ucfirst(date_i18n('F', strtotime($m . '-01')))];
+            $out[] = ['id' => $m, 'name' => ucfirst(date_i18n('F Y', strtotime($m . '-01')))];
         }
+
+        set_transient('pontifex_oi_filter_months', $out, HOUR_IN_SECONDS);
         return $out;
     }
 
-    public function getProvinces($filters = []) {
+    /**
+     * Haalt een unieke lijst van provincies op uit de DB voor toekomstige planningen.
+     * @return array
+     */
+    public function getProvinces()
+    {
+        $cache = get_transient('pontifex_oi_filter_provinces');
+        if ($cache !== false) {
+            return $cache;
+        }
+
         global $wpdb;
         $table = $wpdb->prefix . 'pontifex_planning';
-        $provinces = $wpdb->get_col("SELECT DISTINCT location_province FROM $table ORDER BY location_province ASC");
+        $provinces = $wpdb->get_col("
+            SELECT DISTINCT location_province
+            FROM $table
+            WHERE location_province IS NOT NULL
+              AND location_province <> ''
+              AND planning_date >= CURDATE()
+            ORDER BY location_province ASC
+        ");
+
         $out = [['id' => '', 'name' => 'Toon alles']];
         foreach ($provinces as $p) {
             $out[] = ['id' => $p, 'name' => $p];
         }
+
+        set_transient('pontifex_oi_filter_provinces', $out, HOUR_IN_SECONDS);
         return $out;
     }
 
-    public function getLocations($filters = []) {
-        global $wpdb;
-        $table = $wpdb->prefix . 'pontifex_planning';
-        $locations = $wpdb->get_col("SELECT DISTINCT location_name FROM $table ORDER BY location_name ASC");
-        $out = [['id' => '', 'name' => 'Toon alles']];
-        foreach ($locations as $l) {
-            $out[] = ['id' => $l, 'name' => $l];
+    /**
+     * Haalt een unieke lijst van steden op uit de DB voor toekomstige planningen.
+     * @param array $filters Optionele filters (bv. provincie)
+     * @return array
+     */
+    public function getLocations($filters = [])
+    {
+        $cacheKey = 'pontifex_oi_filter_cities';
+        if (!empty($filters['province'])) {
+            $cacheKey .= '_' . sanitize_title($filters['province']);
         }
+        
+        $cache = get_transient($cacheKey);
+        if ($cache !== false) {
+            return $cache;
+        }
+        
+        global $wpdb;
+        $t = $wpdb->prefix . 'pontifex_planning';
+    
+        $where = [
+            "location_city IS NOT NULL",
+            "location_city <> ''",
+            "planning_date >= CURDATE()"
+        ];
+        $args  = [];
+    
+        if (!empty($filters['province'])) {
+            $where[] = "location_province = %s";
+            $args[]  = $filters['province'];
+        }
+    
+        $sql = "
+            SELECT DISTINCT location_city AS city, location_province AS province
+            FROM {$t}
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY location_city ASC
+        ";
+    
+        $results = !empty($args)
+            ? $wpdb->get_results($wpdb->prepare($sql, $args), ARRAY_A)
+            : $wpdb->get_results($sql, ARRAY_A);
+        
+        $out = [['id' => '', 'name' => 'Toon alles']];
+        foreach ($results as $l) {
+            $out[] = ['id' => $l['city'], 'name' => $l['city']];
+        }
+
+        // kortere TTL om stale steden na cron/knop sneller te verversen
+        set_transient($cacheKey, $out, 5 * MINUTE_IN_SECONDS);
         return $out;
     }
 
-    public function getTimeslots($filters = []) {
+    public function getTimeslots($filters = [])
+    {
         return [
-            ['id' => '',      'name' => 'Toon alles'],
+            ['id' => '', 'name' => 'Toon alles'],
             ['id' => 'ochtend', 'name' => 'Ochtend'],
-            ['id' => 'middag',  'name' => 'Middag'],
-            ['id' => 'avond',   'name' => 'Avond'],
+            ['id' => 'middag', 'name' => 'Middag'],
+            ['id' => 'avond', 'name' => 'Avond'],
         ];
     }
 
-    public function getLanguages($filters = []) {
+    public function getLanguages($filters = [])
+    {
         return [
             ['id' => 'nl', 'name' => 'Nederlands'],
             ['id' => 'en', 'name' => 'Engels'],
         ];
     }
 
-    public function getMaterials($filters = []) {
+    public function getMaterials($filters = [])
+    {
         return [
             ['id' => '', 'name' => 'Geen keuze'],
             ['id' => '1', 'name' => 'Los examen'],
@@ -370,5 +415,53 @@ class SoapClient {
             ['id' => '6', 'name' => 'Examen + boek + proefexamens'],
             ['id' => '7', 'name' => 'Examen + e-learning + proefexamens'],
         ];
+    }
+
+    /**
+     * Masks a given hash for logging purposes.
+     *
+     * @param string $hash The hash to mask.
+     * @return string
+     */
+    private function maskHash(string $hash): string
+    {
+        if (empty($hash)) {
+            return '';
+        }
+        return substr($hash, 0, 1) . '...' . substr($hash, -1);
+    }
+
+    /**
+     * Publieke debug-helper voor logging vanuit je knop
+     *
+     * @param bool $do_ping
+     * @return array
+     */
+    public function debugHandshake(bool $do_ping = false): array
+    {
+        $out = ['ok' => false];
+        try {
+            $client = $this->getClient();
+            $out['soap_functions'] = $client->__getFunctions();
+            if ($do_ping) {
+                $user_id = (int) get_option('pontifex_oi_soap_user_id', 0);
+                $hash = (string) get_option('pontifex_oi_soap_hash', '');
+
+                if ($user_id && $hash) {
+                    $client->__soapCall('getWalkInPlanning', [
+                        'user_identifier' => $user_id,
+                        'hash' => $hash,
+                    ]);
+                }
+            }
+            $out['ok'] = true;
+            $out['last_request'] = $client->__getLastRequest();
+            $out['last_response'] = $client->__getLastResponse();
+        } catch (\Throwable $e) {
+            $out['message'] = $e->getMessage();
+            $out['last_request'] = isset($client) ? $client->__getLastRequest() : null;
+            $out['last_response'] = isset($client) ? $client->__getLastResponse() : null;
+        }
+        return $out;
     }
 }

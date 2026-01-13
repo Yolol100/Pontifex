@@ -3,31 +3,34 @@ namespace PontifexOI\Helpers;
 
 if (!defined('ABSPATH')) exit;
 
+// ✅ Charset fix
+add_filter('wp_mail_charset', fn() => 'UTF-8');
+
+// ✅ Log mailfouten voor debugging
+add_action('wp_mail_failed', function($wp_error) {
+    error_log('[Pontifex OI Plugin] Mail failed: ' . print_r($wp_error, true));
+});
+
 require_once PONTIFEX_OI_PATH . 'includes/config/producten-prijzen.php';
 
 class MailHelpers
 {
-    // Helper om label te krijgen uit examen ID
+    // Labels voor examens, talen en materiaal
     public static function get_exam_label($id) {
         $exam_labels = [
             'los-examen-vca-basis' => 'VCA Basis',
-            'los-examen-vca-vol'   => 'VCA Vol',
-            'vca-basis-weekend'    => 'VCA Basis Cursus Weekend',
-            'vca-vol-weekend'      => 'VCA Vol Cursus Weekend',
+            'los-examen-vca-vol' => 'VCA Vol',
+            'vca-basis-weekend' => 'VCA Basis Cursus Weekend',
+            'vca-vol-weekend' => 'VCA Vol Cursus Weekend',
         ];
         return $exam_labels[$id] ?? $id;
     }
 
-    // Helper om label te krijgen uit taal ID
     public static function get_language_label($id) {
-        $language_labels = [
-            'nl' => 'Nederlands',
-            'en' => 'Engels',
-        ];
+        $language_labels = ['nl' => 'Nederlands', 'en' => 'Engels'];
         return $language_labels[$id] ?? $id;
     }
 
-    // Helper om label te krijgen uit materiaal-combinatie ID
     public static function get_material_combination_label($id) {
         $material_labels = [
             '1' => 'Examen',
@@ -40,7 +43,6 @@ class MailHelpers
         return $material_labels[$id] ?? 'Geen keuze';
     }
 
-    // Publiek gemaakt zodat templates niet meer hun eigen functie hoeven te definiëren
     public static function get_material_label($id)
     {
         global $MATERIAL_PRODUCTS;
@@ -48,146 +50,124 @@ class MailHelpers
     }
 
     /**
-     * Stuur zowel de klantmail als de eigenaarsmail na een inschrijving/betaling,
-     * inclusief een Excel-bijlage met alle inschrijvingsgegevens naar de eigenaar.
-     *
-     * @param array $order  Alle ingevulde orderdata van de inschrijving.
+     * Stuur mails zonder Excel-bijlage
      */
     public static function send_inschrijving_mails($order)
     {
-        // Labels afleiden
-        $order['exam_label']     = self::get_exam_label($order['exam_type'] ?? '');
-        $order['language_label'] = self::get_language_label($order['language'] ?? '');
-        $order['material_label'] = self::get_material_combination_label($order['material'] ?? '');
+        error_log('[Pontifex OI] Sending mails triggered for order: ' . json_encode($order));
 
-        // -----------------
-        // KLANTMAIL
-        // -----------------
+        // --- Normaliseer formulier-keys ---
+        $map = [
+            'order_initials' => $order['given-name'] ?? null,
+            'order_infix' => $order['additional-name'] ?? null,
+            'order_lastname' => $order['family-name'] ?? null,
+            'order_postcode' => $order['postal-code'] ?? null,
+            'order_housenumber'=> $order['address-line2'] ?? null,
+            'order_street' => $order['street-address'] ?? null,
+            'order_city' => $order['address-level2'] ?? null,
+            'order_phone' => $order['tel'] ?? null,
+            'order_email' => $order['order_email'] ?? ($order['email'] ?? null),
+            'order_company' => $order['organization'] ?? null,
+            'order_function' => $order['organization-title'] ?? null,
+            'order_vat' => $order['order_vat'] ?? null,
+        ];
+
+        foreach ($map as $k => $v) {
+            if (!isset($order[$k]) && $v !== null) $order[$k] = $v;
+        }
+
+        // --- Labels en extra opties ---
+        $order['exam_label'] = $order['exam_label'] ?? self::get_exam_label($order['exam_type'] ?? '');
+        $order['language_label'] = $order['language_label'] ?? self::get_language_label($order['language'] ?? '');
+        $order['material_label'] = $order['material_label'] ?? self::get_material_combination_label($order['material'] ?? '');
+
+        $extra = [];
+        if (!empty($order['extra_material'])) $extra = array_merge($extra, (array) $order['extra_material']);
+        if (!empty($order['extra_options'])) $extra = array_merge($extra, (array) $order['extra_options']);
+        $order['extra_material'] = array_values(array_unique($extra));
+
+        $order['_has_weekend'] = false;
+        foreach ($order['extra_material'] as $id) {
+            if (strpos($id, 'cursus-weekend') === 0) {
+                $order['_has_weekend'] = true;
+                break;
+            }
+        }
+
+        /**
+         * 📨 KLANTMAIL
+         */
         ob_start();
-        include PONTIFEX_OI_PATH . 'public/payment-success-email-template.php';
+        include PONTIFEX_OI_PATH . 'public/emails/payment-success-email-template.php';
         $klantmail = ob_get_clean();
 
-        $to_klant      = $order['order_email'] ?? '';
-        $subject_klant  = 'Betaling is gelukt';
-        $headers_klant  = [
-            'Content-Type: text/html; charset=UTF-8',
-            'From: Certipro <info@certipro.nl>'
-        ];
+        $to_klant = $order['order_email'] ?? $order['email'] ?? '';
+        if (!empty($to_klant)) {
+            $subject_klant = 'Bevestiging inschrijving - ' . ($order['exam_label'] ?? 'VCA Examen');
 
-        wp_mail($to_klant, $subject_klant, $klantmail, $headers_klant);
+            $headers_klant = [
+                'Content-Type: text/html; charset=UTF-8',
+                'From: Certipro <info@test1.certipro.nl>'
+            ];
 
-        // -----------------
-        // EIGENAARSMail + Excel-bijlage
-        // -----------------
+            $result_klant = wp_mail($to_klant, $subject_klant, $klantmail, $headers_klant);
+            if (!$result_klant) error_log("[Pontifex OI] wp_mail() failed for customer {$to_klant}");
+        }
+
+        /**
+         * 📨 EIGENAARSMAIL
+         */
         ob_start();
-        include PONTIFEX_OI_PATH . 'public/owner-notification-email-template.php';
+        include PONTIFEX_OI_PATH . 'public/emails/owner-notification-email-template.php';
         $eigenaarmail = ob_get_clean();
 
-        // Voor subject
-        $kandidaat_fullname   = $order['candidate_fullname'][0] ?? '';
-        $kandidaat_achternaam = $order['candidate_lastname'][0] ?? '';
+        $candidate_fullname_arr = $order['candidate_fullname'] ?? [];
+        $candidate_lastname_arr = $order['candidate_lastname'] ?? [];
 
-        $examKey  = \pontifex_normalize_exam_key($order['exam_type'] ?? '');
-        $extras   = is_array($order['extra_material'] ?? null) ? $order['extra_material'] : [];
-        $isWeekend = in_array('cursus-weekend', $extras, true)
-                     && in_array($examKey, ['los-examen-vca-basis','los-examen-vca-vol'], true);
-        $examSummaryLabel = self::format_exam_label_for_summary($order);
+        $kandidaat_fullname = $candidate_fullname_arr[0] ?? '';
+        $kandidaat_achternaam = $candidate_lastname_arr[0] ?? '';
 
-        // Excel-achtige HTML tabel maken
-        $htmlTable  = '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;">';
-        $htmlTable .= '<tr><th colspan="2" style="background:#ffc107;">Inschrijving kandidaatgegevens</th></tr>';
+        $subject_owner = 'Nieuwe inschrijving van ' . trim($kandidaat_fullname . ' ' . $kandidaat_achternaam);
+        $to_owner = 'planning@test1.certipro.nl';
 
-        foreach ($order['candidate_fullname'] as $index => $fullname) {
-            $infix     = $order['candidate_infix'][$index] ?? '';
-            $lastname  = $order['candidate_lastname'][$index] ?? '';
-            $birthdate = $order['candidate_birthdate'][$index] ?? '';
-
-            $htmlTable .= '<tr><td><strong>Naam en achternaam</strong></td><td>' . htmlspecialchars(trim("$fullname $infix $lastname")) . '</td></tr>';
-            $htmlTable .= '<tr><td><strong>Geboortedatum</strong></td><td>' . htmlspecialchars($birthdate) . '</td></tr>';
-            $htmlTable .= '<tr><td colspan="2">&nbsp;</td></tr>';
-        }
-
-        $htmlTable .= '<tr><th colspan="2" style="background:#007bff; color:#fff;">Bestelgegevens</th></tr>';
-        $htmlTable .= '<tr><td>Naam</td><td>' . htmlspecialchars(trim($order['order_initials'] . ' ' . $order['order_infix'] . ' ' . $order['order_lastname'])) . '</td></tr>';
-        $htmlTable .= '<tr><td>Postcode en huisnummer</td><td>' . htmlspecialchars($order['order_postcode'] . ' ' . $order['order_housenumber']) . '</td></tr>';
-        $htmlTable .= '<tr><td>Adres</td><td>' . htmlspecialchars($order['order_street'] . ', ' . $order['order_city']) . '</td></tr>';
-        $htmlTable .= '<tr><td>Telefoonnummer</td><td>' . htmlspecialchars($order['order_phone']) . '</td></tr>';
-        $htmlTable .= '<tr><td>E-mailadres</td><td>' . htmlspecialchars($order['order_email']) . '</td></tr>';
-        if (!empty($order['order_company'])) {
-            $htmlTable .= '<tr><td>Bedrijfsnaam</td><td>' . htmlspecialchars($order['order_company']) . '</td></tr>';
-        }
-        if (!empty($order['order_function'])) {
-            $htmlTable .= '<tr><td>Functie</td><td>' . htmlspecialchars($order['order_function']) . '</td></tr>';
-        }
-        if (!empty($order['order_vat'])) {
-            $htmlTable .= '<tr><td>BTW-nummer</td><td>' . htmlspecialchars($order['order_vat']) . '</td></tr>';
-        }
-
-        $htmlTable .= '<tr><th colspan="2" style="background:#28a745; color:#fff;">Betaalgegevens</th></tr>';
-        $htmlTable .= '<tr><td>Examen</td><td>' . htmlspecialchars($examSummaryLabel) . '</td></tr>';
-        $htmlTable .= '<tr><td>Taal</td><td>' . htmlspecialchars($order['language_label']) . '</td></tr>';
-        $htmlTable .= '<tr><td>Lesmateriaal</td><td>' 
-                   . htmlspecialchars($isWeekend ? 'Niet van toepassing' : ($order['material_label'] ?? '')) 
-                   . '</td></tr>';
-        $htmlTable .= '<tr><td>Locatie</td><td>' . htmlspecialchars($order['location'] ?? '') . '</td></tr>';
-        $htmlTable .= '<tr><td>Datum</td><td>' . htmlspecialchars($order['date'] ?? '') . '</td></tr>';
-        $htmlTable .= '<tr><td>Tijd</td><td>' . htmlspecialchars($order['time'] ?? '') . '</td></tr>';
-        $htmlTable .= '<tr><td>Aantal kandidaten</td><td>' . count($order['candidate_fullname']) . '</td></tr>';
-
-        if (!$isWeekend && !empty($order['extra_material']) && is_array($order['extra_material'])) {
-            $extraLabels = [];
-            foreach ($order['extra_material'] as $extraId) {
-                $extraLabels[] = self::get_material_label($extraId);
-            }
-            if ($extraLabels) {
-                $htmlTable .= '<tr><td>Extra lesmateriaal</td><td>' 
-                           . htmlspecialchars(implode(', ', $extraLabels)) 
-                           . '</td></tr>';
-            }
-        }
-
-        $htmlTable .= '<tr><td>Totaal</td><td>' . htmlspecialchars($order['price'] ?? '') . '</td></tr>';
-        $htmlTable .= '</table>';
-
-        // Tijdelijk bestand
-        $upload_dir = wp_upload_dir();
-        $filename   = 'inschrijving-' . time() . '.xls';
-        $filepath   = $upload_dir['basedir'] . '/' . $filename;
-
-        file_put_contents($filepath, $htmlTable);
-
-        // Mail met bijlage
-        $to_owner      = 'planning@certipro.nl';
-        $subject_owner  = 'Nieuwe inschrijving van ' . trim($kandidaat_fullname . ' ' . $kandidaat_achternaam);
-        $headers_owner  = [
+        $headers_owner = [
             'Content-Type: text/html; charset=UTF-8',
-            'From: Certipro <info@certipro.nl>'
+            'From: Certipro <info@test1.certipro.nl>'
         ];
-        $attachments    = [$filepath];
 
-        wp_mail($to_owner, $subject_owner, $eigenaarmail, $headers_owner, $attachments);
-
-        // Opruimen
-        if (file_exists($filepath)) {
-            unlink($filepath);
+        $result_owner = wp_mail($to_owner, $subject_owner, $eigenaarmail, $headers_owner);
+        if (!$result_owner) {
+            error_log("[Pontifex OI] wp_mail() failed for owner {$to_owner}");
+        } else {
+            error_log("[Pontifex OI] Owner mail sent successfully to {$to_owner}");
         }
     }
 
-    public static function format_exam_label_for_summary(array $order): string
+    public static function format_exam_label_for_summary($order)
     {
         $examRaw = $order['exam_type'] ?? '';
-        $examKey = \pontifex_normalize_exam_key($examRaw);
+        $examKey = function_exists('pontifex_normalize_exam_key')
+            ? pontifex_normalize_exam_key($examRaw)
+            : $examRaw;
 
-        // label uit config of fallback uit order
         global $EXAM_PRODUCTS;
-        $label = $EXAM_PRODUCTS[$examKey]['label'] ?? ($order['exam_label'] ?? 'Examen');
 
-        // weekend via extra_material
-        $extras   = isset($order['extra_material']) && is_array($order['extra_material']) ? $order['extra_material'] : [];
-        $weekend  = in_array('cursus-weekend', $extras, true)
-                      && in_array($examKey, ['los-examen-vca-basis','los-examen-vca-vol'], true);
+        $label = $EXAM_PRODUCTS[$examKey]['label']
+            ?? ($order['exam_label'] ?? 'Examen');
 
-        // Use the simplified logic
+        $extrasAll = array_merge(
+            (array) ($order['extra_material'] ?? []),
+            (array) ($order['extra_options'] ?? [])
+        );
+
+        $weekend = false;
+        foreach ($extrasAll as $eid) {
+            if (strpos($eid, 'cursus-weekend') === 0) {
+                $weekend = true;
+                break;
+            }
+        }
+
         return $weekend ? ($label . ' met cursusweekend en examen') : ($label . ' met examen');
     }
 }

@@ -83,7 +83,6 @@
         return jQuery.Deferred().reject('No endpoint');
     };
 
-    // The rest of your code remains unchanged...
     PontifexOI.isWeekendAllowed = function(exam, lang) {
         const cfg = PontifexOI.getCfg();
         const allowed = cfg.WEEKEND_ALLOWED_BY_EXAM[exam] || [];
@@ -192,9 +191,17 @@
         }
     };
 
+    /**
+     * @param {string|number} str - De te parseren prijsstring (kan ',' of '.' als decimaalscheiding hebben).
+     * @returns {number} De numerieke prijs, of 0.
+     * ✅ Fix: Altijd naar string casten om .replace te garanderen.
+     */
     PontifexOI.parsePrice = function(str) {
-        if (!str) return 0;
-        return parseFloat(str.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+        // Cast naar string en voer vervangingen uit om robuust te zijn tegen verschillende inputs
+        str = (str + '').replace(',', '.').replace('€', '').trim();
+        
+        // Gebruik vervolgens parseFloat, wat nu betrouwbaar is met '.' als decimaalscheiding
+        return parseFloat(str) || 0;
     };
 
 })(window);

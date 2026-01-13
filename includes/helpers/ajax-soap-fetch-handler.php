@@ -1,25 +1,12 @@
 <?php
 /**
  * Handler voor het ophalen en opslaan van SOAP planning via AJAX in de admin.
- * Dit bestand wordt aangeroepen via de 'wp_ajax_pontifex_oi_fetch_soap_data' hook.
- *
- * @package PontifexOI
- * @subpackage Admin
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-/**
- * Handles the AJAX request to fetch and store SOAP planning data.
- *
- * This function performs security checks, calls the SOAP client, and
- * returns a JSON response to the front-end. It is hooked in the main
- * admin class file.
- *
- * @since 1.0.0
- */
 if (!function_exists('pontifex_oi_fetch_soap_data_handler')) {
     function pontifex_oi_fetch_soap_data_handler() {
         // Step 1: Security Check - Verify user and nonce.
@@ -34,28 +21,35 @@ if (!function_exists('pontifex_oi_fetch_soap_data_handler')) {
         }
 
         try {
-            // Step 2: Load the necessary class.
+            // Step 2: Load the SOAP client.
             if (!class_exists('\PontifexOI\Api\SoapClient')) {
                 require_once dirname(__FILE__, 2) . '/api/class-soap-client.php';
             }
 
             // Step 3: Execute the SOAP request.
-            $soap = new \PontifexOI\Api\SoapClient();
-            $result = $soap->fetchAndStorePlanning();
+            $soap    = new \PontifexOI\Api\SoapClient();
+            $updated = $soap->fetchAndStorePlanning();
+            $count   = is_array($updated) ? count($updated) : 0;
 
-            // Step 4: Return the appropriate JSON response.
-            if ($result === true) {
-                wp_send_json_success(['message' => __('Gegevens succesvol opgehaald en opgeslagen.', 'pontifex-oi')]);
+            // Step 4: Return a clear response.
+            if ($count === 0) {
+                error_log('PontifexOI AJAX: geen nieuwe of gewijzigde planning-items.');
+                wp_send_json_error([
+                    'message' => __('Ophalen gelukt, maar er zijn geen nieuwe of gewijzigde items (0).', 'pontifex-oi')
+                ]);
             } else {
-                wp_send_json_error(['message' => __('Ophalen is mislukt, geen data ontvangen.', 'pontifex-oi')]);
+                error_log('PontifexOI AJAX: ' . $count . ' planningen bijgewerkt via admin.');
+                wp_send_json_success([
+                    'message' => sprintf(__('Planning opgehaald en verwerkt: %d items.', 'pontifex-oi'), $count),
+                    'count'   => $count
+                ]);
             }
 
         } catch (\Exception $e) {
-            // Step 5: Handle and report any exceptions.
+            error_log('PontifexOI AJAX fout: ' . $e->getMessage());
             wp_send_json_error(['message' => $e->getMessage()]);
         }
 
-        // Always die at the end of an AJAX handler.
         wp_die();
     }
 }

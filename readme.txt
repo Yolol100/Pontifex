@@ -41,6 +41,23 @@ De plugin is volledig OOP, Composer-ready, i18n, AVG-proof en ontworpen voor uit
 
 **Let op:** Raadpleeg de documentatie voor extra parameters per shortcode. Gebruik altijd aparte pagina’s voor elke stap in het proces. Zet in je menu of flow duidelijke verwijzingen naar deze pagina’s.
 
+== Usage ==
+Dit gedeelte geeft een overzicht van de belangrijkste gebruikspunten van de plugin:
+
+=== Shortcodes ===
+* `[pontifex_oi_planning]` – toont de planning
+* `[pontifex_oi_registration]` – toont het inschrijfformulier
+* `[pontifex_oi_payment_success]` – toont de bedankpagina
+
+== REST Endpoints ==
+De plugin registreert de volgende REST API routes:
+* `/wp-json/pontifex-oi/v1/planning`
+* `/wp-json/pontifex-oi/v1/price`
+* `/wp-json/pontifex-oi/v1/webhook?secret=YOUR_SECRET` (Mollie Webhook Handler)
+
+== Cron ==
+* Dagelijkse synchronisatie om 03:15 lokale tijd via WordPress Cron.
+
 == Handmatige instellingen en vereisten ==
 - **API-gegevens:** Moeten nu handmatig in code of via een filter worden toegevoegd.
 - **Permalinks:** Zorg voor werkende WordPress-permalinks om shortcodes correct te laten functioneren.
@@ -68,7 +85,7 @@ Ja, alle templates en veel functionaliteit zijn overridebaar via thema of eigen 
 Eerste versie: planning, inschrijving en betaling via afzonderlijke shortcodes. Handmatige instellingen noodzakelijk.
 
 == Changelog ==
-= 1.0.0 =
+= 1.0.0 - 07/10/2025 =
 * Eerste release met planning-, registratie- en betaling-shortcodes.
 * Volledig OOP, Composer-ready, testbaar en uitbreidbaar.
 * Overridebare templates, hooks en internationale ondersteuning.

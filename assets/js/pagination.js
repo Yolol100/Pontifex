@@ -1,85 +1,92 @@
-// pagination.js
 (function(window, $) {
   'use strict';
-
   const PontifexOI = window.PontifexOI = window.PontifexOI || {};
 
-  /**
-   * Render paginatie HTML in de opgegeven container.
-   * @param {number} curPage - De huidige pagina (1-based)
-   * @param {number} totPages - Totaal aantal pagina's
-   * @param {string|HTMLElement|jQuery} container - Selector of element waar de nav in moet komen (default: '.pontifex-oi-pagination-wrapper nav')
-   */
-  function renderPagination(curPage, totPages, container = '.pontifex-oi-pagination-wrapper nav') {
-    if (totPages <= 1) {
-      if (typeof $ !== "undefined" && typeof container === "string") {
-        $(container).empty().hide();
-      } else if (container instanceof HTMLElement) {
-        container.innerHTML = '';
-        container.style.display = 'none';
-      } else if (typeof container === "object" && typeof container.empty === "function") {
-        container.empty().hide();
-      }
-      return;
+  // --- Device-based pagination helpers ---
+  PontifexOI.getDevice = function() {
+    const w = window.innerWidth || document.documentElement.clientWidth;
+    if (w <= 767) return 'mobile';
+    if (w <= 1024) return 'tablet';
+    return 'desktop';
+  };
+
+  PontifexOI.getDeviceLimit = function() {
+    const d = PontifexOI.getDevice();
+    if (d === 'mobile') return 7;
+    if (d === 'tablet') return 12;
+    return 25; // desktop
+  };
+
+  // build simple ‹ 1 2 3 › HTML
+  function buildPagination(curPage, totPages) {
+    if (totPages <= 1) return '';
+    const device = PontifexOI.getDevice();
+    const windowSize = device === 'mobile' ? 4 : (device === 'desktop' ? 7 : 5);
+    let start = Math.max(1, curPage - Math.floor((windowSize - 1) / 2));
+    let end = Math.min(totPages, start + windowSize - 1);
+    let realStart = Math.max(1, end - windowSize + 1);
+    let html = '<button class="poi-page -prev" data-page="' + Math.max(1, curPage - 1) + '">‹</button>';
+    for (let p = realStart; p <= end; p++) {
+      const activeClass = (p === curPage) ? ' active pontifex-oi-page-active' : '';
+      html += `<button class="poi-page${activeClass}" data-page="${p}" aria-current="${p === curPage ? 'page' : 'false'}">${p}</button>`;
     }
-
-    let html = '';
-
-    if (curPage > 1) {
-      html += '<a href="#" data-page="' + (curPage - 1) + '" aria-label="Vorige pagina">«</a>';
-    } else {
-      html += '<span class="pontifex-oi-page-disabled" aria-hidden="true">«</span>';
-    }
-
-    const maxLinks = 7;
-    let start = Math.max(1, curPage - Math.floor(maxLinks / 2));
-    let end = Math.min(totPages, start + maxLinks - 1);
-    if (end - start < maxLinks - 1) start = Math.max(1, end - maxLinks + 1);
-
-    for (let i = start; i <= end; i++) {
-      if (i === curPage) {
-        html += '<a href="#" data-page="' + i + '" class="pontifex-oi-page-active">' + i + '</a>';
-      } else {
-        html += '<a href="#" data-page="' + i + '">' + i + '</a>';
-      }
-    }
-
-    if (curPage < totPages) {
-      html += '<a href="#" data-page="' + (curPage + 1) + '" aria-label="Volgende pagina">»</a>';
-    } else {
-      html += '<span class="pontifex-oi-page-disabled" aria-hidden="true">»</span>';
-    }
-
-    if (typeof $ !== "undefined" && typeof container === "string") {
-      $(container).html(html).show();
-    } else if (container instanceof HTMLElement) {
-      container.innerHTML = html;
-      container.style.display = '';
-    }
+    html += '<button class="poi-page -next" data-page="' + Math.min(totPages, curPage + 1) + '">›</button>';
+    return html;
   }
 
-  /**
-   * Event handler voor klik op paginatie-links
-   * @param {function} onPageChange - Callback met nieuwe pagina nummer
-   * @param {string} container - Selector container waar event op wordt geregistreerd
-   */
-  function initPaginationEvents(onPageChange, container = '.pontifex-oi-pagination-wrapper nav') {
-    if (typeof $ === "undefined") return;
+  // public API
+  PontifexOI.renderPagination = function(curPage, totPages, totalCount) {
+    const nav = document.querySelector('.pontifex-oi-pagination-wrapper nav');
+    if (!nav) return;
+    nav.innerHTML = buildPagination(curPage, totPages);
+    nav.style.display = (totPages > 1) ? 'inline-block' : 'none';
+    const dropdownWrap = document.querySelector('.pontifex-oi-pagination-wrapper .-left');
+    const limit = PontifexOI.getDeviceLimit();
+    if (dropdownWrap) {
+      if (typeof totalCount === 'number' && totalCount <= limit) {
+        dropdownWrap.classList.add('is-hidden');
+      } else {
+        dropdownWrap.classList.remove('is-hidden');
+      }
+    }
+  };
 
-    // FIX: voorkom dubbele handlers
-    $(document).off('click', `${container} a[data-page]`);
+  // expose per-page selection (dropdown is vast onderdeel van de markup)
+  PontifexOI.getSelectedPerPage = function(totalCount) {
+    const limit = PontifexOI.getDeviceLimit();
+    const sel = document.querySelector('.pontifex-oi-rows-select');
+    let val = sel && sel.value ? parseInt(sel.value, 10) : limit;
+    if (!val || isNaN(val)) val = limit;
+    return Math.max(1, Math.min(val, limit));
+  };
 
-    $(document).on('click', `${container} a[data-page]`, function(e) {
-      e.preventDefault();
-      const page = parseInt($(this).data('page'), 10);
-      if (page && typeof onPageChange === "function") {
-        onPageChange(page);
+  // events
+  PontifexOI.initPaginationEvents = function(onPageChange, onPerPageChange) {
+    const nav = document.querySelector('.pontifex-oi-pagination-wrapper nav');
+    const sel = document.querySelector('.pontifex-oi-rows-select');
+    if (nav) {
+      nav.addEventListener('click', function(e) {
+        const t = e.target.closest('button[data-page]');
+        if (!t) return;
+        e.preventDefault();
+        onPageChange(parseInt(t.getAttribute('data-page'), 10) || 1);
+      });
+    }
+    if (sel) {
+      sel.addEventListener('change', function() {
+        onPerPageChange(parseInt(this.value, 10) || PontifexOI.getDeviceLimit());
+      });
+    }
+  };
+
+  // Listener voor rows-per-page
+  (function() {
+    const sel = document.querySelector('.pontifex-oi-rows-select');
+    if (!sel) return;
+    sel.addEventListener('change', function() {
+      if (typeof PontifexOI.onPerPageChange === 'function') {
+        PontifexOI.onPerPageChange(parseInt(sel.value, 10));
       }
     });
-  }
-
-  // Expose functies
-  PontifexOI.renderPagination = renderPagination;
-  PontifexOI.initPaginationEvents = initPaginationEvents;
-
+  })();
 })(window, window.jQuery);
