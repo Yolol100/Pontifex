@@ -1,108 +1,116 @@
-.pontifex-oi-payment-success-simplified {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding-block: clamp(1.25rem, 6vw, 2rem);
-  padding-inline: clamp(1.25rem, 6vw, 2rem);
-  background-color: var(--pontifex-white);
-  border-radius: var(--pontifex-radius);
-  box-shadow: var(--pontifex-shadow);
-  max-inline-size: 650px;
-  margin-block: clamp(2.5rem, 10vw, 3.75rem);
-  margin-inline: auto;
-  animation: fadeIn 0.7s ease-out forwards;
-  container-type: inline-size;
-  content-visibility: auto;
-  contain-intrinsic-size: 650px 500px;
-}
+/* 2026 Standaard: Gebruik van @layer om de plugin-stijlen te isoleren.
+  Dit zorgt ervoor dat thema-stijlen je plugin niet zomaar kapot maken.
+*/
+@layer pontifex.plugin, pontifex.responsive;
 
-.pontifex-oi-success-message {
-  font-family: var(--pontifex-font-main);
-  font-size: clamp(1rem, 4vw, 1.2rem);
-  color: #444;
-  line-height: 1.5;
-  margin-block-end: clamp(1rem, 4vw, 1.25rem);
-  max-inline-size: 500px;
-}
-
-.pontifex-oi-home-button {
-  display: inline-block !important;
-  padding-block: clamp(0.75rem, 3vw, 1rem) !important;
-  padding-inline: clamp(1rem, 4vw, 1.5rem) !important;
-  background-color: var(--pontifex-orange) !important;
-  color: var(--pontifex-white) !important;
-  border: none !important;
-  border-radius: var(--pontifex-radius) !important;
-  font-family: var(--pontifex-font-main) !important;
-  font-size: clamp(1rem, 2.5vw, 1rem) !important;
-  font-weight: 600 !important;
-  text-decoration: none !important;
-  box-shadow: var(--pontifex-shadow-btn) !important;
-  transition: background 0.25s ease, transform 0.25s ease !important;
-  cursor: pointer !important;
-}
-
-.pontifex-oi-home-button:is(:hover, :focus) {
-  background-color: var(--pontifex-black) !important;
-  color: var(--pontifex-white) !important;
-  transform: translateY(-3px) !important;
-  box-shadow: var(--pontifex-shadow-btn-hover) !important;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@container (min-width: 48rem) {
+@layer pontifex.plugin {
   .pontifex-oi-payment-success-simplified {
-    padding-block: 2rem;
-    padding-inline: 2rem;
-    margin-block: 3.75rem;
-  }
-}
-
-/* Responsive media queries */
-@media (width <= 768px) {
-  .pontifex-oi-payment-success-simplified {
-    padding-block: clamp(1rem, 4vw, 2rem);
-    padding-inline: clamp(1rem, 4vw, 2rem);
-    margin-block: clamp(1.5rem, 6vw, 2.5rem);
-    margin-inline: 15px;
-    max-inline-size: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding-block: clamp(1.25rem, 6vw, 2rem);
+    padding-inline: clamp(1.25rem, 6vw, 2rem);
+    background-color: var(--pontifex-white);
+    border-radius: var(--pontifex-radius);
+    box-shadow: var(--pontifex-shadow);
+    max-inline-size: 650px;
+    margin-block: clamp(2.5rem, 10vw, 3.75rem);
+    margin-inline: auto;
+    animation: fadeIn 0.7s ease-out forwards;
+    container-type: inline-size;
+    content-visibility: auto;
+    contain-intrinsic-size: 650px 500px;
   }
 
   .pontifex-oi-success-message {
-    font-size: 1.1rem;
-    margin-block-end: 20px;
-    line-height: 1.4;
+    font-family: var(--pontifex-font-main);
+    font-size: clamp(1rem, 4vw, 1.2rem);
+    color: #444;
+    line-height: 1.5;
+    margin-block-end: clamp(1rem, 4vw, 1.25rem);
+    max-inline-size: 500px;
   }
 
   .pontifex-oi-home-button {
-    padding-block: 12px;
-    padding-inline: 24px;
-    font-size: 1rem;
+    display: inline-block !important;
+    padding-block: clamp(0.75rem, 3vw, 1rem) !important;
+    padding-inline: clamp(1rem, 4vw, 1.5rem) !important;
+    background-color: var(--pontifex-orange) !important;
+    color: var(--pontifex-white) !important;
+    border: none !important;
+    border-radius: var(--pontifex-radius) !important;
+    font-family: var(--pontifex-font-main) !important;
+    font-size: clamp(1rem, 2.5vw, 1rem) !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    box-shadow: var(--pontifex-shadow-btn) !important;
+    transition: background 0.25s ease, transform 0.25s ease !important;
+    cursor: pointer !important;
   }
-  
-  .pontifex-oi-check-circle {
-    inline-size: 105px;
-    block-size: 105px;
+
+  .pontifex-oi-home-button:is(:hover, :focus) {
+    background-color: var(--pontifex-black) !important;
+    color: var(--pontifex-white) !important;
+    transform: translateY(-3px) !important;
+    box-shadow: var(--pontifex-shadow-btn-hover) !important;
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 
-@media (width <= 480px) { 
-    .pontifex-oi-check-circle {
-    inline-size: 90px;
-    block-size: 90px;
+@layer pontifex.responsive {
+  @container (min-width: 48rem) {
+    .pontifex-oi-payment-success-simplified {
+      padding-block: 2rem;
+      padding-inline: 2rem;
+      margin-block: 3.75rem;
     }
+  }
+
+  /* Responsive media queries */
+  @media (width <= 768px) {
+    .pontifex-oi-payment-success-simplified {
+      padding-block: clamp(1rem, 4vw, 2rem);
+      padding-inline: clamp(1rem, 4vw, 2rem);
+      margin-block: clamp(1.5rem, 6vw, 2.5rem);
+      margin-inline: 15px;
+      max-inline-size: 100%;
+    }
+
+    .pontifex-oi-success-message {
+      font-size: 1.1rem;
+      margin-block-end: 20px;
+      line-height: 1.4;
+    }
+
+    .pontifex-oi-home-button {
+      padding-block: 12px;
+      padding-inline: 24px;
+      font-size: 1rem;
+    }
+    
+    .pontifex-oi-check-circle {
+      inline-size: 105px;
+      block-size: 105px;
+    }
+  }
+
+  @media (width <= 480px) { 
+    .pontifex-oi-check-circle {
+      inline-size: 90px;
+      block-size: 90px;
+    }
+  }
 }
