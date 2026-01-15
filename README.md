@@ -1,4 +1,5 @@
 ## Pontifex OI
+
 **Contributors:** andrewbaeten  
 **Tags:** pontifex, exam registration, SOAP API, planning, payments, shortcodes  
 **Requires at least:** 6.0  
@@ -13,7 +14,7 @@ Adds Pontifex exam planning, registration and payment functionality to WordPress
 
 ### Description
 
-**Pontifex OI** is a WordPress plugin that connects your website to the Pontifex Open Inschrijvingen SOAP API. It enables you to display exam planning, collect candidate registrations, and process payments directly within WordPress. 
+Pontifex OI is a WordPress plugin that connects your website to the Pontifex Open Inschrijvingen SOAP API. It enables you to display exam planning, collect candidate registrations, and process payments directly within WordPress. 
 
 The plugin uses a shortcode-based workflow, making it easy to place each step of the process on its own page. It is built with modern object-oriented PHP (8.1+), follows WordPress coding standards, and is designed to be extendable.
 
