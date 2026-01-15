@@ -130,8 +130,10 @@ final class Admin
 
     /**
      * Laadt alleen de benodigde admin styles & scripts op Pontifex pagina's
+     * 
+     * @param string $hook De huidige admin-pagina hook (optioneel, WordPress stuurt dit altijd mee)
      */
-    public function enqueue_admin_assets(string $hook): void
+    public function enqueue_admin_assets(string $hook = ''): void
     {
         // Snelle check op relevante pagina's
         if (!str_contains($hook, 'pontifex_oi')) {

@@ -25,22 +25,6 @@ define('PONTIFEX_OI_URL', plugin_dir_url(__FILE__));
 define('PONTIFEX_OI_BASENAME', plugin_basename(__FILE__));
 
 // -----------------------------------------------------------------------------
-//  Autoloader (optioneel – maar sterk aanbevolen voor toekomst)
-// -----------------------------------------------------------------------------
-spl_autoload_register(static function (string $class): void {
-    if (!str_starts_with($class, 'PontifexOI\\')) {
-        return;
-    }
-
-    $path = str_replace(['PontifexOI\\', '\\'], ['', '/'], $class);
-    $file = PONTIFEX_OI_PATH . 'includes/' . strtolower($path) . '.php';
-
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
-
-// -----------------------------------------------------------------------------
 //  Centrale plugin class
 // -----------------------------------------------------------------------------
 final class Pontifex_OI
@@ -102,17 +86,23 @@ final class Pontifex_OI
      */
     private function register_hooks(): void
     {
-        // Start alle componenten pas als plugins geladen zijn
-        add_action('plugins_loaded', static function (): void {
-            // Admin gedeelte (menu, instellingen, AJAX)
-            \PontifexOI\Admin\Admin::get_instance();
+        // Start alle componenten pas als plugins volledig geladen zijn
+        add_action('plugins_loaded', function (): void {
+            // Admin (menu, instellingen, AJAX)
+            if (class_exists('\PontifexOI\Admin\Admin')) {
+                \PontifexOI\Admin\Admin::get_instance();
+            }
 
             // Frontend (shortcodes, planning, inschrijven)
-            \PontifexOI\PublicPart\Frontend::get_instance();
+            if (class_exists('\PontifexOI\PublicPart\Frontend')) {
+                \PontifexOI\PublicPart\Frontend::get_instance();
+            }
         });
 
-        // Assets alleen op de juiste plekken
+        // Publieke assets (frontend)
         add_action('wp_enqueue_scripts', [self::class, 'enqueue_public_assets']);
+
+        // Admin assets
         add_action('admin_enqueue_scripts', [self::class, 'enqueue_admin_assets']);
     }
 
@@ -121,31 +111,32 @@ final class Pontifex_OI
      */
     public static function enqueue_public_assets(): void
     {
-        // Alleen op pagina's waar nodig (bijv. via shortcode detectie)
-        if (!has_shortcode(get_the_content(), 'pontifex_oi_planning') &&
-            !has_shortcode(get_the_content(), 'pontifex_oi_registration')) {
-            return;
+        // Alleen laden als een relevante shortcode aanwezig is
+        global $post;
+        if (is_a($post, 'WP_Post') && (
+            has_shortcode($post->post_content, 'pontifex_oi_planning') ||
+            has_shortcode($post->post_content, 'pontifex_oi_registration')
+        )) {
+            wp_enqueue_style(
+                'pontifex-oi-public',
+                PONTIFEX_OI_URL . 'public/css/public.css',
+                [],
+                PONTIFEX_OI_VERSION
+            );
+
+            wp_enqueue_script(
+                'pontifex-oi-public',
+                PONTIFEX_OI_URL . 'public/js/public.js',
+                ['jquery'],
+                PONTIFEX_OI_VERSION,
+                true
+            );
+
+            wp_localize_script('pontifex-oi-public', 'PontifexOI', [
+                'ajaxurl' => admin_url('admin-ajax.php'),
+                'nonce'   => wp_create_nonce('pontifex_oi_public'),
+            ]);
         }
-
-        wp_enqueue_style(
-            'pontifex-oi-public',
-            PONTIFEX_OI_URL . 'public/css/public.css',
-            [],
-            PONTIFEX_OI_VERSION
-        );
-
-        wp_enqueue_script(
-            'pontifex-oi-public',
-            PONTIFEX_OI_URL . 'public/js/public.js',
-            ['jquery'],
-            PONTIFEX_OI_VERSION,
-            true
-        );
-
-        wp_localize_script('pontifex-oi-public', 'PontifexOI', [
-            'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce'   => wp_create_nonce('pontifex_oi_public'),
-        ]);
     }
 
     /**
