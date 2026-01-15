@@ -1,5 +1,4 @@
 <?php
-
 namespace PontifexOI\PublicPart;
 
 use PontifexOI\Helpers\PaymentHelpers;
@@ -10,6 +9,9 @@ use WP_REST_Response;
 if (!defined('ABSPATH')) {
     exit;
 }
+
+// Expliciet laden van de SoapClient class (pas pad aan indien nodig!)
+require_once PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
 
 // Laad PaymentSuccessShortcode indien aanwezig
 add_action('plugins_loaded', static function () {
@@ -22,18 +24,18 @@ require_once PONTIFEX_OI_PATH . 'includes/config/producten-prijzen.php';
 
 enum ExamType: string
 {
-    case VcaBasis      = 'los-examen-vca-basis';
+    case VcaBasis = 'los-examen-vca-basis';
     case VcaBasisGroen = 'los-examen-vca-basis-groen';
-    case VcaVol        = 'los-examen-vca-vol';
-    case VcaVil        = 'los-examen-vca-vil';
+    case VcaVol = 'los-examen-vca-vol';
+    case VcaVil = 'los-examen-vca-vil';
 
     public function getLabel(): string
     {
         return match ($this) {
-            self::VcaBasis      => 'VCA Basis',
+            self::VcaBasis => 'VCA Basis',
             self::VcaBasisGroen => 'VCA Basis Groen',
-            self::VcaVol        => 'VCA Vol',
-            self::VcaVil        => 'VCA VIL',
+            self::VcaVol => 'VCA Vol',
+            self::VcaVil => 'VCA VIL',
         };
     }
 }
@@ -41,14 +43,13 @@ enum ExamType: string
 final class Frontend
 {
     private static ?self $instance = null;
-
     private readonly SoapClient $soap;
 
     private const WEEKEND_ALLOWED_BY_EXAM = [
-        'los-examen-vca-basis'       => ['nl'],
-        'los-examen-vca-vol'         => ['nl'],
+        'los-examen-vca-basis' => ['nl'],
+        'los-examen-vca-vol' => ['nl'],
         'los-examen-vca-basis-groen' => [],
-        'los-examen-vca-vil'         => [],
+        'los-examen-vca-vil' => [],
     ];
 
     private const AVAILABLE_LANGUAGES = [
@@ -62,7 +63,6 @@ final class Frontend
 
         add_action('wp_head', [$this, 'add_viewport_meta_tag'], 1);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
-
         add_shortcode('pontifex_oi_planning', [$this, 'render_planning_shortcode']);
         add_shortcode('pontifex_oi_registration', [$this, 'render_registration_shortcode']);
 
@@ -108,16 +108,16 @@ final class Frontend
         }
 
         $js_deps = [
-            'config'     => [],
-            'utils'      => ['jquery'],
-            'filters'    => ['pontifex-oi-config', 'pontifex-oi-utils'],
+            'config' => [],
+            'utils' => ['jquery'],
+            'filters' => ['pontifex-oi-config', 'pontifex-oi-utils'],
             'pagination' => ['pontifex-oi-utils'],
-            'sidebar'    => ['pontifex-oi-filters'],
-            'material'   => ['pontifex-oi-utils'],
-            'price'      => ['pontifex-oi-material'],
-            'table'      => ['pontifex-oi-price'],
+            'sidebar' => ['pontifex-oi-filters'],
+            'material' => ['pontifex-oi-utils'],
+            'price' => ['pontifex-oi-material'],
+            'table' => ['pontifex-oi-price'],
             'candidates' => ['pontifex-oi-table'],
-            'main'       => [
+            'main' => [
                 'pontifex-oi-filters', 'pontifex-oi-pagination', 'pontifex-oi-sidebar',
                 'pontifex-oi-material', 'pontifex-oi-price', 'pontifex-oi-table',
                 'pontifex-oi-candidates'
@@ -151,14 +151,14 @@ final class Frontend
 
         wp_localize_script('pontifex-oi-config', 'PontifexOIConfigData', array_merge(
             [
-                'ajaxUrl'              => admin_url('admin-ajax.php'),
-                'restBase'             => rest_url('pontifex-oi/v1'),
-                'registrationPageUrl'  => $reg_url,
-                'planningPageUrl'      => home_url('/cursus-zoeken/'),
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'restBase' => rest_url('pontifex-oi/v1'),
+                'registrationPageUrl' => $reg_url,
+                'planningPageUrl' => home_url('/cursus-zoeken/'),
                 'weekendAllowedByExam' => self::WEEKEND_ALLOWED_BY_EXAM,
-                'availableLanguages'   => self::AVAILABLE_LANGUAGES,
-                'defaultExamType'      => ExamType::VcaBasis->value,
-                'defaultLanguage'      => 'nl',
+                'availableLanguages' => self::AVAILABLE_LANGUAGES,
+                'defaultExamType' => ExamType::VcaBasis->value,
+                'defaultLanguage' => 'nl',
             ],
             $this->get_sanitized_product_data_for_js(),
             ['extraOptions' => $this->get_sanitized_extra_options_for_js()]
@@ -170,7 +170,7 @@ final class Frontend
 
         wp_localize_script('pontifex-oi-validation', 'pontifexOiVars', [
             'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce'   => wp_create_nonce('pontifex_oi_nonce'),
+            'nonce' => wp_create_nonce('pontifex_oi_nonce'),
         ]);
     }
 
@@ -187,12 +187,8 @@ final class Frontend
         );
     }
 
-    /**
-     * Render Registration Form via een Mount Point (SPA Ready)
-     */
     public function render_registration_shortcode(array $atts = []): string
     {
-        // Zorg dat de benodigde scripts en styles geladen worden
         wp_enqueue_script('pontifex-oi-main');
         wp_enqueue_style('pontifex-oi-registration');
 
@@ -200,12 +196,12 @@ final class Frontend
         nocache_headers();
 
         return sprintf(
-            '<div id="pontifex-registration-app" 
-                  data-order-id="%s" 
+            '<div id="pontifex-registration-app"
+                  data-order-id="%s"
                   data-step="1">
                 <div class="pontifex-loader">Inschrijfformulier wordt geladen...</div>
             </div>',
-            esc_attr($_GET['order_id'] ?? '') // Optioneel: voor hervatten van een bestelling
+            esc_attr($_GET['order_id'] ?? '')
         );
     }
 
@@ -222,26 +218,25 @@ final class Frontend
             ? $this->generate_weekend_planning_rows($filters)
             : $this->soap->getPlanning($filters);
 
-        $page     = max(1, (int)($filters['page']     ?? 1));
+        $page = max(1, (int)($filters['page'] ?? 1));
         $per_page = (int)($filters['per_page'] ?? 0);
-
         $total = count($planning_data);
 
         if ($per_page > 0) {
             $total_pages = max(1, (int)ceil($total / $per_page));
-            $offset      = ($page - 1) * $per_page;
-            $planning    = array_slice($planning_data, $offset, $per_page);
+            $offset = ($page - 1) * $per_page;
+            $planning = array_slice($planning_data, $offset, $per_page);
         } else {
             $total_pages = 1;
-            $planning    = $planning_data;
+            $planning = $planning_data;
         }
 
         wp_send_json_success([
-            'planning'       => $planning,
-            'current_page'   => $page,
-            'total_pages'    => $total_pages,
-            'total_results'  => $total,
-            'filters'        => $filters,
+            'planning' => $planning,
+            'current_page' => $page,
+            'total_pages' => $total_pages,
+            'total_results' => $total,
+            'filters' => $filters,
         ]);
     }
 
@@ -250,8 +245,8 @@ final class Frontend
         $this->set_no_cache_headers();
 
         $filter_type = sanitize_text_field($_REQUEST['filter'] ?? '');
-        $filters     = wp_unslash($_REQUEST['filters'] ?? []);
-        $filters     = is_array($filters) ? array_map('sanitize_text_field', $filters) : [];
+        $filters = wp_unslash($_REQUEST['filters'] ?? []);
+        $filters = is_array($filters) ? array_map('sanitize_text_field', $filters) : [];
 
         $is_weekend = ($filters['material'] ?? null) === 'cursus-weekend';
 
@@ -265,25 +260,25 @@ final class Frontend
     private function get_weekend_filter_options(string $filter_type): array
     {
         return match (strtolower($filter_type)) {
-            'month'     => $this->get_weekend_month_options(3),
-            'province'  => [['id' => 'Zuid-Holland', 'name' => __('Zuid-Holland', 'pontifex-oi')]],
-            'location'  => [['id' => 'Den Haag',     'name' => __('Den Haag', 'pontifex-oi')]],
-            'timeslot'  => [['id' => 'Ochtend',      'name' => __('Ochtend', 'pontifex-oi')]],
-            'language'  => [['id' => 'nl',           'name' => __('Nederlands', 'pontifex-oi')]],
-            default     => [],
+            'month' => $this->get_weekend_month_options(3),
+            'province' => [['id' => 'Zuid-Holland', 'name' => __('Zuid-Holland', 'pontifex-oi')]],
+            'location' => [['id' => 'Den Haag', 'name' => __('Den Haag', 'pontifex-oi')]],
+            'timeslot' => [['id' => 'Ochtend', 'name' => __('Ochtend', 'pontifex-oi')]],
+            'language' => [['id' => 'nl', 'name' => __('Nederlands', 'pontifex-oi')]],
+            default => [],
         };
     }
 
     private function get_regular_filter_options(string $filter_type, array $filters): array
     {
         return match (strtolower($filter_type)) {
-            'month'     => $this->soap->getMonths(),
-            'province'  => $this->soap->getProvinces(),
-            'location'  => $this->soap->getLocations($filters),
-            'timeslot'  => $this->soap->getTimeslots(),
-            'language'  => $this->soap->getLanguages(),
-            'material'  => $this->soap->getMaterials(),
-            default     => [],
+            'month' => $this->soap->getMonths(),
+            'province' => $this->soap->getProvinces(),
+            'location' => $this->soap->getLocations($filters),
+            'timeslot' => $this->soap->getTimeslots(),
+            'language' => $this->soap->getLanguages(),
+            'material' => $this->soap->getMaterials(),
+            default => [],
         };
     }
 
@@ -291,11 +286,11 @@ final class Frontend
     {
         $this->set_no_cache_headers();
 
-        $exam_type      = sanitize_text_field($_POST['exam_type'] ?? '');
-        $language       = sanitize_text_field($_POST['language'] ?? 'nl');
-        $material       = sanitize_text_field($_POST['material'] ?? '1');
+        $exam_type = sanitize_text_field($_POST['exam_type'] ?? '');
+        $language = sanitize_text_field($_POST['language'] ?? 'nl');
+        $material = sanitize_text_field($_POST['material'] ?? '1');
         $candidate_count = absint($_POST['candidate_count'] ?? 1);
-        $extra_options  = array_map('sanitize_text_field', (array)($_POST['extra_options'] ?? []));
+        $extra_options = array_map('sanitize_text_field', (array)($_POST['extra_options'] ?? []));
 
         if (!$exam_type) {
             wp_send_json_error(['message' => 'Geen exam_type opgegeven']);
@@ -303,21 +298,21 @@ final class Frontend
 
         try {
             $totals = PaymentHelpers::calculate_totals_with_vat([
-                'exam_type'      => $exam_type,
-                'language'       => $language,
-                'material'       => $material,
+                'exam_type' => $exam_type,
+                'language' => $language,
+                'material' => $material,
                 'candidate_count' => $candidate_count,
-                'extra_options'  => $extra_options,
+                'extra_options' => $extra_options,
             ]);
 
             $price_incl = (float)($totals['incl'] ?? 0.0);
 
             wp_send_json_success([
-                'price'      => $price_incl > 0 ? '€' . number_format($price_incl, 2, ',', '.') : '',
-                'raw_price'  => (float)($totals['excl'] ?? 0.0),
-                'vat9'       => (float)($totals['vat9']  ?? 0.0),
-                'vat21'      => (float)($totals['vat21'] ?? 0.0),
-                'vat_total'  => (float)(($totals['vat9'] ?? 0) + ($totals['vat21'] ?? 0)),
+                'price' => $price_incl > 0 ? '€' . number_format($price_incl, 2, ',', '.') : '',
+                'raw_price' => (float)($totals['excl'] ?? 0.0),
+                'vat9' => (float)($totals['vat9'] ?? 0.0),
+                'vat21' => (float)($totals['vat21'] ?? 0.0),
+                'vat_total' => (float)(($totals['vat9'] ?? 0) + ($totals['vat21'] ?? 0)),
                 'total_incl' => $price_incl,
             ]);
         } catch (\Throwable $e) {
@@ -335,12 +330,10 @@ final class Frontend
         }
 
         $prices = [];
-
         foreach ($items as $row) {
             $exam = sanitize_text_field($row['exam'] ?? '');
             $lang = sanitize_text_field($row['lang'] ?? 'nl');
-            $mat  = sanitize_text_field($row['material'] ?? '1');
-
+            $mat = sanitize_text_field($row['material'] ?? '1');
             $key = sanitize_text_field($row['key'] ?? ($exam . '|' . $lang . '|' . $mat));
 
             if (!$exam) {
@@ -353,11 +346,11 @@ final class Frontend
             $price = $is_weekend_display
                 ? 245.00
                 : PaymentHelpers::calculate_total_price([
-                    'exam_type'      => $exam,
-                    'language'       => $lang,
-                    'material'       => $mat,
+                    'exam_type' => $exam,
+                    'language' => $lang,
+                    'material' => $mat,
                     'candidate_count' => 1,
-                    'extra_options'  => [],
+                    'extra_options' => [],
                 ]);
 
             if ($price > 0) {
@@ -385,7 +378,6 @@ final class Frontend
 
         // Candidate data opschonen
         $candidate_fields = ['candidate_fullname', 'candidate_infix', 'candidate_lastname', 'candidate_birthdate'];
-
         foreach ($candidate_fields as $field) {
             $order[$field] = isset($order[$field]) && is_array($order[$field])
                 ? array_values(array_filter(
@@ -396,23 +388,21 @@ final class Frontend
         }
 
         $candidate_count = min(count($order['candidate_fullname'] ?? []), 12);
-
         if ($candidate_count === 0) {
             wp_send_json_error(['message' => 'Geen kandidaten gevonden. Vul minimaal 1 kandidaat in.']);
         }
 
         $order['candidate_count'] = $candidate_count;
-
         foreach ($candidate_fields as $field) {
             $order[$field] ??= [];
             $order[$field] = array_slice(array_pad($order[$field], $candidate_count, ''), 0, $candidate_count);
         }
 
-        $order['exam_type']     = sanitize_text_field($order['exam_type'] ?? '');
-        $order['language']      = sanitize_text_field($order['language'] ?? 'nl');
-        $order['material']      = sanitize_text_field($order['material'] ?? '');
+        $order['exam_type'] = sanitize_text_field($order['exam_type'] ?? '');
+        $order['language'] = sanitize_text_field($order['language'] ?? 'nl');
+        $order['material'] = sanitize_text_field($order['material'] ?? '');
         $order['extra_options'] = array_map('sanitize_text_field', (array)($order['extra_options'] ?? []));
-        $order['order_email']   = sanitize_email($order['order_email'] ?? ($order['email'] ?? ''));
+        $order['order_email'] = sanitize_email($order['order_email'] ?? ($order['email'] ?? ''));
 
         $totals = PaymentHelpers::calculate_totals_with_vat($order);
         $calculated_incl = (float)($totals['incl'] ?? 0.0);
@@ -423,7 +413,7 @@ final class Frontend
         if ($frontend_amount <= 0 || $diff > 0.05) {
             wp_send_json_error([
                 'message' => 'Ongeldig bedrag (BTW). Probeer het opnieuw.',
-                'debug'   => WP_DEBUG ? compact('frontend_amount', 'calculated_incl', 'diff') : null,
+                'debug' => WP_DEBUG ? compact('frontend_amount', 'calculated_incl', 'diff') : null,
             ]);
         }
 
@@ -436,7 +426,6 @@ final class Frontend
             $lastname = $order['candidate_lastname'][$i] ?? '';
             $names[] = trim("$fullname $infix $lastname");
         }
-
         $candidate_list = implode(', ', array_filter($names));
 
         $description = implode(' ', array_filter([
@@ -451,7 +440,6 @@ final class Frontend
         try {
             $token = uniqid('pontifex_order_');
             $redirect = add_query_arg('order_token', $token, home_url('/bedankt-inschrijven/'));
-
             $payment = PaymentHelpers::create_mollie_payment(
                 $calculated_incl,
                 $redirect,
@@ -478,14 +466,14 @@ final class Frontend
     public function register_rest_routes(): void
     {
         register_rest_route('pontifex-oi/v1', '/planning', [
-            'methods'             => 'POST',
-            'callback'            => [$this, 'rest_get_planning'],
+            'methods' => 'POST',
+            'callback' => [$this, 'rest_get_planning'],
             'permission_callback' => '__return_true',
         ]);
 
         register_rest_route('pontifex-oi/v1', '/price', [
-            'methods'             => 'POST',
-            'callback'            => [$this, 'rest_get_price'],
+            'methods' => 'POST',
+            'callback' => [$this, 'rest_get_price'],
             'permission_callback' => '__return_true',
         ]);
     }
@@ -495,7 +483,7 @@ final class Frontend
         $filters = $request->get_param('filters') ?? [];
         $filters = is_array($filters) ? array_map('sanitize_text_field', $filters) : [];
 
-        $page     = max(1, (int)($filters['page'] ?? 1));
+        $page = max(1, (int)($filters['page'] ?? 1));
         $per_page = (int)($filters['per_page'] ?? 0);
 
         $is_weekend = ($filters['material'] ?? null) === 'cursus-weekend';
@@ -508,18 +496,18 @@ final class Frontend
 
         if ($per_page > 0) {
             $total_pages = max(1, (int)ceil($total / $per_page));
-            $offset      = ($page - 1) * $per_page;
-            $planning    = array_slice($all, $offset, $per_page);
+            $offset = ($page - 1) * $per_page;
+            $planning = array_slice($all, $offset, $per_page);
         } else {
             $total_pages = 1;
-            $planning    = $all;
+            $planning = $all;
         }
 
         $response = new WP_REST_Response([
-            'planning'       => $planning,
-            'current_page'   => $page,
-            'total_pages'    => $total_pages,
-            'total_results'  => $total,
+            'planning' => $planning,
+            'current_page' => $page,
+            'total_pages' => $total_pages,
+            'total_results' => $total,
         ]);
 
         $this->set_no_cache_headers($response);
@@ -529,19 +517,19 @@ final class Frontend
     public function rest_get_price(WP_REST_Request $request): WP_REST_Response
     {
         $exam_type = sanitize_text_field($request->get_param('exam_type') ?? '');
-        $language  = sanitize_text_field($request->get_param('language') ?? 'nl');
-        $material  = sanitize_text_field($request->get_param('material') ?? '1');
+        $language = sanitize_text_field($request->get_param('language') ?? 'nl');
+        $material = sanitize_text_field($request->get_param('material') ?? '1');
 
         $price = PaymentHelpers::calculate_total_price([
-            'exam_type'      => $exam_type,
-            'language'       => $language,
-            'material'       => $material,
+            'exam_type' => $exam_type,
+            'language' => $language,
+            'material' => $material,
         ]);
 
         $price_str = $price > 0 ? '€' . number_format((float)$price, 2, ',', '.') : '';
 
         $response = new WP_REST_Response([
-            'price'     => $price_str,
+            'price' => $price_str,
             'raw_price' => (float)$price,
         ]);
 
@@ -553,8 +541,8 @@ final class Frontend
     {
         $headers = [
             'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
-            'Pragma'        => 'no-cache',
-            'Expires'       => 'Wed, 11 Jan 1984 05:00:00 GMT',
+            'Pragma' => 'no-cache',
+            'Expires' => 'Wed, 11 Jan 1984 05:00:00 GMT',
         ];
 
         if ($response instanceof WP_REST_Response) {
@@ -569,35 +557,29 @@ final class Frontend
         }
     }
 
-    /**
-     * Geeft productdata voor JavaScript zonder gebruik van global in de functie zelf
-     */
     private function get_sanitized_product_data_for_js(): array
     {
         $exam_products = [];
         foreach ($GLOBALS['EXAM_PRODUCTS'] ?? [] as $key => $item) {
             $exam_products[$key] = [
-                'label'  => $item['label']   ?? 'Onbekend examen',
-                'prices' => $item['prices']  ?? [],
+                'label' => $item['label'] ?? 'Onbekend examen',
+                'prices' => $item['prices'] ?? [],
             ];
         }
 
         return [
-            'examProducts'     => $exam_products,
+            'examProducts' => $exam_products,
             'materialProducts' => $GLOBALS['MATERIAL_PRODUCTS'] ?? [],
-            'materialCombis'   => $GLOBALS['MATERIAL_COMBIS']   ?? [],
+            'materialCombis' => $GLOBALS['MATERIAL_COMBIS'] ?? [],
         ];
     }
 
-    /**
-     * Geeft extra opties voor JavaScript zonder global misbruik in de functie body
-     */
     private function get_sanitized_extra_options_for_js(): array
     {
         $options = [];
         foreach ($GLOBALS['EXTRA_PRODUCTS'] ?? [] as $id => $product) {
             $options[$id] = [
-                'id'    => $id,
+                'id' => $id,
                 'label' => $product['label'] ?? 'Onbekend product',
                 'price' => $product['price'] ?? 0.00,
             ];
@@ -615,7 +597,7 @@ final class Frontend
             $month = $now->modify("+$i months");
             $ym = $month->format('Y-m');
             $options[] = [
-                'id'   => $ym,
+                'id' => $ym,
                 'name' => date_i18n('F Y', $month->getTimestamp()),
             ];
         }
@@ -635,7 +617,7 @@ final class Frontend
         foreach ($months as $ym) {
             try {
                 $start = new \DateTimeImmutable("$ym-01");
-                $end   = $start->modify('last day of this month');
+                $end = $start->modify('last day of this month');
             } catch (\Throwable) {
                 continue;
             }
@@ -646,13 +628,13 @@ final class Frontend
                     $ts = $current->getTimestamp();
                     if ($ts >= $today) {
                         $rows[] = [
-                            'date'     => date_i18n('d-m-Y', $ts),
-                            'time'     => '08:00',
+                            'date' => date_i18n('d-m-Y', $ts),
+                            'time' => '08:00',
                             'province' => 'Zuid-Holland',
                             'location' => 'Den Haag',
                             'timeslot' => 'Ochtend',
-                            'spots'    => __('Beschikbaar', 'pontifex-oi'),
-                            'price'    => '€245,00',
+                            'spots' => __('Beschikbaar', 'pontifex-oi'),
+                            'price' => '€245,00',
                             'register' => __('Nog steeds kandidaten aanmelden', 'pontifex-oi'),
                         ];
                     }
