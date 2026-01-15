@@ -1,64 +1,64 @@
-# Pontifex OI
+# Pontifex OI (Open Inschrijvingen)
+
 **Contributors:** andrewbaeten  
-**Tags:** pontifex, exam registration, SOAP API, planning, payments, mollie  
+**Tags:** pontifex, exam registration, SOAP API, planning, payments, shortcodes  
 **Requires at least:** 6.0  
 **Tested up to:** 6.5  
 **Requires PHP:** 8.1  
 **Stable tag:** 1.0.0  
 **License:** GPLv2 or later  
+**License URI:** https://www.gnu.org/licenses/gpl-2.0.html  
+**Text Domain:** pontifex-oi  
 
-Seamlessly connect WordPress to the Pontifex Open Inschrijvingen (Open Registrations) SOAP API for exam planning and candidate management.
+Adds Pontifex exam planning, registration and payment functionality to WordPress using shortcodes.
 
----
+## Description
 
-### Description
+**Pontifex OI** is a WordPress plugin that connects your website to the Pontifex Open Inschrijvingen SOAP API. It enables you to display exam planning, collect candidate registrations, and process payments directly within WordPress. 
 
-**Pontifex OI** is a robust WordPress solution designed to bridge your website with the Pontifex API. It automates the entire workflow: from displaying real-time exam schedules to processing secure payments via Mollie.
+The plugin uses a shortcode-based workflow, making it easy to place each step of the process on its own page. It is built with modern object-oriented PHP (8.1+), follows WordPress coding standards, and is designed to be extendable.
 
-The plugin utilizes a clean, shortcode-based workflow. Every step of the funnel—planning, registration, and confirmation—can be placed on its own page for maximum conversion tracking and user experience control.
+## Features
 
-### Key Features
+* **API Sync:** Display exam planning retrieved from the Pontifex SOAP API.
+* **Frontend Workflow:** Registration forms for candidates via shortcodes.
+* **Payments:** Seamless payment handling via Mollie integration.
+* **Modern Stack:** REST API endpoints for frontend interaction and headless potential.
+* **Automation:** Daily synchronization using WordPress Cron (03:15 local time).
+* **Developer Friendly:** Object-oriented, Composer-ready, and overrideable templates.
 
-* **Real-time Sync:** Automatic daily synchronization (03:15 local time) via WP-Cron.
-* **Mollie Integration:** Secure payment handling including automated webhooks.
-* **Shortcode Workflow:** Complete control over the customer journey on your own pages.
-* **Developer Friendly:** Built on PHP 8.1+ with OOP architecture and overrideable templates.
-* **REST API:** Custom endpoints available for modern frontend integrations.
+## Installation
 
----
+1. Upload the `pontifex-oi` folder to the `/wp-content/plugins/` directory.
+2. Activate the plugin via the **Plugins** menu in WordPress.
+3. Provide your Pontifex API credentials using the provided filters or the plugin settings page.
+4. Create separate WordPress pages and insert the required shortcodes.
 
-### Installation
+## Shortcodes
 
-1.  Upload the `pontifex-oi` folder to the `/wp-content/plugins/` directory.
-2.  Activate the plugin through the **Plugins** menu in WordPress.
-3.  Configure your API credentials under **Settings > Pontifex OI**.
-4.  Create your pages and insert the required shortcodes.
+For the best user experience, place each shortcode on a **separate page**.
 
-### Shortcodes
+* `[pontifex_oi_planning]`: Displays the available exam planning overview.
+* `[pontifex_oi_registration]`: Displays the registration form for a selected exam.
+* `[pontifex_oi_payment_success]`: Displays a confirmation message after a successful payment.
 
-For optimal performance, place each shortcode on a unique page:
+## REST API
 
-* `[pontifex_oi_planning]` – Displays the list of available exams.
-* `[pontifex_oi_registration]` – The registration form (requires an exam ID).
-* `[pontifex_oi_payment_success]` – The thank-you page shown after successful payment.
+The plugin registers the following endpoints:
+* `GET /wp-json/pontifex-oi/v1/planning`: Returns cached exam planning data.
+* `GET /wp-json/pontifex-oi/v1/price`: Returns dynamic pricing information.
+* `POST /wp-json/pontifex-oi/v1/webhook`: Secured Mollie payment webhook.
 
----
+## Requirements
 
-### Technical Details
+* **PHP 8.1** or higher.
+* **WordPress 6.0** or higher.
+* Valid Pontifex API credentials.
+* **Mollie API Key** for processing payments.
 
-**REST API Endpoints:**
-* `GET /wp-json/pontifex-oi/v1/planning`
-* `POST /wp-json/pontifex-oi/v1/webhook` (Mollie handler)
+## Changelog
 
-**System Requirements:**
-* PHP 8.1 or higher
-* Mollie API Key (Live or Test)
-* Valid Pontifex SOAP interface access
-
----
-
-### Changelog
-
-**1.0.0**
+### 1.0.0 (2025-10-07)
 * Initial release.
-* SOAP synchronization & Mollie payment engine integration.
+* Implementation of SOAP API synchronization.
+* Mollie payment integration.
