@@ -1,283 +1,359 @@
 <?php
-/**
- * Pontifex OI - Admin Class
- *
- * Beheert alle admin-zijde functionaliteit van de plugin:
- * - Menu's & submenu's
- * - Instellingen registratie
- * - Enqueue van assets
- * - AJAX handlers
- *
- * @package PontifexOI
- * @since   1.0.0
- */
-
-declare(strict_types=1);
-
 namespace PontifexOI\Admin;
 
-use PontifexOI\Helpers\Registrations;
-
+// Prevent direct access to the file.
 defined('ABSPATH') || exit;
 
-final class Admin
-{
-    private static ?self $instance = null;
+/**
+ * Handles all administrative-side functionality of the plugin.
+ */
+class Admin {
+	private static $instance = null;
 
-    /**
-     * Singleton pattern - retourneert altijd dezelfde instance
-     */
-    public static function get_instance(): self
-    {
-        return self::$instance ??= new self();
-    }
+	/**
+	 * Get the singleton instance of the class.
+	 *
+	 * @return self
+	 */
+	public static function get_instance() {
+		if (self::$instance === null) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
 
-    private function __construct()
-    {
-        add_action('admin_menu', [$this, 'register_menu']);
-        add_action('admin_init', [$this, 'register_settings']);
-        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+	/**
+	 * Class constructor.
+	 * Hooks into WordPress actions.
+	 */
+	private function __construct() {
+		add_action('admin_menu', [$this, 'register_menu']);
+		add_action('admin_init', [$this, 'register_settings']);
+		add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
 
-        // AJAX handlers (alleen voor ingelogde gebruikers)
-        add_action('wp_ajax_pontifex_oi_fetch_soap_data', 'pontifex_oi_fetch_soap_data_handler');
-        add_action('wp_ajax_pontifex_oi_fetch_submissions', [self::class, 'ajax_fetch_submissions']);
-    }
+		// Register AJAX handlers for authenticated users (wp_ajax_)
+		add_action('wp_ajax_pontifex_oi_fetch_soap_data', 'pontifex_oi_fetch_soap_data_handler');
+		// Gebruikt de class methode voor de inzendingen AJAX handler
+		add_action('wp_ajax_pontifex_oi_fetch_submissions', [__CLASS__, 'ajax_fetch_submissions']);
+	}
 
-    /**
-     * Registreert het hoofdmenu en alle submenu's
-     */
-    public function register_menu(): void
-    {
-        add_menu_page(
-            __('Pontifex OI', 'pontifex-oi'),
-            __('Pontifex OI', 'pontifex-oi'),
-            'manage_options',
-            'pontifex_oi_main',
-            [$this, 'mollie_settings_page'],
-            'dashicons-awards',
-            60
-        );
+	/**
+	 * Registers the main and submenu pages for the plugin.
+	 */
+	public function register_menu() {
+		// Main menu item
+		add_menu_page(
+			__('Pontifex OI', 'pontifex-oi'),
+			__('Pontifex OI', 'pontifex-oi'),
+			'manage_options',
+			'pontifex_oi_main',
+			[$this, 'mollie_settings_page'], // Set the Mollie page as the default
+			'dashicons-awards',
+			60
+		);
 
-        add_submenu_page(
-            'pontifex_oi_main',
-            __('Mollie & Webhook', 'pontifex-oi'),
-            __('Mollie & Webhook', 'pontifex-oi'),
-            'manage_options',
-            'pontifex_oi_main',
-            [$this, 'mollie_settings_page']
-        );
+		// Submenu for Mollie & Webhook settings (main page)
+		add_submenu_page(
+			'pontifex_oi_main',
+			__('Mollie & Webhook', 'pontifex-oi'),
+			__('Mollie & Webhook', 'pontifex-oi'),
+			'manage_options',
+			'pontifex_oi_main',
+			[$this, 'mollie_settings_page']
+		);
 
-        add_submenu_page(
-            'pontifex_oi_main',
-            __('SOAP-instellingen', 'pontifex-oi'),
-            __('SOAP-instellingen', 'pontifex-oi'),
-            'manage_options',
-            'pontifex_oi_soap',
-            [$this, 'soap_settings_page']
-        );
+		// Submenu for SOAP settings
+		add_submenu_page(
+			'pontifex_oi_main',
+			__('SOAP-instellingen', 'pontifex-oi'),
+			__('SOAP-instellingen', 'pontifex-oi'),
+			'manage_options',
+			'pontifex_oi_soap',
+			[$this, 'soap_settings_page']
+		);
 
-        add_submenu_page(
-            'pontifex_oi_main',
-            __('Inzendingen', 'pontifex-oi'),
-            __('Inzendingen', 'pontifex-oi'),
-            'manage_options',
-            'pontifex_oi_submissions',
-            [$this, 'submissions_page']
-        );
-    }
+		// Submenu voor Inzendingen (overzicht)
+		add_submenu_page(
+			'pontifex_oi_main',
+			__('Inzendingen', 'pontifex-oi'),
+			__('Inzendingen', 'pontifex-oi'),
+			'manage_options',
+			'pontifex_oi_submissions',
+			function () {
+				// Zorg dat helper beschikbaar is
+				if (!class_exists('\PontifexOI\Helpers\Registrations')) {
+					require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registrations.php';
+				}
+				// NOTE: The function pontifex_oi_order_to_rows must be globally available (defined in submissions-helpers.php or page-submissions.php)
+				// We include page-submissions.php here for the UI, which may still define the helper if submissions-helpers.php is not yet available globally.
+				include_once PONTIFEX_OI_PATH . 'admin/page-submissions.php';
+			}
+		);
+	}
 
-    /**
-     * Registreert alle plugin-instellingen met juiste sanitization
-     */
-    public function register_settings(): void
-    {
-        // Mollie groep
-        register_setting('pontifex_oi_mollie_group', 'pontifex_oi_mollie_live_api_key', [
-            'sanitize_callback' => 'sanitize_text_field',
-        ]);
+	/**
+	 * Registers all plugin settings.
+	 */
+	public function register_settings() {
+		// Mollie settings
+		register_setting('pontifex_oi_mollie_group', 'pontifex_oi_mollie_live_api_key', [
+			'sanitize_callback' => 'sanitize_text_field',
+		]);
+		register_setting('pontifex_oi_mollie_group', 'pontifex_oi_mollie_test_api_key', [
+			'sanitize_callback' => 'sanitize_text_field',
+		]);
 
-        register_setting('pontifex_oi_mollie_group', 'pontifex_oi_mollie_test_api_key', [
-            'sanitize_callback' => 'sanitize_text_field',
-        ]);
+		// ✅ AANPASSING: Gebruik 'integer' type en een strikte 0/1 sanitize_callback.
+		register_setting('pontifex_oi_mollie_group', 'pontifex_oi_mollie_test_mode', [
+			'type'				=> 'integer',
+			'default'			=> 0,
+			// Custom sanitize callback om de input naar 1 of 0 te dwingen
+			'sanitize_callback' => function ($value) {
+				return in_array($value, ['1', 1, true, 'true', 'on', 'yes'], true) ? 1 : 0;
+			},
+		]);
+		
+		register_setting('pontifex_oi_mollie_group', 'pontifex_oi_webhook_secret', [
+			'sanitize_callback' => 'sanitize_text_field',
+		]);
 
-        register_setting('pontifex_oi_mollie_group', 'pontifex_oi_mollie_test_mode', [
-            'type'              => 'integer',
-            'default'           => 0,
-            'sanitize_callback' => fn($value) => in_array($value, [1, '1', true, 'true', 'on'], true) ? 1 : 0,
-        ]);
+		// SOAP settings
+		register_setting('pontifex_oi_soap_group', 'pontifex_oi_soap_url', [
+			// Gebruik esc_url_raw voor URL's
+			'sanitize_callback' => 'esc_url_raw',
+		]);
+		register_setting('pontifex_oi_soap_group', 'pontifex_oi_soap_user_id', [
+			// Gebruik sanitize_text_field
+			'sanitize_callback' => 'sanitize_text_field',
+		]);
+		register_setting('pontifex_oi_soap_group', 'pontifex_oi_soap_company_id', [
+			'sanitize_callback' => 'sanitize_text_field',
+		]);
+		register_setting('pontifex_oi_soap_group', 'pontifex_oi_soap_hash', [
+			'sanitize_callback' => 'sanitize_text_field',
+		]);
+	}
 
-        register_setting('pontifex_oi_mollie_group', 'pontifex_oi_webhook_secret', [
-            'sanitize_callback' => 'sanitize_text_field',
-        ]);
+	/**
+	 * Enqueues admin-specific styles and scripts.
+	 *
+	 * @param string $hook The current admin page.
+	 */
+	public function enqueue_admin_assets($hook) {
+		// DEBUG: Log de huidige hook waarde naar de error log
+		if (defined('WP_DEBUG') && WP_DEBUG === true && defined('WP_DEBUG_LOG') && WP_DEBUG_LOG === true) {
+			error_log('DEBUG: Current hook = ' . $hook);
+		}
 
-        // SOAP groep
-        register_setting('pontifex_oi_soap_group', 'pontifex_oi_soap_url', [
-            'sanitize_callback' => 'esc_url_raw',
-        ]);
+		$is_pontifex_page = (
+			// Check 1: Simpele string check
+			strpos($hook, 'pontifex_oi') !== false ||
+			(
+				function_exists('get_current_screen') &&
+				($screen = get_current_screen()) &&
+				(
+					// Check 2: Controleren van screen ID
+					str_contains($screen->id, 'pontifex_oi') ||
+					// Check 3: Expliciete lijst van hooks (deze zijn correct voor je submenu's)
+					in_array($hook, [ // Veranderd van $screen->id naar $hook voor de meest accurate vergelijking
+						'toplevel_page_pontifex_oi_main',
+						'pontifex_oi_main_page_pontifex_oi_soap',
+						'pontifex_oi_main_page_pontifex_oi_submissions', // Dit is de verwachte hook voor Inzendingen
+					], true)
+				)
+			)
+		);
 
-        register_setting('pontifex_oi_soap_group', 'pontifex_oi_soap_user_id', [
-            'sanitize_callback' => 'sanitize_text_field',
-        ]);
+		if (!$is_pontifex_page) {
+			return;
+		}
 
-        register_setting('pontifex_oi_soap_group', 'pontifex_oi_soap_company_id', [
-            'sanitize_callback' => 'sanitize_text_field',
-        ]);
+		// Enqueue styles
+		wp_enqueue_style(
+			'pontifex-oi-shared',
+			PONTIFEX_OI_URL . 'assets/css/pontifex-oi-shared.css',
+			[],
+			PONTIFEX_OI_VERSION
+		);
 
-        register_setting('pontifex_oi_soap_group', 'pontifex_oi_soap_hash', [
-            'sanitize_callback' => 'sanitize_text_field',
-        ]);
-    }
+		wp_enqueue_style(
+			'pontifex-oi-admin',
+			PONTIFEX_OI_URL . 'assets/css/pontifex-oi-admin.css',
+			['pontifex-oi-shared'],
+			PONTIFEX_OI_VERSION
+		);
 
-    /**
-     * Laadt alleen de benodigde admin styles & scripts op Pontifex pagina's
-     * 
-     * @param string $hook De huidige admin-pagina hook (optioneel, WordPress stuurt dit altijd mee)
-     */
-    public function enqueue_admin_assets(string $hook = ''): void
-    {
-        // Snelle check op relevante pagina's
-        if (!str_contains($hook, 'pontifex_oi')) {
-            return;
-        }
+		// Enqueue scripts
+		if (file_exists(PONTIFEX_OI_PATH . 'assets/js/pontifex-oi-admin.js')) {
+			wp_enqueue_script(
+				'pontifex-oi-admin',
+				PONTIFEX_OI_URL . 'assets/js/pontifex-oi-admin.js',
+				['jquery'],
+				PONTIFEX_OI_VERSION,
+				true
+			);
 
-        // Stijlen
-        wp_enqueue_style(
-            'pontifex-oi-shared',
-            PONTIFEX_OI_URL . 'assets/css/pontifex-oi-shared.css',
-            [],
-            PONTIFEX_OI_VERSION
-        );
+			// Pass data to the script (met nonce)
+			wp_localize_script('pontifex-oi-admin', 'PontifexOIAdmin', [
+				'ajaxUrl' => admin_url('admin-ajax.php'),
+				'nonce'	=> wp_create_nonce('pontifex_oi_admin'),
+			]);
 
-        wp_enqueue_style(
-            'pontifex-oi-admin',
-            PONTIFEX_OI_URL . 'assets/css/pontifex-oi-admin.css',
-            ['pontifex-oi-shared'],
-            PONTIFEX_OI_VERSION
-        );
+			// Pass translations / i18n texts for JS
+			wp_localize_script('pontifex-oi-admin', 'POI_PRICES_DATA', [
+				'i18n' => [
+					'loading' => __('Laden...', 'pontifex-oi'),
+					'please_wait' => __('Even geduld...', 'pontifex-oi'),
+					'no_submissions' => __('Geen inzendingen', 'pontifex-oi'),
+					'no_results_found' => __('Er zijn geen resultaten gevonden.', 'pontifex-oi'),
+					'error' => __('Fout', 'pontifex-oi'),
+					'loading_error_generic' => __('Er is een fout opgetreden bij het laden.', 'pontifex-oi'),
+				],
+			]);
+		}
+	}
 
-        // Script + data
-        if (file_exists(PONTIFEX_OI_PATH . 'assets/js/pontifex-oi-admin.js')) {
-            wp_enqueue_script(
-                'pontifex-oi-admin',
-                PONTIFEX_OI_URL . 'assets/js/pontifex-oi-admin.js',
-                ['jquery'],
-                PONTIFEX_OI_VERSION,
-                true
-            );
+	/**
+	 * Renders the Mollie settings page.
+	 */
+	public function mollie_settings_page() {
+		// De waarde is nu strikt 0 of 1
+		$test_mode_value = (int)get_option('pontifex_oi_mollie_test_mode', 0);
+		$live_key = esc_attr(get_option('pontifex_oi_mollie_live_api_key', ''));
+		$test_key = esc_attr(get_option('pontifex_oi_mollie_test_api_key', ''));
+		$test_mode = $test_mode_value === 1 ? 'checked' : '';
+		$webhook_secret = esc_attr(get_option('pontifex_oi_webhook_secret', ''));
+		?>
+		<div class="pontifex-admin-wrap">
+			<div class="pontifex-admin-card">
+				<?php if (isset($_GET['settings-updated']) && $_GET['settings-updated']) : ?>
+					<div id="message" class="updated notice notice-success is-dismissible" style="margin:0 0 0 0 !important; width:89%;">
+						<p><?php esc_html_e('Instellingen zijn opgeslagen.', 'pontifex-oi'); ?></p>
+					</div>
+				<?php endif; ?>
+				<form method="post" action="options.php" autocomplete="off">
+					<?php settings_fields('pontifex_oi_mollie_group'); ?>
+					<div class="pontifex-admin-row">
+						<label for="pontifex_oi_mollie_live_api_key" class="pontifex-admin-label"><?php esc_html_e('Live API Key', 'pontifex-oi'); ?></label>
+						<div class="pontifex-admin-desc"><?php esc_html_e('Voer hier je live Mollie API key in (begin meestal met live_).', 'pontifex-oi'); ?></div>
+						<input type="password" id="pontifex_oi_mollie_live_api_key" name="pontifex_oi_mollie_live_api_key" class="pontifex-admin-input" value="<?php echo $live_key; ?>" />
+					</div>
 
-            wp_localize_script('pontifex-oi-admin', 'PontifexOIAdmin', [
-                'ajaxUrl' => admin_url('admin-ajax.php'),
-                'nonce'   => wp_create_nonce('pontifex_oi_admin'),
-            ]);
+					<div class="pontifex-admin-row">
+						<label for="pontifex_oi_mollie_test_api_key" class="pontifex-admin-label"><?php esc_html_e('Test API Key', 'pontifex-oi'); ?></label>
+						<div class="pontifex-admin-desc"><?php esc_html_e('Voer hier je test Mollie API key in (begin meestal met test_).', 'pontifex-oi'); ?></div>
+						<input type="password" id="pontifex_oi_mollie_test_api_key" name="pontifex_oi_mollie_test_api_key" class="pontifex-admin-input" value="<?php echo $test_key; ?>" />
+					</div>
 
-            // i18n voor JavaScript
-            wp_localize_script('pontifex-oi-admin', 'POI_PRICES_DATA', [
-                'i18n' => [
-                    'loading'              => __('Laden...', 'pontifex-oi'),
-                    'please_wait'          => __('Even geduld...', 'pontifex-oi'),
-                    'no_submissions_found' => __('Geen inzendingen gevonden.', 'pontifex-oi'),
-                    'try_another_search'   => __('Probeer een andere zoekopdracht.', 'pontifex-oi'),
-                    'error'                => __('Fout', 'pontifex-oi'),
-                    'loading_error_generic' => __('Er is een fout opgetreden bij het laden.', 'pontifex-oi'),
-                    'processing'           => __('Bezig...', 'pontifex-oi'),
-                    'fetch_data'           => __('Haal gegevens op', 'pontifex-oi'),
-                    'fetch_success'        => __('Gegevens succesvol opgehaald en opgeslagen.', 'pontifex-oi'),
-                    'fetch_failed'         => __('Ophalen mislukt. Probeer opnieuw.', 'pontifex-oi'),
-                    'add'                  => __('Toevoegen', 'pontifex-oi'),
-                    'remove'               => __('Verwijderen', 'pontifex-oi'),
-                    'course'               => __('Cursus', 'pontifex-oi'),
-                    'price'                => __('Prijs', 'pontifex-oi'),
-                    'lang_exists'          => __('Taalcode bestaat al of is ongeldig', 'pontifex-oi'),
-                    'need_one_lang'        => __('Minimaal één taal verplicht', 'pontifex-oi'),
-                    'need_one_course'      => __('Minimaal één cursus verplicht', 'pontifex-oi'),
-                    'confirm_remove_lang'  => __('Weet u zeker dat u deze taal wilt verwijderen?', 'pontifex-oi'),
-                    'confirm_remove_course' => __('Weet u zeker dat u deze cursus wilt verwijderen?', 'pontifex-oi'),
-                ]
-            ]);
-        }
-    }
+					<div class="pontifex-admin-row pontifex-admin-toggle-row">
+						<label for="pontifex_oi_mollie_test_mode" class="pontifex-admin-label" style="margin-bottom:0;"><?php esc_html_e('Testmodus', 'pontifex-oi'); ?></label>
+					
+						<input type="hidden" name="pontifex_oi_mollie_test_mode" value="0">
+					
+						<label class="pontifex-toggle-switch<?php echo $test_mode ? ' checked' : ''; ?>">
+							<input type="checkbox" id="pontifex_oi_mollie_test_mode" name="pontifex_oi_mollie_test_mode" value="1" style="display:none;" <?php echo $test_mode; ?>>
+							<span class="pontifex-toggle-knob"></span>
+						</label>
+						<span class="pontifex-toggle-label">
+							<?php echo $test_mode ? esc_html__('ingeschakeld', 'pontifex-oi') : esc_html__('uitgeschakeld', 'pontifex-oi'); ?>
+						</span>
+					</div>
 
-    public function mollie_settings_page(): void
-    {
-        if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('Je hebt geen rechten om deze pagina te bekijken.', 'pontifex-oi'));
-        }
+					<hr />
 
-        require PONTIFEX_OI_PATH . 'templates/admin/page-mollie-settings.php';
-    }
+					<div class="pontifex-admin-row">
+						<label for="pontifex_oi_webhook_secret" class="pontifex-admin-label"><?php esc_html_e('Webhook Secret', 'pontifex-oi'); ?></label>
+						<div class="pontifex-admin-desc">
+							<?php esc_html_e('Gebruik dit secret als extra beveiliging voor je Mollie-webhooks. Voeg het toe aan je Mollie webhook URL als een querystring (bijv. ?secret=JOUWSECRET) of stuur het als een header X-Pontifex-Secret.', 'pontifex-oi'); ?>
+						</div>
+						<input type="password" id="pontifex_oi_webhook_secret" name="pontifex_oi_webhook_secret" class="pontifex-admin-input" value="<?php echo $webhook_secret; ?>" />
+					</div>
 
-    public function soap_settings_page(): void
-    {
-        if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('Je hebt geen rechten om deze pagina te bekijken.', 'pontifex-oi'));
-        }
+					<button type="submit" class="pontifex-admin-submit"><?php esc_html_e('Opslaan', 'pontifex-oi'); ?></button>
+				</form>
+			</div>
+		</div>
+		<?php
+	}
 
-        require PONTIFEX_OI_PATH . 'templates/admin/page-soap-settings.php';
-    }
+	/**
+	 * Renders the SOAP settings page by including a separate file.
+	 */
+	public function soap_settings_page() {
+		include_once PONTIFEX_OI_PATH . 'admin/page-soap-settings.php';
+	}
 
-    public function submissions_page(): void
-    {
-        if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('Je hebt geen rechten om deze pagina te bekijken.', 'pontifex-oi'));
-        }
+	/**
+	 * Fetches submission data for the admin overview via AJAX.
+	 *
+	 * @static
+	 */
+	public static function ajax_fetch_submissions() {
+		// SECURITY: Check user capabilities and Nonce
+		if (
+			!current_user_can('manage_options') ||
+			// Controleer nonce tegen actie 'pontifex_oi_admin'. Nonce moet in de POST data zitten.
+			!check_ajax_referer('pontifex_oi_admin', 'nonce', false)
+		) {
+			wp_send_json_error([
+				'message' => 'Insufficient permissions or invalid security token.'
+			]);
+		}
 
-        require PONTIFEX_OI_PATH . 'templates/admin/page-submissions.php';
-    }
+		// Suppress errors for JSON output (Good practice for AJAX handlers)
+		error_reporting(0);
+		@ini_set('display_errors', 0);
 
-    /**
-     * AJAX handler voor het ophalen van inzendingen (submissions overzicht)
-     */
-    public static function ajax_fetch_submissions(): void
-    {
-        check_ajax_referer('pontifex_oi_admin', 'nonce');
+		// Clean output buffers
+		while (ob_get_level()) {
+			ob_end_clean();
+		}
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Onvoldoende rechten.', 'pontifex-oi')], 403);
-        }
+		// Set JSON header (wp_send_json_success/error handles this, but explicit is fine)
+		header('Content-Type: application/json; charset=utf-8');
 
-        $post = wp_unslash($_POST);
+		// Parse POST parameters
+		$page = isset($_POST['paged']) ? max(1, (int)$_POST['paged']) : 1;
+		$per_page = isset($_POST['per_page']) ? max(1, min(200, (int)$_POST['per_page'])) : 20;
+		$search = isset($_POST['s']) ? sanitize_text_field($_POST['s']) : '';
+		$orderby = isset($_POST['orderby']) ? sanitize_text_field($_POST['orderby']) : 'created_at';
+		$order = (isset($_POST['order']) && strtoupper($_POST['order']) === 'ASC') ? 'ASC' : 'DESC';
 
-        $page     = max(1, (int)($post['paged'] ?? $post['page'] ?? 1));
-        $per_page = max(1, min(200, (int)($post['per_page'] ?? 20)));
-        $search   = sanitize_text_field((string)($post['s'] ?? ''));
-        $orderby  = sanitize_key((string)($post['orderby'] ?? 'created_at'));
-        $order    = strtoupper((string)($post['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
+		// Include the Registrations helper class
+		if (!class_exists('\PontifexOI\Helpers\Registrations')) {
+			// PONTIFEX_OI_PATH should be defined globally by the plugin
+			require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registrations.php';
+		}
 
-        $list = Registrations::list($page, $per_page, $search, $orderby, $order);
+		$list = \PontifexOI\Helpers\Registrations::list($page, $per_page, $search, $orderby, $order);
 
-        if (!is_array($list)) {
-            $list = [
-                'rows'     => [],
-                'total'    => 0,
-                'page'     => 1,
-                'pages'    => 1,
-                'per_page' => $per_page,
-            ];
-        }
+		// Ensure $list has the expected structure
+		if (!is_array($list)) {
+			// Dit zorgt voor een veilige fallback, inclusief per_page voor de JS
+			$list = ['rows' => [], 'total' => 0, 'page' => 1, 'pages' => 1, 'per_page' => $per_page];
+		}
 
-        if (!function_exists('pontifex_oi_flatten_payload')) {
-            require_once PONTIFEX_OI_PATH . 'includes/helpers/submissions-helpers.php';
-        }
+		// Gebruik de flatten helper (pure data, geen HTML output)
+		if (!function_exists('pontifex_oi_flatten_payload')) {
+			require_once PONTIFEX_OI_PATH . 'includes/helpers/submissions-helpers.php';
+		}
 
-        $cards = [];
-        foreach (($list['rows'] ?? []) as $row) {
-            $payload = json_decode((string)($row['payload'] ?? '{}'), true);
-            if (!is_array($payload)) {
-                $payload = [];
-            }
+		$cards = [];
+		foreach ($list['rows'] as $r) {
+			$payload = json_decode($r['payload'] ?? '{}', true) ?: [];
+			$cards[] = pontifex_oi_flatten_payload($payload, [
+				'order_id'	 => $r['order_id'] ?? '',
+				'created_at' => $r['created_at'] ?? '',
+			]);
+		}
 
-            $cards[] = pontifex_oi_flatten_payload($payload, [
-                'order_id'   => (string)($row['order_id'] ?? ''),
-                'created_at' => (string)($row['created_at'] ?? ''),
-            ]);
-        }
-
-        wp_send_json_success([
-            'rows'     => $cards,
-            'total'    => (int)($list['total'] ?? 0),
-            'pages'    => (int)($list['pages'] ?? 1),
-            'page'     => (int)($list['page'] ?? 1),
-            'per_page' => (int)($list['per_page'] ?? $per_page),
-        ]);
-    }
+		// Success response
+		wp_send_json_success([
+			'rows'	=> $cards, // LET OP: is nu een lijst met {title, fields[]}
+			'total'	=> $list['total'] ?? 0,
+			'pages'	=> $list['pages'] ?? 1,
+			'page'	=> $list['page'] ?? 1,
+			'per_page' => $list['per_page'] ?? $per_page,
+		]);
+	}
 }

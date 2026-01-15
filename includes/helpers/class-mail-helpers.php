@@ -19,9 +19,9 @@ class MailHelpers
     public static function get_exam_label($id) {
         $exam_labels = [
             'los-examen-vca-basis' => 'VCA Basis',
-            'los-examen-vca-vol' => 'VCA Vol',
-            'vca-basis-weekend' => 'VCA Basis Cursus Weekend',
-            'vca-vol-weekend' => 'VCA Vol Cursus Weekend',
+            'los-examen-vca-vol'   => 'VCA Vol',
+            'vca-basis-weekend'    => 'VCA Basis Cursus Weekend',
+            'vca-vol-weekend'      => 'VCA Vol Cursus Weekend',
         ];
         return $exam_labels[$id] ?? $id;
     }
@@ -58,32 +58,31 @@ class MailHelpers
 
         // --- Normaliseer formulier-keys ---
         $map = [
-            'order_initials' => $order['given-name'] ?? null,
-            'order_infix' => $order['additional-name'] ?? null,
-            'order_lastname' => $order['family-name'] ?? null,
-            'order_postcode' => $order['postal-code'] ?? null,
-            'order_housenumber'=> $order['address-line2'] ?? null,
-            'order_street' => $order['street-address'] ?? null,
-            'order_city' => $order['address-level2'] ?? null,
-            'order_phone' => $order['tel'] ?? null,
-            'order_email' => $order['order_email'] ?? ($order['email'] ?? null),
-            'order_company' => $order['organization'] ?? null,
-            'order_function' => $order['organization-title'] ?? null,
-            'order_vat' => $order['order_vat'] ?? null,
+            'order_initials'   => $order['given-name']      ?? null,
+            'order_infix'      => $order['additional-name'] ?? null,
+            'order_lastname'   => $order['family-name']     ?? null,
+            'order_postcode'   => $order['postal-code']     ?? null,
+            'order_housenumber'=> $order['address-line2']   ?? null,
+            'order_street'     => $order['street-address']  ?? null,
+            'order_city'       => $order['address-level2']  ?? null,
+            'order_phone'      => $order['tel']             ?? null,
+            'order_email'      => $order['order_email']     ?? ($order['email'] ?? null),
+            'order_company'    => $order['organization']    ?? null,
+            'order_function'   => $order['organization-title'] ?? null,
+            'order_vat'        => $order['order_vat'] ?? null,
         ];
-
         foreach ($map as $k => $v) {
             if (!isset($order[$k]) && $v !== null) $order[$k] = $v;
         }
 
         // --- Labels en extra opties ---
-        $order['exam_label'] = $order['exam_label'] ?? self::get_exam_label($order['exam_type'] ?? '');
+        $order['exam_label']     = $order['exam_label']     ?? self::get_exam_label($order['exam_type'] ?? '');
         $order['language_label'] = $order['language_label'] ?? self::get_language_label($order['language'] ?? '');
         $order['material_label'] = $order['material_label'] ?? self::get_material_combination_label($order['material'] ?? '');
 
         $extra = [];
         if (!empty($order['extra_material'])) $extra = array_merge($extra, (array) $order['extra_material']);
-        if (!empty($order['extra_options'])) $extra = array_merge($extra, (array) $order['extra_options']);
+        if (!empty($order['extra_options']))  $extra = array_merge($extra, (array) $order['extra_options']);
         $order['extra_material'] = array_values(array_unique($extra));
 
         $order['_has_weekend'] = false;
@@ -104,12 +103,10 @@ class MailHelpers
         $to_klant = $order['order_email'] ?? $order['email'] ?? '';
         if (!empty($to_klant)) {
             $subject_klant = 'Bevestiging inschrijving - ' . ($order['exam_label'] ?? 'VCA Examen');
-
             $headers_klant = [
                 'Content-Type: text/html; charset=UTF-8',
                 'From: Certipro <info@test1.certipro.nl>'
             ];
-
             $result_klant = wp_mail($to_klant, $subject_klant, $klantmail, $headers_klant);
             if (!$result_klant) error_log("[Pontifex OI] wp_mail() failed for customer {$to_klant}");
         }
@@ -123,13 +120,11 @@ class MailHelpers
 
         $candidate_fullname_arr = $order['candidate_fullname'] ?? [];
         $candidate_lastname_arr = $order['candidate_lastname'] ?? [];
-
-        $kandidaat_fullname = $candidate_fullname_arr[0] ?? '';
-        $kandidaat_achternaam = $candidate_lastname_arr[0] ?? '';
+        $kandidaat_fullname     = $candidate_fullname_arr[0] ?? '';
+        $kandidaat_achternaam   = $candidate_lastname_arr[0] ?? '';
 
         $subject_owner = 'Nieuwe inschrijving van ' . trim($kandidaat_fullname . ' ' . $kandidaat_achternaam);
         $to_owner = 'planning@test1.certipro.nl';
-
         $headers_owner = [
             'Content-Type: text/html; charset=UTF-8',
             'From: Certipro <info@test1.certipro.nl>'
@@ -151,7 +146,6 @@ class MailHelpers
             : $examRaw;
 
         global $EXAM_PRODUCTS;
-
         $label = $EXAM_PRODUCTS[$examKey]['label']
             ?? ($order['exam_label'] ?? 'Examen');
 
