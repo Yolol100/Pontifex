@@ -1,473 +1,311 @@
-/* Global Box Sizing Reset */
-:root {
-	--pontifex-orange: #FF9900;
-	--pontifex-shadow-btn: 0 4px 10px rgba(255,153,0,0.4);
-	--pontifex-radius: .4375rem;
+/* 2026 Modern Standard Architecture */
+@layer pontifex.base, pontifex.admin, pontifex.responsive;
+
+@layer pontifex.base {
+	:root {
+		--pontifex-orange: #FF9900;
+		--pontifex-shadow-btn: 0 4px 10px rgba(255,153,0,0.4);
+		--pontifex-radius: .4375rem;
+	}
 }
 
-/* ===== Nieuwe layout voor Inzendingenpagina ===== */
-/* Admin wrapper */
-.pontifex-admin-wrap {
-	display: flex;
-	justify-content: center;
-	align-items: flex-start;
-	width: 100%;
-	min-height: 100vh;
-	padding: 2rem 0;
-	box-sizing: border-box;
-}
-/* Admin card (Grote witte container voor Inzendingen, compact voor Instellingen) */
-.pontifex-admin-card {
-	background: #fff;
-	border: none;
-	border-radius: 12px;
-	box-shadow: 0 0 25px rgba(0,0,0,0.05);
-	width: 90%;
-	max-width: 1400px; /* Max breedte voor Inzendingen */
-	padding: 2rem;
-	box-sizing: border-box;
-	display: flex;
-	flex-direction: column;
-	gap: 1.5rem;
-}
-
-.pontifex-admin-card.pontifex-card-submissions {
-	max-width: 1600px !important;
-	width: 75% !important;
-	padding: 2.5rem 2.5rem 3rem !important;
-	border: none !important;
-	border-radius: 12px !important;
-	background: #fff !important;
-	box-shadow: 0 0 25px rgba(0, 0, 0, 0.05) !important;
-}
-
-/* Forceer dat Toepassen en Exporteren geen extra marge hebben */
-button.poi-sub-btn,
-a.poi-sub-btn {
-	margin-top: 0 !important;
-	display: inline-block !important;
-	margin-left: 0 !important;
-	margin-right: 0 !important;
-}
-
-/* Overwrite voor compacte instellingenpagina's */
-/* Zorgt ervoor dat de compacte layout behouden blijft op de instellingenpagina's (niet de inzendingen) */
-.pontifex-admin-card:not(.pontifex-card-submissions) {
-	border: .10625rem solid #ddd;
-	max-inline-size: clamp(20rem, 33.75rem, 33.75rem);
-	padding: 2rem 2rem 1rem;
-	margin: 0;
-	position: relative;
-	box-shadow: 0 .4375rem 2rem 0 color-mix(in srgb, #000 8%, transparent);
-}
-
-/* Maak de dropdown exact even hoog als de zoekbalk */
-#poi_sub_perpage {
-	height: 46px !important;
-	min-width: 130px !important;
-	font-size: 1rem !important;
-	border: 1.5px solid #D1D1D1 !important;
-	border-radius: 5px !important;
-	padding: 0 .85rem !important;
-	box-shadow: 0 1px 0 rgba(0,0,0,.02);
-	transition: border-color .16s, box-shadow .16s, background .16s;
-	appearance: none !important;
-	background-color: #fff !important;
-	cursor: pointer;
-}
-
-/* Hover consistent met input */
-#poi_sub_perpage:hover {
-	border-color: #B7B7B7 !important;
-}
-
-/* Rows (compact) */
-.pontifex-admin-row {
-	margin-block-end: .9rem;
-	display: flex;
-	flex-direction: column;
-	gap: .2rem;
-}
-
-/* Labels */
-.pontifex-admin-label {
-	font-weight: 600;
-	color: #000;
-	font-size: clamp(.95rem, .7vw + .6rem, 1.05rem);
-	margin: .25rem 0 .35rem;
-}
-
-/* Help text */
-.pontifex-admin-desc {
-	font-size: clamp(.9rem, 1vw, .99rem);
-	color: #888;
-	margin-block-end: .3rem;
-}
-
-/* Inputs – Material-3 like */
-.pontifex-admin-input {
-	appearance: none;
-	background: #fff;
-	border: 1.5px solid #D1D1D1;
-	border-radius: 5px;
-	padding-block: .55rem;
-	padding-inline: .85rem;
-	font-size: clamp(.95rem, .7vw + .55rem, 1.05rem);
-	line-height: 1.35;
-	box-shadow: 0 1px 0 rgba(0,0,0,.02);
-	transition: border-color .16s, box-shadow .16s, background .16s;
-}
-
-.pontifex-admin-input:hover {
-	border-color: #B7B7B7;
-}
-
-/* Uniforme blauwe focus voor alle inputs, selects en textareas */
-.pontifex-admin-input:focus,
-#poi_sub_perpage:focus {
-	border-color: #1a73e8 !important; /* Google-style blauw */
-	background: #fff !important;
-	outline: none !important;
-	box-shadow: 0 0 0 4px rgba(26,115,232,.25) !important;
-}
-
-.pontifex-admin-input::placeholder {
-	color: #9aa1a9;
-	opacity: 1;
-}
-
-/* Toggle row */
-.pontifex-admin-toggle-row {
-	display: flex;
-	align-items: center;
-	gap: clamp(.8rem, 1vw, 1.1rem);
-}
-
-.pontifex-toggle-switch {
-	inline-size: 2.75rem;
-	block-size: 1.5rem;
-	background: #ddd;
-	border-radius: .9375rem;
-	position: relative;
-	cursor: pointer;
-	transition: background .19s;
-	border: .09375rem solid #D1D1D1;
-	margin-inline-end: .625rem;
-	flex-shrink: 0;
-}
-
-.pontifex-toggle-switch.checked {
-	background: #FF9900;
-	border-color: #FF9900;
-}
-
-.pontifex-toggle-knob {
-	position: absolute;
-	inset-block-start: .1375rem;
-	inset-inline-start: .1375rem;
-	inline-size: 1.1875rem;
-	block-size: 1.1875rem;
-	border-radius: 50%;
-	background: #fff;
-	box-shadow: 0 .0625rem .3125rem color-mix(in srgb, #000 5%, transparent);
-	transition: inset-inline-start .19s;
-}
-
-.pontifex-toggle-switch.checked .pontifex-toggle-knob {
-	inset-inline-start: 1.3125rem;
-}
-
-.pontifex-toggle-label {
-	font-weight: 600;
-	color: #000;
-	font-size: clamp(1rem, 1vw, 1.05rem);
-	user-select: none;
-}
-
-/* Submit area centered */
-.pontifex-admin-btn-row,
-.pontifex-admin-card p.submit,
-.pontifex-admin-card .submit,
-#pontifex-soap .pontifex-admin-btn-row,
-#pontifex-soap-settings .pontifex-admin-btn-row,
-[id*="mollie"] .pontifex-admin-btn-row {
-	display: flex !important;
-	justify-content: center !important;
-	align-items: center !important;
-	text-align: center !important;
-}
-
-/* Submit button */
-.pontifex-admin-submit {
-	display: block !important;
-	margin: 1rem auto 0 !important;
-	line-height: 1 !important;
-	background: var(--pontifex-orange) !important;
-	color: #fff !important;
-	border: none !important;
-	font-weight: 600 !important;
-	box-shadow: var(--pontifex-shadow-btn) !important;
-	padding-block: clamp(.75rem, 1vw + .5rem, .9rem) !important;
-	padding-inline: clamp(1rem, 1vw + .7rem, 1.4rem) !important;
-	border-radius: var(--pontifex-radius) !important;
-	cursor: pointer !important;
-	transition: background .18s, color .18s, box-shadow .18s;
-}
-
-.pontifex-admin-submit:hover,
-.pontifex-admin-submit:focus {
-	background: #000 !important;
-	color: #fff !important;
-}
-
-/* Buttons row */
-.pontifex-admin-btn-row {
-	flex-direction: row;
-	gap: clamp(.5rem, 1vw, .75rem);
-	margin-block-end: 1.2rem;
-}
-
-.pontifex-admin-btn-row .pontifex-admin-submit {
-	inline-size: auto;
-	min-inline-size: clamp(12rem, 12.5rem, 12.5rem);
-	margin-block-end: 0;
-}
-
-/* Titles */
-.pontifex-admin-card h1,
-.pontifex-admin-card h2,
-#pontifex-soap h2,
-#pontifex-soap-settings h2,
-[id*="mollie"] h2 {
-	font-size: clamp(1.35rem, 1.2vw + .9rem, 1.75rem);
-	font-weight: 700;
-	letter-spacing: .005em;
-	margin: .25rem 0 1rem;
-	padding-bottom: .35rem;
-	border-bottom: 2px solid color-mix(in srgb, var(--pontifex-orange) 22%, transparent);
-}
-
-/* Wrapper mag gewoon blok zijn met volledige breedte */
-#pontifex-soap-fetch-feedback {
-	display: block;
-	width: 100%;
-	opacity: 0;
-	margin-top: 0;
-	transition: opacity .35s cubic-bezier(.4,0,.2,1);
-}
-
-/* Wanneer zichtbaar */
-#pontifex-soap-fetch-feedback.active {
-	display: block;
-	opacity: 1;
-	margin-top: .75rem;
-}
-
-/* Bericht zelf vult de hele breedte van de kaart/form */
-.pontifex-soap-feedback {
-	display: flex;                 /* flex → zorgt dat icoon en tekst netjes uitlijnen */
-	align-items: center;           /* verticaal gecentreerd */
-	gap: .625rem;                  /* ruimte tussen icoon en tekst */
-	width: 100%;
-	box-sizing: border-box;
-	padding: .5625rem .75rem;
-	border-radius: .4375rem;
-	box-shadow: 0 .0625rem .4375rem 0 color-mix(in srgb, #000 5%, transparent);
-	margin: 0 0 .625rem 0;
-	font-size: 17px;               /* ✅ tekst 17px */
-	line-height: 1.35;             /* iets luchtiger voor leesbaarheid */
-}
-
-/* Succes- en foutkleuren */
-.pontifex-soap-feedback.success {
-	background: #d6f7e4;
-	color: #121212;
-	border: .08125rem solid #1eaa56;
-}
-
-.pontifex-soap-feedback.error {
-	background: #ffe5e5;
-	color: #111;
-	border: .08125rem solid #e12d2d;
-}
-
-/* Icoon past zich aan de tekstgrootte aan */
-.pontifex-feedback-icon {
-	font-size: 17px;               /* ✅ zelfde grootte als tekst */
-	line-height: 1;                /* strak gecentreerd */
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-}
-
-/* WP notice fade */
-#message.updated.notice-success {
-	opacity: 1;
-	transition: opacity .5s cubic-bezier(.4,0,.2,1);
-}
-
-#message.updated.notice-success.hide {
-	opacity: 0;
-}
-
-/* ----------------------------------- */
-
-/* ===== Nieuwe layout voor Inzendingenpagina specifieke elementen ===== */
-.pontifex-admin-search-bar {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: .7rem;
-}
-
-.pontifex-admin-input.poi-sub-search,
-.pontifex-admin-submit.poi-sub-btn {
-	height: 46px;
-	font-size: 1rem;
-	border-radius: 5px;
-	box-sizing: border-box;
-}
-
-/* Dropdown even hoog als input */
-.poi-sub-select {
-	padding-inline: .75rem;
-}
-
-/* Knoppen in één lijn, zelfde hoogte */
-.poi-sub-btn {
-	line-height: 1;
-	background: var(--pontifex-orange);
-	border: none;
-	color: #fff;
-	font-weight: 600;
-	cursor: pointer;
-	transition: background .2s;
-}
-
-.poi-sub-btn:hover {
-	background: #000;
-}
-
-/* Export-knop zonder rand of streep */
-.poi-sub-btn:nth-child(4) {
-	text-decoration: none;
-	border: none;
-}
-
-/* Verwijder oude titel en rij-aantal en de container */
-.pontifex-oi-title-row,
-#poi_sub_total {
-	display: none !important;
-}
-
-/* ===== Grid styling ===== */
-.pontifex-oi-card-grid {
-	display: grid !important;
-	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
-	gap: 1.5rem !important;
-	min-height: 70vh; /* Zorgt ervoor dat de loading-melding goed zichtbaar is */
-	padding-top: .5rem;
-}
-
-.pontifex-oi-card-item {
-	background: #fff !important;
-	border: 1px solid #eee !important;
-	border-radius: 6px !important;
-	box-shadow: 0 2px 6px rgba(0,0,0,0.05) !important;
-	display: flex !important;
-	flex-direction: column !important;
-	overflow: hidden !important;
-}
-
-.pontifex-oi-card-header {
-	background: var(--pontifex-orange) !important;
-	color: #fff !important;
-	font-weight: 700 !important;
-	padding: .8rem 1rem !important;
-	font-size: 1.1rem !important;
-}
-
-.pontifex-oi-card-body {
-	padding: 1rem !important;
-	font-size: .95rem !important;
-	color: #222 !important;
-	line-height: 1.45 !important;
-}
-
-.pontifex-oi-card-body div {
-	margin-bottom: .4rem !important;
-}
-
-/* Laden of geen resultaten – één melding */
-.pontifex-loading,
-.pontifex-oi-card-item:only-child {
-	text-align: center !important;
-}
-
-.pontifex-loading .pontifex-oi-card-body,
-.pontifex-oi-card-item:only-child .pontifex-oi-card-body {
-	text-align: center;
-	font-style: italic;
-	opacity: 0.7;
-}
-
-/* Paginatie onderaan */
-#poi_sub_pagination {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	gap: 1rem;
-	margin-top: 1.5rem;
-}
-
-#poi_sub_pagination .pontifex-oi-back-link {
-	background: none;
-	border: none;
-	color: var(--pontifex-orange);
-	font-size: 1.5rem;
-	font-weight: 700;
-	cursor: pointer;
-	transition: color .2s;
-}
-
-#poi_sub_pagination .pontifex-oi-back-link:disabled {
-	color: #ccc;
-	cursor: not-allowed;
-	opacity: 0.7;
-}
-
-#poi_sub_pagination .pontifex-oi-back-link:hover:not(:disabled) {
-	color: #000;
-}
-
-/* Responsive */
-@media (inline-size <= 37.5rem) {
-	/* Compacte kaarten behouden padding */
-	.pontifex-admin-card:not(.pontifex-card-submissions) {
-		padding-block: 1.3rem;
-		padding-inline: .7rem;
+@layer pontifex.admin {
+	/* Admin wrapper */
+	.pontifex-admin-wrap {
+		display: flex;
+		justify-content: center;
+		align-items: flex-start;
+		inline-size: 100%;
+		min-block-size: 100vh;
+		padding-block: 2rem 0;
+		box-sizing: border-box;
 	}
 
-	/* De brede inzendingen kaart wordt op mobiel compact */
+	/* Admin card */
 	.pontifex-admin-card {
-		width: 95%;
-		padding: 1rem;
+		background: #fff;
+		border: none;
+		border-radius: 12px;
+		box-shadow: 0 0 25px rgba(0,0,0,0.05);
+		inline-size: 90%;
+		max-inline-size: 1400px;
+		padding: 2rem;
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
 	}
 
 	.pontifex-admin-card.pontifex-card-submissions {
-		width: 100% !important;
-		max-width: none !important;
-		padding: 1.2rem !important;
+		max-inline-size: 1600px !important;
+		inline-size: 75% !important;
+		padding: 2.5rem 2.5rem 3rem !important;
+		border: none !important;
+		border-radius: 12px !important;
+		background: #fff !important;
+		box-shadow: 0 0 25px rgba(0, 0, 0, 0.05) !important;
 	}
 
-	.pontifex-admin-btn-row {
+	button.poi-sub-btn,
+	a.poi-sub-btn {
+		margin-block-start: 0 !important;
+		display: inline-block !important;
+		margin-inline-start: 0 !important;
+		margin-inline-end: 0 !important;
+	}
+
+	.pontifex-admin-card:not(.pontifex-card-submissions) {
+		border: .10625rem solid #ddd;
+		max-inline-size: clamp(20rem, 33.75rem, 33.75rem);
+		padding: 2rem 2rem 1rem;
+		margin: 0;
+		position: relative;
+		box-shadow: 0 .4375rem 2rem 0 color-mix(in srgb, #000 8%, transparent);
+	}
+
+	#poi_sub_perpage {
+		block-size: 46px !important;
+		min-inline-size: 130px !important;
+		font-size: 1rem !important;
+		border: 1.5px solid #D1D1D1 !important;
+		border-radius: 5px !important;
+		padding-inline: .85rem !important;
+		box-shadow: 0 1px 0 rgba(0,0,0,.02);
+		transition: border-color .16s, box-shadow .16s, background .16s;
+		appearance: none !important;
+		background-color: #fff !important;
+		cursor: pointer;
+	}
+
+	#poi_sub_perpage:hover {
+		border-color: #B7B7B7 !important;
+	}
+
+	.pontifex-admin-row {
+		margin-block-end: .9rem;
+		display: flex;
 		flex-direction: column;
-		gap: .5625rem;
-		align-items: stretch;
+		gap: .2rem;
 	}
 
-	.pontifex-admin-btn-row .pontifex-admin-submit {
+	.pontifex-admin-label {
+		font-weight: 600;
+		color: #000;
+		font-size: clamp(.95rem, .7vw + .6rem, 1.05rem);
+		margin-block: .25rem .35rem;
+	}
+
+	.pontifex-admin-desc {
+		font-size: clamp(.9rem, 1vw, .99rem);
+		color: #888;
+		margin-block-end: .3rem;
+	}
+
+	.pontifex-admin-input {
+		appearance: none;
+		background: #fff;
+		border: 1.5px solid #D1D1D1;
+		border-radius: 5px;
+		padding-block: .55rem;
+		padding-inline: .85rem;
+		font-size: clamp(.95rem, .7vw + .55rem, 1.05rem);
+		line-height: 1.35;
+		box-shadow: 0 1px 0 rgba(0,0,0,.02);
+		transition: border-color .16s, box-shadow .16s, background .16s;
+	}
+
+	.pontifex-admin-input:hover {
+		border-color: #B7B7B7;
+	}
+
+	.pontifex-admin-input:focus,
+	#poi_sub_perpage:focus {
+		border-color: #1a73e8 !important;
+		background: #fff !important;
+		outline: none !important;
+		box-shadow: 0 0 0 4px rgba(26,115,232,.25) !important;
+	}
+
+	.pontifex-admin-input::placeholder {
+		color: #9aa1a9;
+		opacity: 1;
+	}
+
+	.pontifex-admin-toggle-row {
+		display: flex;
+		align-items: center;
+		gap: clamp(.8rem, 1vw, 1.1rem);
+	}
+
+	.pontifex-toggle-switch {
+		inline-size: 2.75rem;
+		block-size: 1.5rem;
+		background: #ddd;
+		border-radius: .9375rem;
+		position: relative;
+		cursor: pointer;
+		transition: background .19s;
+		border: .09375rem solid #D1D1D1;
+		margin-inline-end: .625rem;
+		flex-shrink: 0;
+	}
+
+	.pontifex-toggle-switch.checked {
+		background: #FF9900;
+		border-color: #FF9900;
+	}
+
+	.pontifex-toggle-knob {
+		position: absolute;
+		inset-block-start: .1375rem;
+		inset-inline-start: .1375rem;
+		inline-size: 1.1875rem;
+		block-size: 1.1875rem;
+		border-radius: 50%;
+		background: #fff;
+		box-shadow: 0 .0625rem .3125rem color-mix(in srgb, #000 5%, transparent);
+		transition: inset-inline-start .19s;
+	}
+
+	.pontifex-toggle-switch.checked .pontifex-toggle-knob {
+		inset-inline-start: 1.3125rem;
+	}
+
+	.pontifex-toggle-label {
+		font-weight: 600;
+		color: #000;
+		font-size: clamp(1rem, 1vw, 1.05rem);
+		user-select: none;
+	}
+
+	.pontifex-admin-btn-row,
+	.pontifex-admin-card p.submit,
+	.pontifex-admin-card .submit {
+		display: flex !important;
+		justify-content: center !important;
+		align-items: center !important;
+		text-align: center !important;
+	}
+
+	.pontifex-admin-submit {
+		display: block !important;
+		margin-block: 1rem auto 0 !important;
+		line-height: 1 !important;
+		background: var(--pontifex-orange) !important;
+		color: #fff !important;
+		border: none !important;
+		font-weight: 600 !important;
+		box-shadow: var(--pontifex-shadow-btn) !important;
+		padding-block: clamp(.75rem, 1vw + .5rem, .9rem) !important;
+		padding-inline: clamp(1rem, 1vw + .7rem, 1.4rem) !important;
+		border-radius: var(--pontifex-radius) !important;
+		cursor: pointer !important;
+		transition: background .18s, color .18s, box-shadow .18s;
+	}
+
+	.pontifex-admin-submit:hover,
+	.pontifex-admin-submit:focus {
+		background: #000 !important;
+		color: #fff !important;
+	}
+
+	.pontifex-admin-card h1,
+	.pontifex-admin-card h2 {
+		font-size: clamp(1.35rem, 1.2vw + .9rem, 1.75rem);
+		font-weight: 700;
+		letter-spacing: .005em;
+		margin-block: .25rem 1rem;
+		padding-block-end: .35rem;
+		border-block-end: 2px solid color-mix(in srgb, var(--pontifex-orange) 22%, transparent);
+	}
+
+	.pontifex-soap-feedback {
+		display: flex;
+		align-items: center;
+		gap: .625rem;
 		inline-size: 100%;
-		min-inline-size: 0;
+		box-sizing: border-box;
+		padding: .5625rem .75rem;
+		border-radius: .4375rem;
+		box-shadow: 0 .0625rem .4375rem 0 color-mix(in srgb, #000 5%, transparent);
+		margin-block-end: .625rem;
+		font-size: 17px;
+		line-height: 1.35;
+	}
+
+	.pontifex-soap-feedback.success {
+		background: #d6f7e4;
+		color: #121212;
+		border: .08125rem solid #1eaa56;
+	}
+
+	.pontifex-soap-feedback.error {
+		background: #ffe5e5;
+		color: #111;
+		border: .08125rem solid #e12d2d;
+	}
+
+	.pontifex-oi-card-grid {
+		display: grid !important;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+		gap: 1.5rem !important;
+		min-block-size: 70vh;
+		padding-block-start: .5rem;
+	}
+
+	.pontifex-oi-card-item {
+		background: #fff !important;
+		border: 1px solid #eee !important;
+		border-radius: 6px !important;
+		box-shadow: 0 2px 6px rgba(0,0,0,0.05) !important;
+		display: flex !important;
+		flex-direction: column !important;
+		overflow: hidden !important;
+	}
+
+	.pontifex-oi-card-header {
+		background: var(--pontifex-orange) !important;
+		color: #fff !important;
+		font-weight: 700 !important;
+		padding: .8rem 1rem !important;
+		font-size: 1.1rem !important;
+	}
+
+	.pontifex-oi-card-body {
+		padding: 1rem !important;
+		font-size: .95rem !important;
+		color: #222 !important;
+		line-height: 1.45 !important;
+	}
+}
+
+@layer pontifex.responsive {
+	@media (inline-size <= 37.5rem) {
+		.pontifex-admin-card:not(.pontifex-card-submissions) {
+			padding-block: 1.3rem;
+			padding-inline: .7rem;
+		}
+
+		.pontifex-admin-card {
+			inline-size: 95%;
+			padding: 1rem;
+		}
+
+		.pontifex-admin-card.pontifex-card-submissions {
+			inline-size: 100% !important;
+			max-inline-size: none !important;
+			padding: 1.2rem !important;
+		}
+
+		.pontifex-admin-btn-row {
+			flex-direction: column;
+			gap: .5625rem;
+			align-items: stretch;
+		}
+
+		.pontifex-admin-btn-row .pontifex-admin-submit {
+			inline-size: 100%;
+			min-inline-size: 0;
+		}
 	}
 }
