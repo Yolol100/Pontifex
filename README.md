@@ -30,13 +30,13 @@ The plugin uses a shortcode-based workflow, making it easy to place each step of
 ### Installation
 
 1. Upload the `pontifex-oi` folder to the `/wp-content/plugins/` directory.
-2. Activate the plugin via the **Plugins** menu in WordPress.
+2. Activate the plugin via the Plugins menu in WordPress.
 3. Provide your Pontifex API credentials using the provided filters or the plugin settings page.
 4. Create separate WordPress pages and insert the required shortcodes.
 
 ### Shortcodes
 
-For the best user experience, place each shortcode on a **separate page**.
+For the best user experience, place each shortcode on a separate page.
 
 * `[pontifex_oi_planning]`: Displays the available exam planning overview.
 * `[pontifex_oi_registration]`: Displays the registration form for a selected exam.
