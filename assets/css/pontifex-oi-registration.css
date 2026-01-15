@@ -1,449 +1,326 @@
-/* Globale instellingen voor flexbox lay-out */
-.pontifex-oi-candidates-list {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: clamp(0.75rem, 1vw + 0.3rem, 1.25rem) !important;
+/* ==============================================
+   Globale basis + Cascade Layers setup
+============================================== */
+@layer pontifex-reset, pontifex-forms, pontifex-candidates, pontifex-summary, pontifex-responsive;
+
+@layer pontifex-reset {
+  :root {
+    /* Je bestaande root variabelen worden hier verondersteld al gedefinieerd te zijn */
+  }
 }
 
-.pontifex-oi-candidate-row {
-  display: flex !important;
-  gap: clamp(1rem, 1vw + 0.5rem, 1.5rem) !important;
-  align-items: flex-end !important;
-  flex-wrap: wrap !important;
-  position: relative !important;
-}
-
-.pontifex-oi-candidate-row > div {
-  flex: 1 1 15% !important;
-  min-inline-size: clamp(100px, 10vw, 140px) !important;
-}
-
-.pontifex-oi-row-group {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: clamp(0.3rem, 0.4vw + 0.2rem, 0.5rem) !important;
-  margin-block-end: clamp(1rem, 1.5vw + 0.5rem, 1.5rem) !important;
-}
-
-.pontifex-oi-name-row,
-.pontifex-oi-contact-row {
-  display: flex !important;
-  gap: clamp(0.8rem, 1vw + 0.3rem, 1.2rem) !important;
-  flex-wrap: wrap !important;
-}
-
-/* Twee kolommen */
-.pontifex-oi-two-cols {
-  display: flex !important;
-  gap: clamp(0.8rem, 1vw + 0.3rem, 1.2rem) !important;
-  align-items: flex-end !important;
-  flex-wrap: nowrap !important;
-}
-
-#extra-material-checkboxes {
-  padding-bottom: 1rem;
-  margin-top: 0.5rem;
-}
-
-#extra-material-checkboxes > strong {
-  display: block;
-  margin-bottom: 0.35rem;
-}
-
-#extra-material-checkboxes label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.35rem 0;
-  cursor: pointer;
-}
-
-.pontifex-oi-name-row .field,
-.pontifex-oi-two-cols .field {
-  flex: 1 1 0 !important;
-}
-
-.pontifex-oi-name-row label,
-.pontifex-oi-two-cols .field label,
-.pontifex-oi-contact-row.two-cols .field label {
-  display: block !important;
-  margin-block-end: 6px !important;
-  font-weight: 600 !important;
-  font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem);
-  color: var(--pontifex-black) !important;
-}
-
-.pontifex-oi-name-row .field input,
-.pontifex-oi-two-cols .field input {
-  inline-size: 100% !important;
-  padding-block: clamp(0.3rem, 0.5vw + 0.2rem, 0.6rem) !important;
-  padding-inline: clamp(0.5rem, 0.7vw + 0.3rem, 1rem) !important;
-  border-radius: var(--pontifex-radius-sm) !important;
-  border: 1px solid var(--pontifex-border) !important;
-  font-size: clamp(0.9rem, 1vw + 0.3rem, 1rem) !important;
-  font-family: var(--pontifex-font-main) !important;
-  flex: 1 1 0 !important;
-  min-inline-size: clamp(100px, 10vw, 140px) !important;
-}
-
-/* Contact 2 cols */
-.pontifex-oi-contact-row.two-cols {
-  display: flex !important;
-  gap: clamp(0.8rem, 1vw + 0.3rem, 1.2rem) !important;
-  align-items: flex-end !important;
-  flex-wrap: nowrap !important;
-}
-
-/* Verberg * in testmodus */
-.hide-required {
-  display: none !important;
-  visibility: hidden !important;
-}
-
-.pontifex-oi-contact-row.two-cols .field {
-  flex: 1 1 0;
-}
-
-/* Icons */
-.pontifex-oi-submit-order i,
-.pontifex-oi-save-btn i,
-.pontifex-oi-home-button i {
-  margin-inline-start: 7px;
-}
-
-/* Fields generic */
-.pontifex-oi-candidate-row input[type="text"],
-.pontifex-oi-candidate-row input[type="date"],
-.pontifex-oi-order-form input {
-  inline-size: 100% !important;
-  padding-block: clamp(0.3rem, 0.5vw + 0.2rem, 0.6rem) !important;
-  padding-inline: clamp(0.5rem, 0.7vw + 0.3rem, 1rem) !important;
-  border-radius: var(--pontifex-radius-sm) !important;
-  border: 1px solid var(--pontifex-border) !important;
-  font-size: clamp(0.9rem, 1vw + 0.3rem, 1rem) !important;
-  font-family: var(--pontifex-font-main) !important;
-}
-
-.pontifex-oi-candidate-row label {
-  display: block !important;
-  font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem);
-  font-family: var(--pontifex-font-main) !important;
-  margin-block-end: 6px !important;
-  font-weight: 600 !important;
-  color: var(--pontifex-black) !important;
-}
-
-.pontifex-oi-order-form label {
-  font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem);
-  font-weight: 600 !important;
-}
-
-.required {
-  color: #d60000 !important;
-  font-weight: bold !important;
-}
-
-/* Remove candidate */
-.pontifex-oi-remove-candidate {
-  position: absolute !important;
-  inset-inline-end: -29px;
-  inset-block-start: 57%;
-  transform: translateY(-50%) !important;
-  inline-size: 1.65em !important;
-  block-size: 1.65em !important;
-  border-radius: 50% !important;
-  background: transparent !important;
-  color: var(--pontifex-orange) !important;
-  border: none !important;
-  display: flex;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 1.25em !important;
-  cursor: pointer !important;
-  text-decoration: none !important;
-  transition: color 0.2s !important;
-  z-index: 1 !important;
-  box-shadow: none !important;
-}
-
-.pontifex-oi-remove-candidate:hover,
-.pontifex-oi-remove-candidate:focus {
-  color: var(--pontifex-black) !important;
-  background: transparent !important;
-  border: none !important;
-}
-
-/* Add row link */
-.pontifex-oi-candidate-addrow {
-  margin-block-start: clamp(0.4rem, 0.5vw + 0.2rem, 0.8rem) !important;
-  text-align: right !important;
-  inline-size: 100% !important;
-}
-
-.pontifex-oi-add-candidate {
-  background: none !important;
-  border: none !important;
-  color: var(--pontifex-orange) !important;
-  font-family: var(--pontifex-font-main) !important;
-  font-size: clamp(0.9rem, 1vw + 0.3rem, 1rem) !important;
-  cursor: pointer !important;
-  display: inline;
-  text-decoration: underline !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  text-transform: none !important;
-}
-
-.kandidaat-titel {
-  font-family: var(--pontifex-font-main) !important;
-  font-size: 1.3rem !important;
-  font-weight: var(--pontifex-title-weight) !important;
-  line-height: 1.2 !important;
-  color: var(--pontifex-orange) !important;
-}
-
-/* Subtitel voor talen (Nederlands / English) */
-.pontifex-oi-extra-subtitle {
-  display: block;
-  text-align: left;
-  margin: 12px 0 0px 0px;
-  font-size: clamp(0.95rem, 1vw + 0.3rem, 1.05rem);
-  font-weight: 600;
-  color: #111;
-}
-
-/* Subtitel binnen taalblok (VCA Basis, VCA Vol) */
-.pontifex-oi-extra-mini {
-  display: block;
-  text-align: left;
-  margin: 15px 0 15px 0px;
-  font-size: clamp(0.9rem, 0.9vw + 0.2rem, 1rem);
-  font-weight: 500;
-  color: #333;
-}
-
-.pontifex-oi-add-candidate:hover {
-  color: var(--pontifex-black) !important;
-}
-
-.pontifex-oi-add-candidate:focus {
-  color: var(--pontifex-orange) !important;
-}
-
-/* Summary */
-.besteloverzicht-stap2 {
-  background: #f9f9f9 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
-  padding-block: clamp(1rem, 1.5vw + 0.7rem, 1.5rem) !important;
-  padding-inline: clamp(1.5rem, 2vw + 0.7rem, 2.5rem) !important;
-  margin-block: 30px 20px;
-  margin-inline-end: 37px;
-  font-family: var(--pontifex-font-main, Arial, sans-serif) !important;
-}
-
-/* Nieuwe code voor bo-item styling */
-.bo-item {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  margin-block-end: 12px !important;
-  font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem) !important;
-  border-block-end: 1px solid #e0e0e0 !important;
-  padding-block-end: 6px !important;
-  font-weight: 400 !important;
-  color: #222 !important;
-}
-
-/* Alleen labels bold/zwart */
-.besteloverzicht-stap2 .bo-item strong {
-  font-weight: 700 !important;
-  color: #000 !important;
-}
-
-/* Waarden normaal/donkergrijs */
-.besteloverzicht-stap2 .bo-item span {
-  font-weight: 400 !important;
-  color: #333 !important;
-}
-
-.bo-item span {
-  text-align: right !important;
-  min-inline-size: clamp(50px, 8vw, 70px) !important;
-  display: inline-block !important;
-  letter-spacing: 0.01em !important;
-}
-
-/* Totaalprijs specifiek in oranje (label en span) */
-.bo-item:last-child,
-.bo-item.totaal {
-  border-block-end: none !important;
-  font-size: clamp(1rem, 1vw + 0.3rem, 1.1rem) !important;
-  font-weight: 700 !important;
-  color: var(--pontifex-orange) !important;
-  margin-block-start: 18px !important;
-  letter-spacing: 0.02em !important;
-}
-
-/* Prijs totaal specifiek in oranje (span/waarde) */
-.besteloverzicht-stap2 .bo-item.totaal span {
-  font-weight: 700 !important;
-  color: var(--pontifex-orange) !important;
-}
-
-/* Einde nieuwe code voor bo-item styling */
-
-
-/* Extra opties netjes in het grijze blok */
-.besteloverzicht-stap2 .bo-item.extra-options {
-  flex-direction: column !important;
-  align-items: flex-start !important;
-}
-
-.besteloverzicht-stap2 .bo-item.extra-options strong {
-  margin-bottom: 6px !important;
-}
-
-.besteloverzicht-stap2 .bo-item.extra-options label {
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.5rem !important;
-  font-weight: 400 !important;
-  cursor: pointer !important;
-  margin: 3px 0 !important;
-}
-
-/* Zet de twee blokken standaard naast elkaar */
-.pontifex-oi-flex-row {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: clamp(1rem, 2vw, 2rem);
-  align-items: flex-start;
-  margin-top: 2rem;
-}
-
-/* Forceer 50/50 verdeling */
-.pontifex-oi-order-form,
-.pontifex-oi-order-summary {
-  flex: 0 0 50%;
-  max-inline-size: 50%;
-  min-inline-size: 0; /* voorkomt overflow */
-  float: none;
-  clear: none;
-  box-sizing: border-box;
-}
-
-/* Standaard: onder elkaar */
-.besteloverzicht-stap2 .bo-item.extra-options .pontifex-oi-extra-options-wrapper {
-  display: block;
-  width: 100%;
-}
-
-/* Responsive stacking */
-@media (max-width: 900px) {
-  .pontifex-oi-flex-row {
+/* ==============================================
+   Layer: FORMS – basis formuliervelden & labels
+============================================== */
+@layer pontifex-forms {
+  .pontifex-oi-name-row label,
+  .pontifex-oi-contact-row label,
+  .pontifex-oi-candidate-row label,
+  .pontifex-oi-order-form label {
     display: block;
+    margin-block-end: 6px;
+    font-weight: 600;
+    font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem);
+    color: var(--pontifex-black);
+    font-family: var(--pontifex-font-main);
   }
-  .pontifex-oi-order-form,
-  .pontifex-oi-order-summary {
-    max-inline-size: 100%;
-    flex: 1 1 100%;
-    margin-block-start: 2rem;
+
+  .required {
+    color: #d60000;
+    font-weight: bold;
   }
+
+  input[type="text"],
+  input[type="date"],
+  .pontifex-oi-candidate-row input,
+  .pontifex-oi-order-form input {
+    inline-size: 100%;
+    padding-block: clamp(0.3rem, 0.5vw + 0.2rem, 0.6rem);
+    padding-inline: clamp(0.5rem, 0.7vw + 0.3rem, 1rem);
+    border-radius: var(--pontifex-radius-sm);
+    border: 1px solid var(--pontifex-border);
+    font-size: clamp(0.9rem, 1vw + 0.3rem, 1rem);
+    font-family: var(--pontifex-font-main);
+  }
+
+  .hide-required {
+    display: none;
+    visibility: hidden;
+  }
+}
+
+/* ==============================================
+   Layer: CANDIDATES – kandidaten lijst & rijen
+============================================== */
+@layer pontifex-candidates {
   .pontifex-oi-candidates-list {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.75rem, 1vw + 0.3rem, 1.25rem);
+  }
+
+  .pontifex-oi-candidate-row {
+    display: flex;
+    gap: clamp(1rem, 1vw + 0.5rem, 1.5rem);
+    align-items: flex-end;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .pontifex-oi-candidate-row > div {
+    flex: 1 1 15%;
+    min-inline-size: clamp(100px, 10vw, 140px);
+  }
+
+  .pontifex-oi-row-group {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.3rem, 0.4vw + 0.2rem, 0.5rem);
+    margin-block-end: clamp(1rem, 1.5vw + 0.5rem, 1.5rem);
+  }
+
+  .pontifex-oi-name-row,
+  .pontifex-oi-contact-row,
+  .pontifex-oi-two-cols {
+    display: flex;
+    gap: clamp(0.8rem, 1vw + 0.3rem, 1.2rem);
+    flex-wrap: wrap;
+  }
+
+  .pontifex-oi-two-cols,
+  .pontifex-oi-contact-row.two-cols {
+    align-items: flex-end;
+    flex-wrap: nowrap;
+  }
+
+  .pontifex-oi-name-row .field,
+  .pontifex-oi-two-cols .field {
+    flex: 1 1 0;
+  }
+
+  /* Remove candidate knop */
+  .pontifex-oi-remove-candidate {
+    position: absolute;
+    inset-inline-end: -29px;
+    inset-block-start: 57%;
+    transform: translateY(-50%);
+    inline-size: 1.65em;
+    block-size: 1.65em;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--pontifex-orange);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25em;
+    cursor: pointer;
+    transition: color 0.2s;
+    z-index: 1;
+  }
+
+  .pontifex-oi-remove-candidate:hover,
+  .pontifex-oi-remove-candidate:focus {
+    color: var(--pontifex-black);
+  }
+
+  /* Add candidate */
+  .pontifex-oi-candidate-addrow {
+    margin-block-start: clamp(0.4rem, 0.5vw + 0.2rem, 0.8rem);
+    text-align: right;
     inline-size: 100%;
   }
-  .pontifex-oi-remove-candidate {
-    inset-inline-end: -25px;
-    inset-block-start: 59%;
+
+  .pontifex-oi-add-candidate {
+    background: none;
+    border: none;
+    color: var(--pontifex-orange);
+    font-family: var(--pontifex-font-main);
+    font-size: clamp(0.9rem, 1vw + 0.3rem, 1rem);
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
   }
+
+  .pontifex-oi-add-candidate:hover {
+    color: var(--pontifex-black);
+  }
+
+  .kandidaat-titel {
+    font-family: var(--pontifex-font-main);
+    font-size: 1.3rem;
+    font-weight: var(--pontifex-title-weight);
+    line-height: 1.2;
+    color: var(--pontifex-orange);
+  }
+
+  .pontifex-oi-extra-subtitle {
+    display: block;
+    text-align: start;
+    margin: 12px 0 0;
+    font-size: clamp(0.95rem, 1vw + 0.3rem, 1.05rem);
+    font-weight: 600;
+    color: #111;
+  }
+
+  .pontifex-oi-extra-mini {
+    display: block;
+    text-align: start;
+    margin: 15px 0;
+    font-size: clamp(0.9rem, 0.9vw + 0.2rem, 1rem);
+    font-weight: 500;
+    color: #333;
+  }
+}
+
+/* ==============================================
+   Layer: SUMMARY – besteloverzicht blok
+============================================== */
+@layer pontifex-summary {
   .besteloverzicht-stap2 {
+    background: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding-block: clamp(1rem, 1.5vw + 0.7rem, 1.5rem);
+    padding-inline: clamp(1.5rem, 2vw + 0.7rem, 2.5rem);
+    margin-block: 30px 20px;
+    margin-inline-end: 37px;
+    font-family: var(--pontifex-font-main, Arial, sans-serif);
+  }
+
+  .bo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-block-end: 12px;
+    font-size: clamp(0.9rem, 1vw + 0.2rem, 1rem);
+    border-block-end: 1px solid #e0e0e0;
+    padding-block-end: 6px;
+    color: #222;
+  }
+
+  .besteloverzicht-stap2 .bo-item strong {
+    font-weight: 700;
+    color: #000;
+  }
+
+  .besteloverzicht-stap2 .bo-item span {
+    font-weight: 400;
+    color: #333;
+    text-align: end;
+    min-inline-size: clamp(50px, 8vw, 70px);
+    display: inline-block;
+  }
+
+  .bo-item:last-child,
+  .bo-item.totaal {
+    border-block-end: none;
+    font-size: clamp(1rem, 1vw + 0.3rem, 1.1rem);
+    font-weight: 700;
+    color: var(--pontifex-orange);
+    margin-block-start: 18px;
+  }
+
+  .besteloverzicht-stap2 .bo-item.totaal span {
+    color: var(--pontifex-orange);
+    font-weight: 700;
+  }
+
+  .besteloverzicht-stap2 .bo-item.extra-options {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .besteloverzicht-stap2 .bo-item.extra-options strong {
+    margin-block-end: 6px;
+  }
+
+  .besteloverzicht-stap2 .bo-item.extra-options label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 3px 0;
+    cursor: pointer;
+  }
+}
+
+/* ==============================================
+   Layer: LAYOUT – flex rijen formulier + overzicht
+============================================== */
+@layer pontifex-forms {
+  .pontifex-oi-flex-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: clamp(1rem, 2vw, 2rem);
+    align-items: flex-start;
     margin-block-start: 2rem;
-    margin-inline: 0;
   }
-  /* Back-link regel toegevoegd */
-  .pontifex-oi-back-link {
-    margin-block-start: 7px !important;
-    line-height: 1.3em !important;
+
+  .pontifex-oi-order-form,
+  .pontifex-oi-order-summary {
+    flex: 0 0 50%;
+    max-inline-size: 50%;
+    min-inline-size: 0;
   }
 }
 
-/* Tablet (768px–1024px): naast elkaar */
-@media (min-width: 768px) and (max-width: 1024px) {
-  .besteloverzicht-stap2 .bo-item.extra-options .pontifex-oi-extra-options-wrapper {
-    display: flex !important; /* forceer naast elkaar */
-    gap: 2rem !important;
-    justify-content: space-between !important;
-    align-items: flex-start !important;
-  }
-  .besteloverzicht-stap2 .bo-item.extra-options .pontifex-oi-extra-column {
-    flex: 1 1 50% !important;
-  }
-}
+/* ==============================================
+   Responsive breakpoints
+============================================== */
+@layer pontifex-responsive {
+  @media (inline-size <= 900px) {
+    .pontifex-oi-flex-row {
+      display: block;
+    }
 
-/* Mobiel (<768px) en desktop (>1024px): onder elkaar */
-@media (max-width: 767px), (min-width: 1025px) {
-  .besteloverzicht-stap2 .bo-item.extra-options .pontifex-oi-extra-options-wrapper {
-    display: block !important;
-  }
-}
+    .pontifex-oi-order-form,
+    .pontifex-oi-order-summary {
+      max-inline-size: 100%;
+      flex: 1 1 100%;
+      margin-block-start: 2rem;
+    }
 
-/* Mobile field ordering & fixes */
-@media (max-width: 700px) {
-  .pontifex-oi-name-row-mobile {
-    flex-wrap: wrap !important;
-    gap: clamp(0.8rem, 1vw + 0.3rem, 1.2rem) !important;
+    .besteloverzicht-stap2 {
+      margin-block-start: 2rem;
+      margin-inline: 0;
+    }
   }
-  .pontifex-oi-name-row-mobile .first-name-group,
-  .pontifex-oi-name-row-mobile .middle-name-group {
-    flex: 1 1 45% !important;
-    order: 1 !important;
-  }
-  .pontifex-oi-name-row-mobile .last-name-group {
-    flex: 1 1 100% !important;
-    order: 2 !important;
-  }
-  .pontifex-oi-contact-row.two-cols {
-    flex-direction: row !important;
-    align-items: flex-end !important;
-    flex-wrap: wrap !important;
-  }
-  .pontifex-oi-order-form .pontifex-oi-two-cols:nth-of-type(4) {
-    flex-direction: row !important;
-    align-items: flex-end !important;
-    flex-wrap: wrap !important;
-  }
-  .pontifex-oi-candidate-addrow {
-    text-align: right !important;
-    padding-inline-end: clamp(0.25rem, 0.3vw + 0.1rem, 0.5rem) !important;
-  }
-  .pontifex-oi-remove-candidate {
-    inset-inline-end: -1.15rem;
-    inset-block-start: 79%;
-  }
-  .pontifex-oi-submit-order {
-    margin-block-start: 1rem !important;
-    margin-inline: auto !important;
-  }
-}
 
-@media (max-width: 600px) {
-  .besteloverzicht-stap2 {
-    padding-block: clamp(0.75rem, 1vw + 0.3rem, 1rem) !important;
-    padding-inline: clamp(0.4rem, 0.5vw + 0.2rem, 0.8rem) !important;
-    max-inline-size: 98vw !important;
-    margin-block: 0;
-    margin-inline: 0;
+  @media (inline-size <= 767px), (inline-size >= 1025px) {
+    .besteloverzicht-stap2 .bo-item.extra-options .pontifex-oi-extra-options-wrapper {
+      display: block;
+    }
   }
-  .bo-item strong,
-  .bo-item span {
-    font-size: clamp(0.9rem, 0.9vw + 0.2rem, 0.97rem) !important;
+
+  @media (min-inline-size: 768px) and (max-inline-size: 1024px) {
+    .besteloverzicht-stap2 .bo-item.extra-options .pontifex-oi-extra-options-wrapper {
+      display: flex;
+      gap: 2rem;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .besteloverzicht-stap2 .bo-item.extra-options .pontifex-oi-extra-column {
+      flex: 1 1 50%;
+    }
   }
-  .pontifex-oi-candidate-row label {
-    font-size: clamp(0.8rem, 0.8vw + 0.2rem, 0.94rem) !important;
-    line-height: 1em !important;
+
+  @media (inline-size <= 700px) {
+    .pontifex-oi-remove-candidate {
+      inset-inline-end: -1.15rem;
+      inset-block-start: 79%;
+    }
+
+    .pontifex-oi-candidate-addrow {
+      padding-inline-end: clamp(0.25rem, 0.3vw + 0.1rem, 0.5rem);
+    }
   }
-  .pontifex-oi-order-form label {
-    font-size: clamp(0.9rem, 0.8vw + 0.2rem, 0.94rem) !important;
+
+  @media (inline-size <= 600px) {
+    .besteloverzicht-stap2 {
+      padding: clamp(0.75rem, 1vw + 0.3rem, 1rem);
+      max-inline-size: 98vw;
+      margin: 0;
+    }
   }
 }
