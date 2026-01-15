@@ -8,6 +8,7 @@
  * @package PontifexOI
  * @subpackage Webhook
  */
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -18,9 +19,9 @@ use PontifexOI\Helpers\MailHelpers;
 // Register the REST API endpoint for the Mollie webhook.
 add_action('rest_api_init', function () {
     register_rest_route('pontifex-oi/v1', '/webhook', [
-        'methods'             => 'POST',
-        'callback'            => 'pontifex_oi_mollie_webhook_handler',
-        'permission_callback' => '__return_true', // Public endpoint for Mollie.
+        'methods'               => 'POST',
+        'callback'              => 'pontifex_oi_mollie_webhook_handler',
+        'permission_callback'   => '__return_true', // Public endpoint for Mollie.
     ]);
 });
 
@@ -31,44 +32,113 @@ add_action('rest_api_init', function () {
  * @return \WP_REST_Response
  */
 function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
+    // --- WIJZIGING: BEVEILIGINGSCONTROLE MET GEHEIME SLEUTEL ---
+    $expected_secret = get_option('pontifex_oi_webhook_secret');
+    $received_secret = $request->get_param('secret');
+
+    // Alleen controleren als een geheime sleutel is geconfigureerd
+    if (!empty($expected_secret) && $received_secret !== $expected_secret) {
+        error_log('[Pontifex OI Webhook Error] Ontvangen geheime sleutel komt niet overeen.');
+        return new \WP_REST_Response(['status' => 'error', 'message' => 'Forbidden'], 403);
+    }
+    // -----------------------------------------------------------
+
     $payment_id = $request->get_param('id');
     if (empty($payment_id)) {
-        return new \WP_REST_Response(['status' => 'error'], 400);
+        return new \WP_REST_Response(['status' => 'error', 'message' => 'Missing payment id'], 400);
     }
 
     try {
-        // Gebruik de centrale helper voor betalingen
-        $payment = \PontifexOI\Helpers\PaymentHelpers::get_mollie_payment($payment_id);
-        
-        if (!$payment) {
-            return new \WP_REST_Response(['status' => 'not_found'], 404);
-        }
-
-        // Haal order_id uit de Mollie metadata
-        $order_id = $payment->metadata['order_id'] ?? null;
-
-        if ($payment->isPaid() && $order_id) {
-            // 1. Update status naar 'paid'
-            \PontifexOI\Helpers\Registrations::update_status($order_id, 'paid');
-            
-            // 2. Haal de opgeslagen data op voor de e-mail
-            $order_data = \PontifexOI\Helpers\Registrations::get_by_order_id($order_id);
-            
-            // 3. Verstuur de bevestigingen
-            if ($order_data) {
-                \PontifexOI\Helpers\MailHelpers::send_confirmation_emails($order_data);
-                
-                // 4. Optioneel: Stuur direct door naar SOAP indien betaald
-                if (class_exists('\\PontifexOI\\Api\\SoapClient')) {
-                    $soap = new \PontifexOI\Api\SoapClient();
-                    $soap->sendRegistration($order_data['data']);
-                }
+        // Load Mollie API
+        if (!class_exists('\Mollie\Api\MollieApiClient')) {
+            if (file_exists(PONTIFEX_OI_PATH . 'vendor/autoload.php')) {
+                require_once PONTIFEX_OI_PATH . 'vendor/autoload.php';
+            } else {
+                error_log('[Pontifex OI Webhook Error] vendor/autoload.php ontbreekt.');
+                return new \WP_REST_Response(['status' => 'error', 'message' => 'Mollie SDK missing'], 500);
             }
         }
 
-        return new \WP_REST_Response(['status' => 'ok'], 200);
-    } catch (\Exception $e) {
-        error_log('Pontifex OI Webhook Error: ' . $e->getMessage());
-        return new \WP_REST_Response(null, 500);
+        // API Key
+        $apiKey = PaymentHelpers::get_mollie_api_key();
+        if (empty($apiKey)) {
+            error_log('[Pontifex OI Webhook Error] Mollie API sleutel ontbreekt.');
+            return new \WP_REST_Response(['status' => 'error', 'message' => 'Mollie API key missing'], 500);
+        }
+
+        $mollie = new \Mollie\Api\MollieApiClient();
+        $mollie->setApiKey($apiKey);
+
+        // Duplicate guard (idempotent)
+        $processed_key = 'pontifex_processed_' . $payment_id;
+        if (get_transient($processed_key)) {
+            return new \WP_REST_Response(['status' => 'ignored', 'message' => 'Already processed'], 200);
+        }
+
+        $payment = $mollie->payments->get($payment_id);
+
+        // Handle PAID
+        if ($payment->isPaid() && !$payment->hasRefunds() && !$payment->hasChargebacks()) {
+            
+            // ✅ Verbeterde logregel voor visibility
+            error_log('[Pontifex OI Webhook] Betaling verwerkt: ' . $payment_id);
+
+            $order = (array) ($payment->metadata ?? []);
+
+            // (Veilig) normaliseren van kandidaatgegevens naar array
+            $order['candidate_fullname']  = isset($order['candidate_fullname']) ? (array) $order['candidate_fullname'] : [];
+            $order['candidate_infix']     = isset($order['candidate_infix']) ? (array) $order['candidate_infix'] : [];
+            $order['candidate_lastname']  = isset($order['candidate_lastname']) ? (array) $order['candidate_lastname'] : [];
+            $order['candidate_birthdate'] = isset($order['candidate_birthdate']) ? (array) $order['candidate_birthdate'] : [];
+
+            // --- NIEUWE LOGICA: REGISTRATIE OPSLAAN IN DATABASE ---
+            // Zorg dat Registrations helper beschikbaar is
+            if (!class_exists('\PontifexOI\Helpers\Registrations')) {
+                require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registrations.php';
+            }
+            try {
+                // Gebruik Mollie payment id als order_id; planning_identifier indien aanwezig
+                $planning_identifier = isset($order['planning_identifier']) ? (string)$order['planning_identifier'] : null;
+                \PontifexOI\Helpers\Registrations::save($payment->id, $order, $planning_identifier);
+            } catch (\Throwable $e) {
+                error_log('[Pontifex OI] Registrations save failed: ' . $e->getMessage());
+            }
+            // -----------------------------------------------------
+
+            // SOAP-registratie uitvoeren
+            try {
+                if (!class_exists('\PontifexOI\Api\SoapClient')) {
+                    require_once PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
+                }
+                $soap = new \PontifexOI\Api\SoapClient();
+                $ok    = $soap->sendRegistration($order);
+
+                if (!$ok) {
+                    error_log('[Pontifex OI Webhook] SOAP registratie gaf false terug.');
+                }
+            } catch (\Throwable $e) {
+                error_log('[Pontifex OI Webhook SOAP Error] ' . $e->getMessage());
+            }
+
+            // ✅ KLEINE AANBEVELING: Zorg dat order_email altijd een waarde heeft voor de mail
+            $order['order_email'] = $order['order_email'] ?? ($order['email'] ?? null);
+
+            // Bevestigingsmails sturen (indien geconfigureerd)
+            try {
+                $order['order_email'] = $order['order_email'] ?? ($order['email'] ?? null);
+                MailHelpers::send_inschrijving_mails($order);
+            } catch (\Throwable $e) {
+                error_log('[Pontifex OI Mail Error] ' . $e->getMessage());
+            }
+        }
+
+        // Markeer als verwerkt (nu 15 min i.p.v. 5 min)
+        set_transient($processed_key, 1, 15 * MINUTE_IN_SECONDS);
+
+        // ✅ Bevestigingsrespons uitgebreid
+        return new \WP_REST_Response(['status' => 'ok', 'id' => $payment_id], 200);
+    } catch (\Throwable $e) {
+        error_log('[Pontifex OI Webhook Fatal] ' . $e->getMessage());
+        return new \WP_REST_Response(['status' => 'error', 'message' => 'exception'], 500);
     }
 }

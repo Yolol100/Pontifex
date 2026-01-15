@@ -1,321 +1,290 @@
-/* ==============================================
-   Global Reset + Cascade Layers setup
-============================================== */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+:root {
+	--pontifex-orange: #FF9900 !important;
+	--pontifex-black: #000000 !important;
+	--pontifex-grey-bg: #F0F0F0 !important;
+	--pontifex-white: #FFFFFF !important;
+	--pontifex-table-even: #f8f6f2 !important;
+	--pontifex-table-hover: #fff7eb !important;
+	--pontifex-border: #D1D1D1 !important;
+	--pontifex-disabled: #bbbbbb !important;
+	--pontifex-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.07) !important;
+	--pontifex-shadow-btn: 0 2px 12px rgba(255, 153, 0, 0.08) !important;
+	--pontifex-shadow-stepper: 0 2px 10px 0 rgba(0, 0, 0, 0.09) !important;
+	--pontifex-shadow-table: 0 2px 16px 0 rgba(0, 0, 0, 0.07) !important;
+	--pontifex-radius: 7px !important;
+	--pontifex-radius-sm: 5px !important;
+	--pontifex-font-main: 'Poppins', Arial, sans-serif !important;
+	--pontifex-font-size-base: clamp(0.875rem, 1vw + 0.3rem, 1.125rem) !important;
+	--pontifex-font-size-xl: clamp(1.4rem, 2vw + 0.8rem, 1.7rem) !important;
+	--pontifex-label-size: clamp(0.875rem, 1vw + 0.3rem, 1rem) !important;
+	--pontifex-title-size: clamp(1.2rem, 1.5vw + 0.6rem, 1.6rem) !important;
+	--pontifex-title-weight: 700 !important;
+	--pontifex-step-weight: 700 !important;
+	--pontifex-font-weight-bold: 700 !important;
+	--pontifex-font-weight-normal: 400 !important;
+	--pontifex-spacing-xs: clamp(0.4rem, 0.7vw + 0.2rem, 0.6rem) !important;
+	--pontifex-spacing-lg: clamp(1rem, 1.2vw + 0.4rem, 1.4rem) !important;
 }
 
-@layer pontifex-reset, pontifex-root, pontifex-base, pontifex-components, pontifex-forms;
-
-/* ==============================================
-   Layer: RESET / ROOT
-============================================== */
-@layer pontifex-reset {
-  :root {
-    --pontifex-orange: #ff9900;
-    --pontifex-black: #000000;
-    --pontifex-grey-bg: #f0f0f0;
-    --pontifex-white: #ffffff;
-    --pontifex-table-even: #f8f6f2;
-    --pontifex-table-hover: #fff7eb;
-    --pontifex-border: #d1d1d1;
-    --pontifex-disabled: #bbbbbb;
-
-    --pontifex-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.07);
-    --pontifex-shadow-btn: 0 2px 12px rgba(255, 153, 0, 0.08);
-    --pontifex-shadow-stepper: 0 2px 10px 0 rgba(0, 0, 0, 0.09);
-    --pontifex-shadow-table: 0 2px 16px 0 rgba(0, 0, 0, 0.07);
-
-    --pontifex-radius: 7px;
-    --pontifex-radius-sm: 5px;
-
-    --pontifex-font-main: "Poppins", Arial, sans-serif;
-
-    --pontifex-font-size-base: clamp(0.875rem, 1vw + 0.3rem, 1.125rem);
-    --pontifex-font-size-xl: clamp(1.4rem, 2vw + 0.8rem, 1.7rem);
-    --pontifex-label-size: clamp(0.875rem, 1vw + 0.3rem, 1rem);
-    --pontifex-title-size: clamp(1.2rem, 1.5vw + 0.6rem, 1.6rem);
-
-    --pontifex-title-weight: 700;
-    --pontifex-step-weight: 700;
-    --pontifex-font-weight-bold: 700;
-    --pontifex-font-weight-normal: 400;
-
-    --pontifex-spacing-xs: clamp(0.4rem, 0.7vw + 0.2rem, 0.6rem);
-    --pontifex-spacing-lg: clamp(1rem, 1.2vw + 0.4rem, 1.4rem);
-  }
-
-  body {
-    background: var(--pontifex-grey-bg);
-    font-family: var(--pontifex-font-main);
-    color: var(--pontifex-black);
-  }
-
-  .hidden {
-    display: none !important;
-  }
+body {
+	background: var(--pontifex-grey-bg) !important;
 }
 
-/* ==============================================
-   Layer: BASE – algemene lay-out blokken
-============================================== */
-@layer pontifex-base {
-  .pontifex-oi-section {
-    background: var(--pontifex-white);
-    border-radius: 0 var(--pontifex-radius) var(--pontifex-radius) var(--pontifex-radius);
-    box-shadow: var(--pontifex-shadow);
-    padding-block: clamp(1rem, 2vw + 0.7rem, 2.5rem);
-    padding-inline: clamp(1rem, 2vw + 0.7rem, 2.5rem);
-    inline-size: 1280px;
-    max-inline-size: 100%;
-    margin-block: 0 clamp(2rem, 3vw, 4rem);
-    margin-inline: auto;
-    position: relative;
-  }
-
-  .pontifex-oi-stepper {
-    font-family: var(--pontifex-font-main);
-    font-size: var(--pontifex-font-size-xl);
-    font-weight: var(--pontifex-step-weight);
-    color: var(--pontifex-white);
-    background: var(--pontifex-orange);
-    display: inline-block;
-    padding-block: clamp(0.75rem, 1vw + 0.5rem, 1.25rem);
-    padding-inline: clamp(1rem, 1vw + 0.7rem, 1.5rem);
-    border-start-start-radius: var(--pontifex-radius);
-    border-start-end-radius: var(--pontifex-radius);
-    border-end-start-radius: 0;
-    border-end-end-radius: 0;
-    box-shadow: var(--pontifex-shadow-stepper);
-  }
+.hidden {
+	display: none !important;
 }
 
-/* ==============================================
-   Layer: COMPONENTS – titels, links, iconen etc.
-============================================== */
-@layer pontifex-components {
-  .pontifex-oi-title-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-block-end: clamp(1rem, 1.5vw, 2rem);
-    inline-size: 100%;
-  }
-
-  .pontifex-oi-title-row h2 {
-    margin-block-end: 0;
-  }
-
-  .pontifex-oi-back-link {
-    color: var(--pontifex-black);
-    font-family: var(--pontifex-font-main);
-    font-size: var(--pontifex-label-size);
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: underline;
-    background: none;
-    border: none;
-    outline: none;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    border-radius: var(--pontifex-radius);
-    transition: color 0.2s;
-  }
-
-  .pontifex-oi-back-link::before {
-    content: "←";
-    margin-inline-end: 0.5em;
-  }
-
-  .pontifex-oi-back-link:hover,
-  .pontifex-oi-back-link:focus {
-    color: var(--pontifex-black);
-  }
-
-  .pontifex-oi-section-label,
-  .select-exam-label,
-  .select-date-label {
-    margin-block-end: clamp(1rem, 1.5vw, 2rem);
-    font-family: var(--pontifex-font-main);
-    font-size: var(--pontifex-title-size);
-    font-weight: var(--pontifex-title-weight);
-    line-height: 1em;
-    color: var(--pontifex-black);
-  }
-
-  .pontifex-oi-success-title {
-    font-family: var(--pontifex-font-main);
-    font-size: clamp(1.4rem, 5vw, 1.7rem);
-    font-weight: var(--pontifex-font-weight-bold);
-    color: var(--pontifex-black);
-    margin-block-end: clamp(0.75rem, 3vw, 1.125rem);
-  }
-
-  .pontifex-oi-check-circle {
-    inline-size: 100px;
-    block-size: 100px;
-    background-color: var(--pontifex-orange);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-block-end: clamp(1rem, 4vw, 1.25rem);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    animation: popIn 0.5s ease-out forwards;
-  }
-
-  .pontifex-oi-check-circle svg {
-    fill: var(--pontifex-white);
-    inline-size: 65px;
-    block-size: 65px;
-  }
+.pontifex-oi-stepper {
+	font-family: var(--pontifex-font-main) !important;
+	font-size: var(--pontifex-font-size-xl) !important;
+	font-weight: var(--pontifex-step-weight) !important;
+	color: var(--pontifex-white) !important;
+	background: var(--pontifex-orange) !important;
+	display: inline-block !important;
+	padding-block: clamp(0.75rem, 1vw + 0.5rem, 1.25rem);
+	padding-inline: clamp(1rem, 1vw + 0.7rem, 1.5rem);
+	border-start-start-radius: var(--pontifex-radius) !important;
+	border-start-end-radius: var(--pontifex-radius) !important;
+	border-end-start-radius: 0 !important;
+	border-end-end-radius: 0 !important;
+	box-shadow: var(--pontifex-shadow-stepper) !important;
 }
 
-/* ==============================================
-   Layer: FORMS – knoppen, tabellen, inputs etc.
-============================================== */
-@layer pontifex-forms {
-  .pontifex-oi-table {
-    inline-size: 100%;
-    border-spacing: 0;
-    background: var(--pontifex-white);
-    border-radius: var(--pontifex-radius);
-    box-shadow: var(--pontifex-shadow-table);
-  }
-
-  .pontifex-oi-table th,
-  .pontifex-oi-table td {
-    text-align: left;
-    font-family: var(--pontifex-font-main);
-    font-size: 17px;
-    font-weight: var(--pontifex-font-weight-normal);
-    color: var(--pontifex-black);
-  }
-
-  .pontifex-oi-table th {
-    background: var(--pontifex-orange);
-    color: var(--pontifex-white);
-    font-weight: var(--pontifex-font-weight-bold);
-    border-block-end: 2px solid var(--pontifex-grey-bg);
-    letter-spacing: 0.5px;
-  }
-
-  .pontifex-oi-table tbody tr {
-    transition: background-color 0.14s;
-  }
-
-  .pontifex-oi-table tbody tr:hover {
-    background: var(--pontifex-table-hover);
-  }
-
-  .pontifex-oi-table tbody tr:nth-child(even) {
-    background: var(--pontifex-table-even);
-  }
-
-  .pontifex-oi-aanmelden {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--pontifex-orange);
-    font-weight: var(--pontifex-font-weight-bold);
-    font-family: var(--pontifex-font-main);
-    transition: color 0.18s;
-    padding: 0;
-  }
-
-  .pontifex-oi-aanmelden:hover,
-  .pontifex-oi-aanmelden:focus {
-    color: var(--pontifex-black);
-  }
-
-  .pontifex-oi-aanmelden::after {
-    content: "\f061";
-    font-family: "Font Awesome 5 Free";
-    font-weight: 900;
-    margin-inline-start: 12px;
-    line-height: 1;
-  }
-
-  .pontifex-oi-vol {
-    color: var(--pontifex-disabled);
-    font-style: italic;
-    font-family: var(--pontifex-font-main);
-  }
-
-  /* Submit knoppen */
-  .pontifex-oi-submit,
-  .pontifex-oi-submit-order,
-  .pontifex-admin-submit,
-  .pontifex-oi-sidebar-btn {
-    font-family: var(--pontifex-font-main);
-    border-radius: var(--pontifex-radius);
-    cursor: pointer;
-    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
-  }
-
-  .pontifex-oi-submit,
-  .pontifex-oi-submit-order,
-  .pontifex-admin-submit {
-    background: var(--pontifex-orange);
-    color: var(--pontifex-white);
-    border: none;
-    font-weight: 600;
-    box-shadow: var(--pontifex-shadow-btn);
-    padding-block: clamp(0.75rem, 1vw + 0.5rem, 0.9rem);
-    padding-inline: clamp(1rem, 1vw + 0.7rem, 1.4rem);
-  }
-
-  .pontifex-oi-submit:hover:not(:disabled),
-  .pontifex-oi-submit-order:hover,
-  .pontifex-oi-submit-order:focus,
-  .pontifex-admin-submit:hover,
-  .pontifex-admin-submit:focus {
-    background: var(--pontifex-black);
-    color: var(--pontifex-white);
-  }
-
-  .pontifex-oi-submit:disabled,
-  .pontifex-admin-submit:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .pontifex-oi-submit {
-    display: block;
-    inline-size: 95%;
-    margin-block-start: 1.375rem;
-    font-size: clamp(1rem, 1vw + 0.4rem, 1.1rem);
-  }
-
-  .pontifex-oi-submit-order {
-    display: block;
-    inline-size: 100%;
-    max-inline-size: 320px;
-    margin-block-start: 2rem;
-    margin-inline: auto;
-    font-size: clamp(0.95rem, 1vw + 0.3rem, 1.05rem);
-  }
+.pontifex-oi-section {
+	background: var(--pontifex-white) !important;
+	border-radius: 0 var(--pontifex-radius) var(--pontifex-radius) var(--pontifex-radius) !important;
+	box-shadow: var(--pontifex-shadow) !important;
+	padding-block: clamp(1rem, 2vw + 0.7rem, 2.5rem);
+	padding-inline: clamp(1rem, 2vw + 0.7rem, 2.5rem);
+	inline-size: 1280px !important;
+	max-inline-size: 100%;
+	margin-block: 0 clamp(2rem, 3vw, 4rem);
+	margin-inline: auto !important;
+	position: relative !important;
 }
 
-/* ==============================================
-   Animaties & kleine responsive tweaks
-============================================== */
+.pontifex-oi-title-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-block-end: clamp(1rem, 1.5vw, 2rem);
+	inline-size: 100%;
+}
+
+.pontifex-oi-title-row h2 {
+	margin-block-end: 0 !important;
+}
+
+.pontifex-oi-back-link {
+	color: var(--pontifex-black) !important;
+	font-family: var(--pontifex-font-main);
+	font-size: var(--pontifex-label-size);
+	font-weight: 600;
+	cursor: pointer;
+	text-decoration: underline;
+	background: none;
+	border: none;
+	outline: none;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	border-radius: var(--pontifex-radius);
+	transition: color 0.2s;
+}
+
+.pontifex-oi-back-link:before {
+	content: "\2190";
+	margin-inline-end: 0.5em;
+}
+
+.pontifex-oi-back-link:hover,
+.pontifex-oi-back-link:focus {
+	color: var(--pontifex-black) !important;
+	text-decoration: underline;
+	outline: none;
+}
+
+.pontifex-oi-section-label,
+.select-exam-label,
+.select-date-label {
+	padding-block-end: 0 !important;
+	margin-block-end: clamp(1rem, 1.5vw, 2rem) !important;
+	font-family: var(--pontifex-font-main) !important;
+	font-size: var(--pontifex-title-size) !important;
+	font-weight: var(--pontifex-title-weight) !important;
+	line-height: 1em !important;
+	color: var(--pontifex-black) !important;
+}
+
+.pontifex-oi-success-title {
+	font-family: var(--pontifex-font-main) !important;
+	font-size: clamp(1.4rem, 5vw, 1.7rem) !important;
+	font-weight: var(--pontifex-font-weight-bold) !important;
+	color: var(--pontifex-black) !important;
+	margin-block-end: clamp(0.75rem, 3vw, 1.125rem) !important;
+}
+
+.pontifex-oi-check-circle {
+	inline-size: 100px;
+	block-size: 100px;
+	background-color: var(--pontifex-orange);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-block-end: clamp(1rem, 4vw, 1.25rem);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	animation: popIn 0.5s ease-out forwards;
+}
+
+.pontifex-oi-check-circle svg {
+	fill: var(--pontifex-white);
+	inline-size: 65px;
+	block-size: 65px;
+}
+
+.pontifex-oi-table {
+	inline-size: 100% !important;
+	border-spacing: 0 !important;
+	background: var(--pontifex-white) !important;
+	border-radius: var(--pontifex-radius) !important;
+	box-shadow: var(--pontifex-shadow-table) !important;
+}
+
+.pontifex-oi-table th,
+.pontifex-oi-table td {
+	text-align: left !important;
+	font-family: var(--pontifex-font-main) !important;
+	font-size: 17px;
+	font-weight: var(--pontifex-font-weight-normal) !important;
+	color: var(--pontifex-black) !important;
+}
+
+.pontifex-oi-table th {
+	background: var(--pontifex-orange) !important;
+	color: var(--pontifex-white) !important;
+	font-weight: var(--pontifex-font-weight-bold) !important;
+	border-block-end: 2px solid var(--pontifex-grey-bg) !important;
+	letter-spacing: 0.5px !important;
+}
+
+.pontifex-oi-table tbody tr {
+	transition: background 0.14s !important;
+}
+
+.pontifex-oi-table tbody tr:hover {
+	background: var(--pontifex-table-hover) !important;
+}
+
+.pontifex-oi-table tbody tr:nth-child(even) {
+	background: var(--pontifex-table-even) !important;
+}
+
+.pontifex-oi-aanmelden {
+	background: none !important;
+	border: none !important;
+	cursor: pointer !important;
+	color: var(--pontifex-orange) !important;
+	font-weight: var(--pontifex-font-weight-bold) !important;
+	font-family: var(--pontifex-font-main) !important;
+	transition: color 0.18s, text-decoration-color 0.18s !important;
+	padding-block: 0 !important;
+	padding-inline: 0 !important;
+}
+
+.pontifex-oi-aanmelden:hover,
+.pontifex-oi-aanmelden:focus {
+	color: var(--pontifex-black) !important;
+}
+
+.pontifex-oi-aanmelden::after {
+	content: "\f061";
+	font-family: "Font Awesome 5 Free";
+	font-weight: 900;
+	margin-left: 12px;
+	line-height: 1;
+}
+
+.pontifex-oi-vol {
+	color: var(--pontifex-disabled) !important;
+	font-style: italic !important;
+	font-family: var(--pontifex-font-main) !important;
+}
+
+.pontifex-oi-submit,
+.pontifex-oi-submit-order,
+.pontifex-admin-submit,
+.pontifex-oi-sidebar-btn {
+	font-family: var(--pontifex-font-main) !important;
+	border-radius: var(--pontifex-radius) !important;
+	cursor: pointer !important;
+	transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.pontifex-oi-submit,
+.pontifex-oi-submit-order,
+.pontifex-admin-submit {
+	background: var(--pontifex-orange) !important;
+	color: var(--pontifex-white) !important;
+	border: none !important;
+	font-weight: 600 !important;
+	box-shadow: var(--pontifex-shadow-btn) !important;
+	padding-block: clamp(0.75rem, 1vw + 0.5rem, 0.9rem);
+	padding-inline: clamp(1rem, 1vw + 0.7rem, 1.4rem);
+}
+
+.pontifex-oi-submit:hover:not(:disabled),
+.pontifex-oi-submit-order:hover,
+.pontifex-oi-submit-order:focus,
+.pontifex-admin-submit:hover,
+.pontifex-admin-submit:focus {
+	background: var(--pontifex-black) !important;
+	color: var(--pontifex-white) !important;
+}
+
+.pontifex-oi-submit:disabled,
+.pontifex-admin-submit:disabled {
+	opacity: 0.5 !important;
+	cursor: not-allowed !important;
+}
+
+.pontifex-oi-submit {
+	display: block !important;
+	inline-size: 95% !important;
+	padding-block: clamp(0.75rem, 1vw + 0.5rem, 0.9rem) !important;
+	padding-inline: clamp(1rem, 1vw + 0.7rem, 1.4rem) !important;
+	margin-block-start: 1.375rem !important;
+	font-size: clamp(1rem, 1vw + 0.4rem, 1.1rem) !important;
+}
+
+.pontifex-oi-submit-order {
+	display: block !important;
+	inline-size: 100% !important;
+	max-inline-size: 320px !important;
+	margin-block-start: 2rem !important;
+	margin-inline: auto !important;
+	padding-block: clamp(0.75rem, 1vw + 0.5rem, 0.9rem) !important;
+	font-size: clamp(0.95rem, 1vw + 0.3rem, 1.05rem) !important;
+}
+
+.pontifex-oi-pagination-wrapper .-left.is-hidden {
+	display: none;
+}
+
 @keyframes popIn {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+	0% {
+		transform: scale(0.8);
+		opacity: 0;
+	}
+
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
 }
 
-@media (inline-size <= 600px) {
-  .pontifex-oi-section-label {
-    line-height: 1.2;
-  }
+@media (max-width: 600px) {
+	.pontifex-oi-section-label {
+		line-height: 1.2em !important;
+	}
 }

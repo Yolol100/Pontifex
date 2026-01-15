@@ -1,62 +1,78 @@
-(function (window, document, $) {
-  'use strict';
-  if (typeof $ !== 'function') return;
+jQuery(document).ready(function($) {
 
-  const recalc = () => {
-    const fn = window.PontifexOI?.recalcTotal;
-    if (typeof fn === 'function') fn();
-  };
-
-  $(function () {
-    // Live recalculatie via de GLOBALE functie uit price.js
-    $(document).on('change.pontifexOI', '.extra-material-checkbox', recalc);
-
-    // Recalc ook bij touch-events (mobiel fix) — timing behouden
-    $(document).on('touchend.pontifexOI', '.extra-material-checkbox', function () {
-      window.setTimeout(recalc, 50);
+    // ✅ Live recalculatie via de GLOBALE functie uit price.js
+    $(document).on('change', '.extra-material-checkbox', function () {
+        if (window.PontifexOI && typeof window.PontifexOI.recalcTotal === 'function') {
+            window.PontifexOI.recalcTotal();
+        }
     });
 
-    // MutationObserver: detecteer veranderingen in het aantal kandidaten
-    (function observeCandidateCount() {
-      const el = document.getElementById('candidate-count');
-      if (!el || !('MutationObserver' in window)) return;
+    // ✅ Recalc ook bij touch-events (mobiel fix)
+    $(document).on('touchend', '.extra-material-checkbox', function() {
+        setTimeout(function() {
+            if (window.PontifexOI && typeof window.PontifexOI.recalcTotal === 'function') {
+                window.PontifexOI.recalcTotal();
+            }
+        }, 50);
+    });
 
-      const obs = new MutationObserver(() => recalc());
-      obs.observe(el, { childList: true, characterData: true, subtree: true });
+    // ✅ MutationObserver: detecteer veranderingen in het aantal kandidaten
+    (function observeCandidateCount() {
+        const el = document.getElementById('candidate-count');
+        if (!el) return;
+        const obs = new MutationObserver(() => {
+            if (window.PontifexOI && typeof window.PontifexOI.recalcTotal === 'function') {
+                window.PontifexOI.recalcTotal();
+            }
+        });
+        obs.observe(el, { childList: true, characterData: true, subtree: true });
     })();
 
-    // Initialisatie: vink automatisch vooraf ingestelde opties aan
-    const $prechecked = $('.extra-material-checkbox[data-prechecked="1"]');
-    if ($prechecked.length) {
-      $prechecked.each(function () {
-        $(this).prop('checked', true).trigger('change');
-      });
+    // ✅ Initialisatie: vink automatisch vooraf ingestelde opties aan
+    let prechecked = $('.extra-material-checkbox[data-prechecked="1"]');
+    if (prechecked.length > 0) {
+        prechecked.each(function() {
+            // Vink aan en trigger wijziging → herbereken direct
+            // We gebruiken hier .prop('checked', true).trigger('change') om recalcTotal aan te roepen via de bovenstaande handler
+            $(this).prop('checked', true).trigger('change'); 
+        });
     }
 
-    // Fallback: querystring uitlezen (directe link ?extra_option=...)
+    // ✅ Fallback: querystring uitlezen (bijv. directe link ?extra_option=...)
     try {
-      const p = new URLSearchParams(window.location.search);
-      const opt = (p.get('extra_option') || '').trim();
-      if (opt) {
-        const $cb = $('.extra-material-checkbox[value="' + opt + '"]');
-        if ($cb.length) {
-          let shouldRecalc = false;
+        const p = new URLSearchParams(window.location.search);
+        const opt = (p.get('extra_option') || '').trim();
+        if (opt) {
+            const $cb = $('.extra-material-checkbox[value="'+opt+'"]');
+            if ($cb.length) {
+                let shouldRecalc = false;
 
-          if (!$cb.is(':checked')) {
-            $cb.prop('checked', true)
-              .attr('data-prechecked', '1')
-              .attr('data-auto-select', '1');
-            shouldRecalc = true;
-          }
+                // Als niet aangevinkt (door PHP), client-side activeren
+                if (!$cb.is(':checked')) {
+                    $cb.prop('checked', true)
+                       .attr('data-prechecked', '1')
+                       .attr('data-auto-select', '1');
+                    shouldRecalc = true;
+                }
 
-          if (shouldRecalc) recalc();
+                // --- VORIGE FOUTIEVE LOGICA VERWIJDERD ---
+                // De Flow 2 base price correctie is nu ingebouwd in PontifexOI.recalcTotal() in price.js.
+                // Handmatige correctie van $pay.data('base-price') en $pay.val() hier veroorzaakt
+                // onjuiste initiële waardes en dubbele logica.
+
+                // Herbereken indien nodig
+                if (shouldRecalc && window.PontifexOI && typeof window.PontifexOI.recalcTotal === 'function') {
+                    window.PontifexOI.recalcTotal();
+                }
+            }
         }
-      }
-    } catch (e) {
-      console.error('Pontifex fallback error:', e);
+    } catch(e) {
+        console.error("Pontifex fallback error:", e);
     }
 
-    // Altijd een initiële berekening uitvoeren bij laden
-    recalc();
-  });
-})(window, document, window.jQuery);
+    // ✅ Altijd een initiële berekening uitvoeren bij laden
+    if (window.PontifexOI && typeof window.PontifexOI.recalcTotal === 'function') {
+        window.PontifexOI.recalcTotal();
+    }
+
+});

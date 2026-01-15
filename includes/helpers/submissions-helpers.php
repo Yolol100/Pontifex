@@ -1,373 +1,484 @@
 <?php
 /**
- * Submission Helpers - Verwerking van inzendingen payloads
+ * Pontifex Order/Submission Helper Functions
  *
- * Centrale class voor het omzetten van ruwe order/submission data naar:
- * - CSV-rijen
- * - Platte gelabelde velden (detailweergave)
- * - Gestructureerde data voor inzendingen-kaarten
+ * Bevat logica voor het omzetten van ruwe payload data naar:
+ * 1. CSV-rijen (pontifex_oi_order_to_rows)
+ * 2. Platte, gelabelde velden voor detailweergave (pontifex_oi_flatten_payload)
+ * 3. Gestructureerde data voor UI kaarten (pontifex_oi_format_for_cards)
  *
- * @package PontifexOI
- * @since   2026-01-15
+ * Dit bestand combineert de oorspronkelijke functies met de verbeterde label-
+ * en opschoonlogica van de "Nieuwe submissions-helpers".
+ *
+ * @package Pontifex
  */
 
-declare(strict_types=1);
+defined('ABSPATH') || exit;
 
-namespace PontifexOI\Helpers;
+// ====================================================================
+// --- CSV EXPORT & FLATTENING ----------------------------------------
+// ====================================================================
 
-if (!defined('ABSPATH')) {
-    exit;
-}
-
-final class SubmissionHelpers
-{
+if (!function_exists('pontifex_oi_order_to_rows')) {
     /**
-     * Centrale mapping van interne veldnamen naar mooie labels
-     * en alternatieve keys (voor oude/nieuwe formulieren)
+     * Zet order payload om naar een geïndexeerde array van rijen,
+     * consistent met de CSV-export header.
+     *
+     * @param array $order De order payload data.
+     * @return array Array van rijen, waarbij elke rij een geïndexeerde array van velden is.
      */
-    private const FIELD_MAP = [
-        'first_name'           => ['label' => 'Voornaam',           'aliases' => ['given_name', 'candidate_firstname']],
-        'infix'                => ['label' => 'Tussenvoegsel',      'aliases' => ['candidate_infix']],
-        'last_name'            => ['label' => 'Achternaam',         'aliases' => ['family_name', 'candidate_lastname']],
-        'birthdate'            => ['label' => 'Geboortedatum',      'aliases' => ['candidate_birthdate']],
-        'postcode'             => ['label' => 'Postcode',           'aliases' => ['postal-code']],
-        'housenumber'          => ['label' => 'Huisnummer',         'aliases' => ['address-line2', 'number']],
-        'street'               => ['label' => 'Straat',             'aliases' => ['street-address']],
-        'city'                 => ['label' => 'Plaats',             'aliases' => ['address-level2']],
-        'phone'                => ['label' => 'Telefoonnummer',     'aliases' => ['tel']],
-        'email'                => ['label' => 'E-mailadres',        'aliases' => ['order_email']],
-        'exam_type'            => ['label' => 'Examen'],
-        'language'             => ['label' => 'Taal'],
-        'material'             => ['label' => 'Lesmateriaal'],
-        'location'             => ['label' => 'Locatie'],
-        'planning_date'        => ['label' => 'Datum',              'aliases' => ['date']],
-        'planning_time'        => ['label' => 'Tijd',               'aliases' => ['time']],
-        'extra_options'        => ['label' => 'Extra lesmateriaal'],
-        'extra_option_direct'  => ['label' => 'Extra lesmateriaal'],
-        'calculated_price_excl'=> ['label' => 'Prijs excl. BTW'],
-        'vat21'                => ['label' => 'BTW (21%)'],
-        'total'                => ['label' => 'Totaal',             'aliases' => ['payment_amount', 'calculated_price']],
-    ];
+    function pontifex_oi_order_to_rows(array $order): array {
+        $rows = [];
 
-    /**
-     * Keys die nooit getoond moeten worden in kaarten / details
-     */
-    private const BLACKLIST_KEYS = [
-        'nonce', '_nonce', 'security',
-        'spots', 'spot', 'spot_count', 'beschikbare_spots',
-        'order_id', 'orderId', 'mollie_id', 'payment_id', 'paymentId',
-        'transaction_id', 'tr_id',
-        'flow', 'flow2', 'flow_version',
-        'name', 'organization', 'organization-title',
-        'vat_total', 'total_incl', 'candidate_count',
-    ];
-
-    /**
-     * Haalt een waarde op uit de payload, rekening houdend met alias keys
-     */
-    private static function get_val(array $payload, string $key): mixed
-    {
-        if (isset($payload[$key])) {
-            return $payload[$key];
-        }
-
-        $map = self::FIELD_MAP[$key] ?? [];
-        foreach ($map['aliases'] ?? [] as $alias) {
-            if (isset($payload[$alias])) {
-                return $payload[$alias];
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Probeert volledige naam te reconstrueren (nieuw of oud formulier)
-     */
-    private static function get_full_name(array $payload): string
-    {
-        $voornaam = (string) self::get_val($payload, 'first_name');
-        $tussen   = (string) self::get_val($payload, 'infix');
-        $achter   = (string) self::get_val($payload, 'last_name');
-
-        $name = trim(implode(' ', array_filter([$voornaam, $tussen, $achter])));
-
-        if ($name === '') {
-            $candidate_full = self::get_val($payload, 'candidate_fullname');
-            if (is_array($candidate_full)) {
-                $name = implode(' ', array_filter($candidate_full));
-            } elseif (is_string($candidate_full)) {
-                $name = $candidate_full;
-            }
-        }
-
-        return $name !== '' ? $name : 'Onbekend';
-    }
-
-    /**
-     * Extraheert kandidaten (ondersteunt zowel enkel als meervoudig)
-     */
-    private static function extract_candidates(array $payload): array
-    {
-        $candidates = [];
-
-        // Nieuw formulier: enkele kandidaat
-        if (isset($payload['first_name']) || isset($payload['last_name'])) {
-            $candidates[] = [
-                'first_name'   => self::get_val($payload, 'first_name'),
-                'infix'        => self::get_val($payload, 'infix'),
-                'last_name'    => self::get_val($payload, 'last_name'),
-                'birthdate'    => self::get_val($payload, 'birthdate'),
+        // Structuur 1: nieuw formulier (enkele kandidaat)
+        if (isset($order['first_name'])) {
+            $rows[] = [
+                $order['first_name'] ?? '',
+                '', // Tussenvoegsel
+                $order['last_name'] ?? '',
+                '', // Geboortedatum
+                $order['postcode'] ?? '',
+                $order['number'] ?? '',
+                $order['street'] ?? '',
+                $order['city'] ?? '',
+                $order['phone'] ?? '',
+                $order['email'] ?? '',
+                '', // Bedrijfsnaam
+                '', // Functie
+                '', // BTW-nummer
+                $order['exam_type'] ?? '',
+                $order['language'] ?? '',
+                $order['material'] ?? '',
+                '', // Extra lesmateriaal (Niet in deze structuur)
+                $order['location'] ?? '',
+                $order['planning_date'] ?? '',
+                $order['planning_time'] ?? '',
+                $order['total'] ?? ''
             ];
+            return $rows;
         }
-        // Oud formulier: meerdere kandidaten in arrays
-        elseif (isset($payload['candidate_fullname']) || isset($payload['candidate_lastname'])) {
-            $full   = (array) ($payload['candidate_fullname'] ?? []);
-            $infix  = (array) ($payload['candidate_infix'] ?? []);
-            $last   = (array) ($payload['candidate_lastname'] ?? []);
-            $birth  = (array) ($payload['candidate_birthdate'] ?? []);
 
-            $count = max(count($full), count($last), 1);
+        // Structuur 2: oude JSON-structuur (met meervoudige kandidaten)
+        if (isset($order['candidate_fullname']) && isset($order['postal-code'])) {
+            $c_full  = (array)($order['candidate_fullname'] ?? []);
+            $c_infix = (array)($order['candidate_infix'] ?? []);
+            $c_last  = (array)($order['candidate_lastname'] ?? []);
+            $c_birth = (array)($order['candidate_birthdate'] ?? []);
 
+            $count = max(count($c_full), count($c_last)); // Bepaal max rijen
             for ($i = 0; $i < $count; $i++) {
-                $candidates[] = [
-                    'first_name'   => $full[$i] ?? '',
-                    'infix'        => $infix[$i] ?? '',
-                    'last_name'    => $last[$i] ?? '',
-                    'birthdate'    => $birth[$i] ?? '',
+                $rows[] = [
+                    $c_full[$i]  ?? '',
+                    $c_infix[$i] ?? '',
+                    $c_last[$i]  ?? '',
+                    $c_birth[$i] ?? '',
+                    $order['postal-code'] ?? '',
+                    $order['address-line2'] ?? '',
+                    $order['street-address'] ?? '',
+                    $order['address-level2'] ?? '',
+                    $order['tel'] ?? '',
+                    $order['order_email'] ?? '',
+                    $order['organization'] ?? '',
+                    $order['organization-title'] ?? '',
+                    $order['order_vat'] ?? '',
+                    $order['exam_type'] ?? '',
+                    $order['language'] ?? '',
+                    $order['material'] ?? '',
+                    implode(', ', $order['extra_options'] ?? []),
+                    $order['location'] ?? '',
+                    $order['date'] ?? '',
+                    $order['time'] ?? '',
+                    $order['payment_amount'] ?? ($order['calculated_price'] ?? ''),
                 ];
             }
+            return $rows;
         }
 
-        return $candidates;
+        return [];
     }
+}
 
-    /**
-     * Converteert order naar CSV-rijen (één rij per kandidaat)
-     */
-    public static function order_to_rows(array $order): array
-    {
-        $rows = [];
-        $candidates = self::extract_candidates($order);
+if (!function_exists('pontifex_oi_flatten_payload')) {
+    function pontifex_oi_flatten_payload(array $payload, array $meta = []): array {
 
-        foreach ($candidates as $candidate) {
-            $rows[] = [
-                $candidate['first_name']   ?? '',
-                $candidate['infix']        ?? '',
-                $candidate['last_name']    ?? '',
-                $candidate['birthdate']    ?? '',
-                self::get_val($order, 'postcode')     ?? '',
-                self::get_val($order, 'housenumber')  ?? '',
-                self::get_val($order, 'street')       ?? '',
-                self::get_val($order, 'city')         ?? '',
-                self::get_val($order, 'phone')        ?? '',
-                self::get_val($order, 'email')        ?? '',
-                $order['organization']                ?? '',
-                $order['organization-title']          ?? '',
-                $order['order_vat']                   ?? '',
-                $order['exam_type']                   ?? '',
-                $order['language']                    ?? '',
-                $order['material']                    ?? '',
-                implode(', ', (array)($order['extra_options'] ?? [])),
-                $order['location']                    ?? '',
-                $order['planning_date'] ?? $order['date'] ?? '',
-                $order['planning_time'] ?? $order['time'] ?? '',
-                $order['total'] ?? $order['payment_amount'] ?? '',
-            ];
-        }
+        // 1️⃣ Titel bepalen (met veilige verwerking van arrays)
+        $toText = function ($val): string {
+            if (is_array($val)) return implode(' ', array_filter(array_map('strval', $val)));
+            return (string)$val;
+        };
 
-        return $rows;
-    }
+        $voornaam = $toText($payload['first_name'] ?? $payload['given_name'] ?? $payload['candidate_firstname'] ?? '');
+        $tussenvoegsel = $toText($payload['candidate_infix'] ?? '');
+        $achternaam = $toText($payload['last_name'] ?? $payload['family_name'] ?? $payload['candidate_lastname'] ?? '');
+        $volledige_naam = trim(implode(' ', array_filter([$voornaam, $tussenvoegsel, $achternaam])));
 
-    /**
-     * Maakt platte lijst met gelabelde velden voor detailweergave
-     */
-    public static function flatten_payload(array $payload, array $meta = []): array
-    {
-        $pretty = [];
-
-        // Aangemaakt datum bovenaan
-        if (!empty($meta['created_at'])) {
-            $pretty[] = ['label' => 'Aangemaakt', 'value' => $meta['created_at']];
-        }
-
-        // Volledige naam
-        $name = self::get_full_name($payload);
-        if ($name !== 'Onbekend') {
-            $pretty[] = ['label' => 'Naam', 'value' => $name];
-        }
-
-        // Centrale loop over bekende velden
-        foreach (self::FIELD_MAP as $key => $info) {
-            $value = self::get_val($payload, $key);
-
-            // Speciale behandeling voor extra_options
-            if ($key === 'extra_options' && is_array($value)) {
-                $value = implode(', ', array_filter($value));
+        if ($volledige_naam === '') {
+            if (!empty($payload['candidate_fullname'])) {
+                $val = $payload['candidate_fullname'];
+                $volledige_naam = is_array($val) ? implode(', ', array_filter($val)) : (string)$val;
+            } elseif (!empty($payload['name'])) {
+                $volledige_naam = (string)$payload['name'];
+            } else {
+                $volledige_naam = 'Onbekend';
             }
-
-            if (empty($value) || (is_string($value) && trim($value) === '')) {
-                continue;
-            }
-
-            $pretty[] = [
-                'label' => $info['label'],
-                'value' => is_array($value) ? implode(', ', $value) : (string)$value,
-            ];
         }
 
-        // Overige velden die niet in FIELD_MAP staan (maar niet op blacklist)
-        $blacklist = array_flip(self::BLACKLIST_KEYS);
-        foreach ($payload as $k => $v) {
-            if (isset($blacklist[$k])) {
-                continue;
-            }
-            if (array_key_exists($k, self::FIELD_MAP)) {
-                continue; // al behandeld
-            }
-            if (empty($v) || (is_string($v) && trim($v) === '')) {
-                continue;
-            }
-            $label = ucwords(str_replace(['_', '-'], ' ', $k));
-            $pretty[] = ['label' => $label, 'value' => is_array($v) ? implode(', ', $v) : (string)$v];
-        }
+        $title = $volledige_naam;
 
-        // Totaal altijd onderaan
-        $total = self::get_val($payload, 'total');
-        if ($total !== null && $total !== '') {
-            $pretty[] = ['label' => 'Totaal', 'value' => (string)$total];
-        }
-
-        return [
-            'title'  => $name,
-            'fields' => $pretty,
-        ];
-    }
-
-    /**
-     * Formatteert data specifiek voor inzendingen-kaarten
-     */
-    public static function format_for_cards(array $payload): array
-    {
-        $blacklist = array_flip(self::BLACKLIST_KEYS);
-
-        $data = [
-            'name'         => self::get_full_name($payload),
-            'email'        => self::get_val($payload, 'email') ?? '',
-            'exam_label'   => self::exam_label(self::get_val($payload, 'exam_type') ?? ''),
-            'date'         => self::get_val($payload, 'planning_date') ?? self::get_val($payload, 'date') ?? '',
-            'time'         => self::get_val($payload, 'planning_time') ?? self::get_val($payload, 'time') ?? '',
-            'location'     => self::get_val($payload, 'location') ?? '',
-            'total'        => self::get_val($payload, 'total') ?? '',
-            'material'     => self::material_info(
-                self::get_val($payload, 'material') ?? '',
-                self::get_val($payload, 'exam_type') ?? ''
-            ),
-            'extras'       => self::extra_info(self::get_val($payload, 'extra_options') ?? []),
-            'extra_fields' => [],
-        ];
-
-        // Overige velden die niet in de hoofdstructuur zitten
-        foreach ($payload as $k => $v) {
-            if (isset($blacklist[$k])) {
-                continue;
-            }
-            if (array_key_exists($k, self::FIELD_MAP)) {
-                continue;
-            }
-            if (empty($v)) {
-                continue;
-            }
-
-            $label = ucwords(str_replace(['_', '-'], ' ', $k));
-            $data['extra_fields'][] = [
-                'label' => $label,
-                'value' => is_array($v) ? implode(', ', $v) : (string)$v,
-            ];
-        }
-
-        return $data;
-    }
-
-    // === HULPFUNCTIES (zoals in origineel) ==================================
-
-    private static function exam_label(string $exam_key): string
-    {
-        if (function_exists('pontifex_normalize_exam_key')) {
-            $exam_key = pontifex_normalize_exam_key($exam_key);
-        }
-
-        $map = [
-            'los-examen-vca-basis'         => 'VCA Basis (los examen)',
-            'los-examen-vca-basis-groen'   => 'VCA Basis Groen (los examen)',
-            'los-examen-vca-vol'           => 'VCA Vol (los examen)',
-            'los-examen-vca-vil'           => 'VCA VIL (los examen)',
-            'vca-basis-weekend'            => 'Weekendcursus VCA Basis',
-            'vca-vol-weekend'              => 'Weekendcursus VCA Vol',
-        ];
-
-        return $map[$exam_key] ?? $exam_key;
-    }
-
-    private static function material_info(?string $material_key, string $exam_key): array
-    {
-        if (!$material_key || $material_key === '1') {
-            return ['label' => 'Geen lesmateriaal', 'items' => [], 'sum' => 0.0];
-        }
-
-        $items = [];
-        $sum   = 0.0;
-
-        $combi_key = $material_key;
-        if (in_array($material_key, ['2','4','5','6','7'], true)) {
-            $suffix = (str_contains($exam_key, 'vol') || str_contains($exam_key, 'vil')) ? 'vol' : 'basis';
-            $combi_key = "{$material_key}_{$suffix}";
-        }
-
-        // Probeer combi’s (fallback op lege array)
-        $combi = $GLOBALS['MATERIAL_COMBIS'][$combi_key] ?? [];
-        if (!empty($combi) && is_array($combi)) {
-            foreach ($combi as $prod_key) {
-                $label = $GLOBALS['MATERIAL_PRODUCTS'][$prod_key]['label'] ?? $prod_key;
-                $price = (float) ($GLOBALS['MATERIAL_PRODUCTS'][$prod_key]['price'] ?? 0);
-                $items[] = ['label' => $label, 'price' => $price];
-                $sum += $price;
-            }
-        } else {
-            $label = $GLOBALS['MATERIAL_PRODUCTS'][$material_key]['label'] ?? $material_key;
-            $price = (float) ($GLOBALS['MATERIAL_PRODUCTS'][$material_key]['price'] ?? 0);
-            $items[] = ['label' => $label, 'price' => $price];
-            $sum = $price;
-        }
-
-        return ['label' => implode(', ', array_column($items, 'label')), 'items' => $items, 'sum' => $sum];
-    }
-
-    private static function extra_info(mixed $extra_options): array
-    {
-        $items = [];
-        $sum   = 0.0;
-
-        $keys = [];
-        if (is_array($extra_options)) {
-            foreach ($extra_options as $k => $v) {
-                if (is_string($v)) {
-                    $keys[] = $v;
-                } elseif (is_string($k) && ($v === true || $v === 1 || $v === '1')) {
-                    $keys[] = $k;
+        // 2️⃣ Flatten arrays
+        $flat = [];
+        $stack = [[$payload, '']];
+        while ($stack) {
+            [$node, $prefix] = array_pop($stack);
+            if (!is_array($node)) continue;
+            foreach ($node as $k => $v) {
+                if (is_int($k) && $prefix === '') continue;
+                $key = ltrim($prefix . $k, '.');
+                if (is_array($v)) {
+                    $allScalar = true;
+                    foreach ($v as $vv) { if (is_array($vv) || is_object($vv)) { $allScalar = false; break; } }
+                    if ($allScalar) {
+                        $flat[$key] = implode(', ', array_map('strval', array_filter($v, fn($x)=>$x!=='' && $x!==null)));
+                    } else {
+                        $stack[] = [$v, $key . '.'];
+                    }
+                } elseif (is_object($v)) {
+                    $stack[] = [get_object_vars($v), $key . '.'];
+                } else {
+                    $flat[$key] = (string)$v;
                 }
             }
         }
 
-        $keys = array_unique(array_filter($keys));
+        // 3️⃣ Mooie labels en filtering
+        $pretty = [];
+        $labelMap = [
+            'exam_type'            => 'Examen',
+            'language'             => 'Taal',
+            'material'             => 'Lesmateriaal',
+            'planning_date'        => 'Datum',
+            'planning_time'        => 'Tijd',
+            'date'                 => 'Datum',
+            'time'                 => 'Tijd',
+            'location'             => 'Locatie',
+            'candidate_fullname'   => 'Naam kandidaat',
+            'candidate_lastname'   => 'Kandidaat achternaam',
+            'candidate_birthdate'  => 'Geboortedatum kandidaat',
+            'postal-code'          => 'Postcode',
+            'address-line2'        => 'Huisnummer',
+            'street-address'       => 'Straat',
+            'address-level2'       => 'Stad',
+            'tel'                  => 'Telefoonnummer',
+            'phone'                => 'Telefoonnummer',
+            'order_email'          => 'E-mailadres',
+            'email'                => 'E-mailadres',
+            'organization-title'   => 'Functie',
+
+            // 👇 Nieuwe & BTW-velden
+            'extra_option_direct'  => 'Extra lesmateriaal 1',
+            'extra_options'        => 'Extra lesmateriaal 2',
+            'calculated_price_excl'=> 'Prijs zonder btw',
+            'vat9'                 => 'BTW (9%)',
+            'vat21'                => 'BTW (21%)',
+            'total'                => 'Totaal',
+            'payment_amount'       => 'Totaal',
+            'calculated_price'     => 'Totaal',
+        ];
+
+        foreach ($flat as $k => $v) {
+            if ($v === '' || $v === null || trim($v) === '') continue;
+
+            // 🧹 Technische keys overslaan
+            if (in_array($k, [
+            'given_name','given-name','family_name','family-name',
+            'order_id','organization','flow','nonce',
+            'spots','candidate_count','vat_total','total_incl'
+        ], true)) continue;
+
+            $label = $labelMap[$k] ?? ucwords(preg_replace('/[_\-\.]+/', ' ', $k));
+            $pretty[] = ['label' => $label, 'value' => $v];
+        }
+
+        // ✅ Forceer extra_option_direct indien aanwezig in payload maar niet getoond
+        if (isset($payload['extra_option_direct']) && !array_filter($pretty, fn($f)=>$f['label']==='Extra lesmateriaal 1')) {
+            $pretty[] = ['label' => 'Extra lesmateriaal 1', 'value' => (string)$payload['extra_option_direct']];
+        }
+
+        // 4️⃣ Meta bovenaan
+        if (!empty($meta['created_at'])) {
+            array_unshift($pretty, ['label' => 'Aangemaakt', 'value' => $meta['created_at']]);
+        }
+
+        // 5️⃣ Dubbele Totaal verwijderen
+        $seenTotals = false;
+        $pretty = array_values(array_filter($pretty, function ($f) use (&$seenTotals) {
+            if ($f['label'] === 'Totaal') {
+                if ($seenTotals) return false;
+                $seenTotals = true;
+            }
+            return true;
+        }));
+
+        // 6️⃣ Totaal als laatste
+        usort($pretty, function($a, $b) {
+            if ($a['label'] === 'Totaal') return 1;
+            if ($b['label'] === 'Totaal') return -1;
+            return 0;
+        });
+
+        return ['title' => $title, 'fields' => $pretty];
+    }
+}
+
+// ====================================================================
+// --- UI CARD FORMATTING HELPER FUNCTIONS ----------------------------
+// ====================================================================
+
+if (!function_exists('pontifex_oi_cards_blacklist_keys')) {
+    /**
+     * Welke payload keys NIET tonen in Inzendingen-kaarten.
+     */
+    function pontifex_oi_cards_blacklist_keys(): array {
+        return [
+            'nonce','_nonce','security',
+            'spots','spot','spot_count','beschikbare_spots',
+            'order_id','orderId','mollie_id','payment_id','paymentId',
+            'transaction_id','tr_id','flow','flow2','flow_version',
+            'name', // Toegevoegd vanuit de nieuwe helpers
+        ];
+    }
+}
+
+if (!function_exists('pontifex_oi_exam_label')) {
+    /**
+     * Vertaal exam key naar nette label.
+     *
+     * @param string $exam_key De sleutel van het examen.
+     * @return string Het nette label.
+     */
+    function pontifex_oi_exam_label(string $exam_key): string {
+        // Normaliseer eventuele alias-keys
+        if (function_exists('pontifex_normalize_exam_key')) {
+            $exam_key = pontifex_normalize_exam_key($exam_key);
+        }
+
+        // Probeer EXAM_PRODUCTS te gebruiken
+        if (function_exists('get_all_exam_products')) {
+            $all = get_all_exam_products();
+            if (!empty($all[$exam_key]['label'])) {
+                $base = $all[$exam_key]['label'];
+                // Suffix “(los examen)” als de key dat aangeeft
+                if (str_starts_with($exam_key, 'los-examen-')) {
+                    return $base . ' (los examen)';
+                }
+                return $base;
+            }
+        }
+
+        // Fallbacks voor bekende keys
+        $map = [
+            'los-examen-vca-basis'         => 'VCA Basis (los examen)',
+            'los-examen-vca-basis-groen' => 'VCA Basis Groen (los examen)',
+            'los-examen-vca-vol'           => 'VCA Vol (los examen)',
+            'los-examen-vca-vil'           => 'VCA VIL (los examen)',
+        ];
+        return $map[$exam_key] ?? $exam_key;
+    }
+}
+
+if (!function_exists('pontifex_oi_material_info')) {
+    /**
+     * Geef nette labels voor gekozen MATERIAAL (incl. combi’s).
+     *
+     * @param string|null $material_key De sleutel van het gekozen materiaal.
+     * @param string $exam_key De sleutel van het examen (nodig voor combi's).
+     * @return array
+     */
+    function pontifex_oi_material_info(?string $material_key, string $exam_key = ''): array {
+        if (!$material_key || $material_key === '1') {
+            return ['label' => 'Geen lesmateriaal', 'items' => [], 'sum' => 0.0];
+        }
+
+        if (function_exists('pontifex_normalize_exam_key')) {
+            $exam_key = pontifex_normalize_exam_key($exam_key ?: '');
+        }
+
+        $items = [];
+        $sum   = 0.0;
+
+        if (function_exists('get_all_material_products')) {
+            $MATERIAL_PRODUCTS = get_all_material_products();
+        } else {
+            $MATERIAL_PRODUCTS = [];
+        }
+
+        // Combi’s bepalen
+        $combiKey = $material_key;
+        if (in_array($material_key, ['2', '4', '5', '6', '7'], true)) {
+            $suffix = (strpos($exam_key, 'vol') !== false || strpos($exam_key, 'vil') !== false) ? 'vol' : 'basis';
+            $combiKey = "{$material_key}_{$suffix}";
+        }
+
+        // Probeer MATERIAL_COMBIS op te halen
+        $MATERIAL_COMBIS = [];
+        if (function_exists('pontifex_oi_get_product_data_for_js')) {
+            $all = pontifex_oi_get_product_data_for_js();
+            $MATERIAL_COMBIS = $all['materialCombis'] ?? [];
+        }
+
+        // 1) is dit een combi?
+        if (!empty($MATERIAL_COMBIS[$combiKey]) && is_array($MATERIAL_COMBIS[$combiKey])) {
+            foreach ($MATERIAL_COMBIS[$combiKey] as $prodKey) {
+                $label = $MATERIAL_PRODUCTS[$prodKey]['label'] ?? $prodKey;
+                $price = (float)($MATERIAL_PRODUCTS[$prodKey]['price'] ?? 0);
+                $items[] = ['label' => $label, 'price' => $price];
+                $sum += $price;
+            }
+            $label = implode(', ', array_column($items, 'label'));
+            return ['label' => $label, 'items' => $items, 'sum' => $sum];
+        }
+
+        // 2) geen combi → direct single product
+        $label = $MATERIAL_PRODUCTS[$material_key]['label'] ?? $material_key;
+        $price = (float)($MATERIAL_PRODUCTS[$material_key]['price'] ?? 0);
+        $items[] = ['label' => $label, 'price' => $price];
+        $sum = $price;
+
+        return ['label' => $label, 'items' => $items, 'sum' => $sum];
+    }
+}
+
+if (!function_exists('pontifex_oi_extra_info')) {
+    /**
+     * Geef nette labels voor EXTRA opties (checkboxen).
+     *
+     * @param mixed $extra_options De ruwe extra opties data.
+     * @return array
+     */
+    function pontifex_oi_extra_info($extra_options): array {
+        if (function_exists('get_all_extra_products')) {
+            $EXTRA_PRODUCTS = get_all_extra_products();
+        } else {
+            $EXTRA_PRODUCTS = [];
+        }
+
+        $items = [];
+        $sum   = 0.0;
+
+        if (empty($extra_options)) {
+            return ['items' => [], 'sum' => 0.0];
+        }
+
+        // Normaliseer naar lijst van keys
+        $keys = [];
+        if (is_array($extra_options)) {
+            foreach ($extra_options as $k => $v) {
+                // formats: ['vca_proefexamen_nl' => 1] of ['0'=>'vca_proefexamen_nl'] of [['key'=>'vca_proefexamen_nl']]
+                if (is_string($v)) {
+                    $keys[] = $v;
+                } elseif (is_int($k) && is_string($v)) {
+                    $keys[] = $v;
+                } elseif (is_string($k) && ($v === '1' || $v === 1 || $v === true)) {
+                    $keys[] = $k;
+                } elseif (is_array($v) && !empty($v['key'])) {
+                    $keys[] = (string)$v['key'];
+                }
+            }
+        }
+
+        $keys = array_values(array_unique(array_filter($keys)));
 
         foreach ($keys as $key) {
-            $label = $GLOBALS['EXTRA_PRODUCTS'][$key]['label'] ?? $key;
-            $price = (float) ($GLOBALS['EXTRA_PRODUCTS'][$key]['price'] ?? 0);
+            $label = $EXTRA_PRODUCTS[$key]['label'] ?? $key;
+            $price = (float)($EXTRA_PRODUCTS[$key]['price'] ?? 0);
             $items[] = ['label' => $label, 'price' => $price];
             $sum += $price;
         }
 
         return ['items' => $items, 'sum' => $sum];
+    }
+}
+
+if (!function_exists('pontifex_oi_format_for_cards')) {
+    /**
+     * Maak een nette “kaart-data” uit de ruwe payload, specifiek voor UI weergave.
+     *
+     * @param array $payload De ruwe order/submission payload.
+     * @return array De gestructureerde kaartdata.
+     */
+    function pontifex_oi_format_for_cards(array $payload): array {
+        $blk = array_flip(pontifex_oi_cards_blacklist_keys());
+
+        // Naamvelden (nieuw of oud)
+        $name = '';
+        if (!empty($payload['first_name']) || !empty($payload['last_name'])) {
+            $name = trim(($payload['first_name'] ?? '') . ' ' . ($payload['last_name'] ?? ''));
+        } elseif (!empty($payload['candidate_fullname']) || !empty($payload['candidate_lastname'])) {
+            $fn  = is_array($payload['candidate_fullname']) ? ($payload['candidate_fullname'][0] ?? '') : ($payload['candidate_fullname'] ?? '');
+            $inf = is_array($payload['candidate_infix']) ? ($payload['candidate_infix'][0] ?? '') : ($payload['candidate_infix'] ?? '');
+            $ln  = is_array($payload['candidate_lastname']) ? ($payload['candidate_lastname'][0] ?? '') : ($payload['candidate_lastname'] ?? '');
+            $name = trim($fn . ' ' . $inf . ' ' . $ln);
+        }
+
+        // E-mail uit nieuw/oud
+        $email = $payload['email'] ?? ($payload['order_email'] ?? '');
+
+        // Exam label
+        $exam_key = $payload['exam_type'] ?? '';
+        $exam_label = $exam_key ? pontifex_oi_exam_label($exam_key) : '';
+
+        // Datum/tijd (nieuw of oud)
+        $date = $payload['planning_date'] ?? ($payload['date'] ?? '');
+        $time = $payload['planning_time'] ?? ($payload['time'] ?? '');
+
+        // Locatie
+        $location = $payload['location'] ?? '';
+
+        // Totaal
+        $total = $payload['total'] ?? ($payload['payment_amount'] ?? ($payload['calculated_price'] ?? ''));
+
+        // Verzamel overige zichtbare velden (excl. blacklist & de velden die we al apart tonen)
+        $hide = array_merge(
+            array_keys($blk),
+            ['first_name','last_name','candidate_fullname','candidate_infix','candidate_lastname',
+             'email','order_email','exam_type','planning_date','date','planning_time','time',
+             'location','total','payment_amount','calculated_price']
+        );
+
+        // Voeg raw keys toe aan hide-lijst voor materiaal en extra opties
+        $hide = array_merge($hide, ['material','extra_options']);
+
+        // Haal materiaal en extra info op
+        $material_info = pontifex_oi_material_info($payload['material'] ?? '', $exam_key);
+        $extras_info   = pontifex_oi_extra_info($payload['extra_options'] ?? []);
+
+        $extra = [];
+        foreach ($payload as $k => $v) {
+            if (in_array($k, $hide, true)) continue;
+            // Eenvoudige array-conversie voor de 'extra' velden
+            $val = is_array($v) ? implode(', ', array_map('strval', $v)) : (string)$v;
+            // Sla lege waarden over
+            if ($val === '' || $val === null || (is_string($val) && trim($val) === '')) continue;
+
+            $label = ucwords(str_replace(['_', '-'], ' ', $k)); // simpele label
+            $extra[] = ['label' => $label, 'value' => $val];
+        }
+
+        // Aangepaste return array
+        return [
+            'name'           => $name,
+            'email'          => $email,
+            'exam_label'     => $exam_label,
+            'date'           => $date,
+            'time'           => $time,
+            'location'       => $location,
+            'total'          => $total,
+            'material_label' => $material_info['label'],
+            'material_items' => $material_info['items'],
+            'material_sum'   => $material_info['sum'],
+            'extra_items'    => $extras_info['items'],
+            'extra_sum'      => $extras_info['sum'],
+            'extra'          => $extra, // overige vrije velden die niet op de blacklist staan
+        ];
     }
 }
