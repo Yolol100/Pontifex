@@ -21,14 +21,14 @@ class SoapClient
 
     private $endpoint;
 
-    private $options = [
-        'trace'              => 1,
-        'exceptions'         => 1,
-        'cache_wsdl'         => WSDL_CACHE_BOTH,
-        'connection_timeout' => 15,
-        'compression'        => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP,
-        'features'           => SOAP_SINGLE_ELEMENT_ARRAARS,
-    ];
+	private $options = [
+		'trace'              => 1,
+		'exceptions'         => 1,
+		'cache_wsdl'         => WSDL_CACHE_BOTH,
+		'connection_timeout' => 15,
+		'compression'        => SOAP_COMPRESSION_ACCEPT | SOAP_COMPRESSION_GZIP,
+		'features'           => SOAP_SINGLE_ELEMENT_ARRAYS,
+	];
 
     public function __construct()
     {
