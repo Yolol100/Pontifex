@@ -44,40 +44,43 @@ final class ProductRegistry
 
     public const EXTRA_PRODUCTS = [
         // 🇳🇱 Basis NL
-        'vca_proefexamen_nl'     => ['label' => 'Proefexamen',                  'price' => 25.00],
-        'vca_elearning_nl'       => ['label' => 'E-learning met proefexamen',  'price' => 29.00],
-        'boek_basis_nl'          => ['label' => 'Boek',                         'price' => 36.00],
-        'boek_combi_nl'          => ['label' => 'Boek combi',                   'price' => 49.00],
+        'vca_proefexamen_nl'     => ['label' => 'Proefexamen',                   'price' => 25.00],
+        'vca_elearning_nl'       => ['label' => 'E-learning met proefexamen',    'price' => 29.00],
+        'boek_basis_nl'          => ['label' => 'Boek',                          'price' => 36.00],
+        'boek_combi_nl'          => ['label' => 'Boek combi',                    'price' => 49.00],
 
         // 🇬🇧 Basis EN
-        'vca_proefexamen_en'     => ['label' => 'Practice exams',              'price' => 25.00],
+        'vca_proefexamen_en'     => ['label' => 'Practice exams',               'price' => 25.00],
         'vca_elearning_en'       => ['label' => 'E-learning with practice exam','price' => 49.00],
-        'boek_basis_en'          => ['label' => 'Book',                         'price' => 56.00],
-        'boek_combi_en'          => ['label' => 'Book combi',                   'price' => 69.00],
+        'boek_basis_en'          => ['label' => 'Book',                          'price' => 56.00],
+        'boek_combi_en'          => ['label' => 'Book combi',                    'price' => 69.00],
 
         // 🇳🇱 Vol NL
-        'vca_vol_proefexamen_nl' => ['label' => 'Proefexamen',                  'price' => 25.00],
-        'vca_vol_elearning_nl'   => ['label' => 'E-learning met proefexamen',  'price' => 39.00],
-        'boek_vol_nl'            => ['label' => 'Boek',                         'price' => 42.00],
-        'boek_combi_vol_nl'      => ['label' => 'Boek combi',                   'price' => 49.00],
+        'vca_vol_proefexamen_nl' => ['label' => 'Proefexamen',                   'price' => 25.00],
+        'vca_vol_elearning_nl'   => ['label' => 'E-learning met proefexamen',    'price' => 39.00],
+        'boek_vol_nl'            => ['label' => 'Boek',                          'price' => 42.00],
+        'boek_combi_vol_nl'      => ['label' => 'Boek combi',                    'price' => 49.00],
 
         // 🇬🇧 Vol EN
-        'vca_vol_proefexamen_en' => ['label' => 'Practice exams',              'price' => 25.00],
+        'vca_vol_proefexamen_en' => ['label' => 'Practice exams',               'price' => 25.00],
         'vca_vol_elearning_en'   => ['label' => 'E-learning with practice exam','price' => 59.00],
-        'boek_vol_en'            => ['label' => 'Book',                         'price' => 62.00],
-        'boek_combi_vol_en'      => ['label' => 'Book combi',                   'price' => 69.00],
+        'boek_vol_en'            => ['label' => 'Book',                          'price' => 62.00],
+        'boek_combi_vol_en'      => ['label' => 'Book combi',                    'price' => 69.00],
 
         // Weekendcursus los
-        'cursus-weekend-nl'      => ['label' => 'Met examen',                   'price' => 245.00],
-        'cursus-weekend-en'      => ['label' => 'With exam',                    'price' => 245.00],
+        'cursus-weekend-nl'      => ['label' => 'Met examen',                    'price' => 245.00],
+        'cursus-weekend-en'      => ['label' => 'With exam',                     'price' => 245.00],
 
-        // Vertaalde/aliassen / legacy keys
-        'cursus-weekend'              => ['label' => 'Weekendcursus met examen',       'price' => 245.00],
-        'vca-basis-proefexamens-nl'   => ['label' => 'VCA Basis Proefexamens (NL)',    'price' => 25.00],
-        'vca-vol-proefexamens-nl'     => ['label' => 'VCA Vol Proefexamens (NL)',      'price' => 25.00],
-        'proefexamens-en'             => ['label' => 'Proefexamens (EN)',              'price' => 25.00],
+        // Legacy / aliassen
+        'cursus-weekend'            => ['label' => 'Weekendcursus met examen',  'price' => 245.00],
+        'vca-basis-proefexamens-nl' => ['label' => 'VCA Basis Proefexamens (NL)', 'price' => 25.00],
+        'vca-vol-proefexamens-nl'   => ['label' => 'VCA Vol Proefexamens (NL)',   'price' => 25.00],
+        'proefexamens-en'           => ['label' => 'Proefexamens (EN)',           'price' => 25.00],
     ];
 
+    /**
+     * Interne materiaal-combinaties (bewust afgeschermd)
+     */
     private const COMBI_MAP = [
         '' => [],
         'boek' => [
@@ -109,6 +112,19 @@ final class ProductRegistry
         'los-examen-vca-vil'         => [],
     ];
 
+    /* =========================
+       PUBLIC GETTERS (FIX)
+       ========================= */
+
+    public static function getMaterialCombis(): array
+    {
+        return self::COMBI_MAP;
+    }
+
+    /* =========================
+       BUSINESS LOGIC
+       ========================= */
+
     private static function isPracticeExamItem(string $key, array $item): bool
     {
         return str_contains($key, 'proefexamen')
@@ -123,7 +139,6 @@ final class ProductRegistry
         return array_filter(
             self::EXTRA_PRODUCTS,
             static function (string $key, array $item): bool {
-                // Verberg proefexamens die géén Nederlandse versie zijn
                 return !(
                     self::isPracticeExamItem($key, $item)
                     && !str_contains($key, '_nl')
@@ -162,9 +177,6 @@ final class ProductRegistry
         return (float) (self::EXTRA_PRODUCTS[$key]['price'] ?? 0.0);
     }
 
-    /**
-     * Berekent totaalprijs examen + materiaalcombinatie (klassieke 1 t/m 7 keuzes)
-     */
     public static function calculateTotalPrice(
         string $examType,
         string $language = 'nl',
@@ -199,9 +211,6 @@ final class ProductRegistry
         return $total;
     }
 
-    /**
-     * Data-structuur voor JavaScript (frontend dropdowns, prijsberekening, etc.)
-     */
     public static function getDataForJavaScript(): array
     {
         $examProducts = [];
@@ -213,29 +222,25 @@ final class ProductRegistry
         }
 
         return [
-            'examProducts'       => $examProducts,
-            'materialProducts'   => self::EXTRA_PRODUCTS,
-            'extraProducts'      => self::getFilteredExtraProducts(),
-            'materialCombis'     => self::COMBI_MAP,
+            'examProducts'         => $examProducts,
+            'materialProducts'     => self::EXTRA_PRODUCTS,
+            'extraProducts'        => self::getFilteredExtraProducts(),
+            'materialCombis'       => self::getMaterialCombis(),
             'weekendAllowedByExam' => self::WEEKEND_ALLOWED_BY_EXAM,
         ];
     }
 }
 
-// =============================================================================
-// === BACKWARD COMPATIBILITY LAYER - voor oude code die globals verwacht ===
-// =============================================================================
+/* =============================================================================
+   BACKWARD COMPATIBILITY LAYER
+   ============================================================================= */
 
 $GLOBALS['EXAM_PRODUCTS']     = ProductRegistry::EXAMS;
 $GLOBALS['EXTRA_PRODUCTS']    = ProductRegistry::EXTRA_PRODUCTS;
 $GLOBALS['MATERIAL_PRODUCTS'] = ProductRegistry::EXTRA_PRODUCTS;
+$GLOBALS['MATERIAL_COMBIS']   = ProductRegistry::getMaterialCombis();
 
-// Optioneel - als oude code expliciet MATERIAL_COMBIS verwacht
-// (momenteel vaak niet nodig, maar ter veiligheid):
-$GLOBALS['MATERIAL_COMBIS'] = ProductRegistry::COMBI_MAP;
-
-// Voor heel oude code die nog de oude keys verwacht:
 $GLOBALS['EXAM_PRICES'] = array_map(
-    fn($exam) => $exam['prices'],
+    static fn($exam) => $exam['prices'],
     ProductRegistry::EXAMS
 );

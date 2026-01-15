@@ -1,14 +1,18 @@
 <?php
+declare(strict_types=1);
+
 /**
- * Centrale product- en prijsregistratie - alles op één plek, geen globals meer
- * Met backward compatibility layer voor oude code die globals verwacht
+ * Centrale product- en prijsregistratie - alles op één plek.
+ * Met backward compatibility layer voor oude code die globals verwacht.
+ *
+ * 2026-proof: strict types, typed signatures, match/str_* helpers, geen directe access
+ * tot private constants buiten de class (gebruik getters).
  */
-if (!defined('ABSPATH')) {
-    exit; // Exit if accessed directly
-}
+defined('ABSPATH') || exit;
 
 final class ProductRegistry
 {
+    /** @var array<string, array{label:string, prices:array<string, int|float>}> */
     public const EXAMS = [
         'los-examen-vca-basis' => [
             'label' => 'VCA Basis',
@@ -42,6 +46,7 @@ final class ProductRegistry
         ],
     ];
 
+    /** @var array<string, array{label:string, price:float}> */
     public const EXTRA_PRODUCTS = [
         // 🇳🇱 Basis NL
         'vca_proefexamen_nl'     => ['label' => 'Proefexamen',                   'price' => 25.00],
@@ -50,8 +55,8 @@ final class ProductRegistry
         'boek_combi_nl'          => ['label' => 'Boek combi',                    'price' => 49.00],
 
         // 🇬🇧 Basis EN
-        'vca_proefexamen_en'     => ['label' => 'Practice exams',               'price' => 25.00],
-        'vca_elearning_en'       => ['label' => 'E-learning with practice exam','price' => 49.00],
+        'vca_proefexamen_en'     => ['label' => 'Practice exams',                'price' => 25.00],
+        'vca_elearning_en'       => ['label' => 'E-learning with practice exam', 'price' => 49.00],
         'boek_basis_en'          => ['label' => 'Book',                          'price' => 56.00],
         'boek_combi_en'          => ['label' => 'Book combi',                    'price' => 69.00],
 
@@ -62,8 +67,8 @@ final class ProductRegistry
         'boek_combi_vol_nl'      => ['label' => 'Boek combi',                    'price' => 49.00],
 
         // 🇬🇧 Vol EN
-        'vca_vol_proefexamen_en' => ['label' => 'Practice exams',               'price' => 25.00],
-        'vca_vol_elearning_en'   => ['label' => 'E-learning with practice exam','price' => 59.00],
+        'vca_vol_proefexamen_en' => ['label' => 'Practice exams',                'price' => 25.00],
+        'vca_vol_elearning_en'   => ['label' => 'E-learning with practice exam', 'price' => 59.00],
         'boek_vol_en'            => ['label' => 'Book',                          'price' => 62.00],
         'boek_combi_vol_en'      => ['label' => 'Book combi',                    'price' => 69.00],
 
@@ -71,15 +76,18 @@ final class ProductRegistry
         'cursus-weekend-nl'      => ['label' => 'Met examen',                    'price' => 245.00],
         'cursus-weekend-en'      => ['label' => 'With exam',                     'price' => 245.00],
 
-        // Legacy / aliassen
-        'cursus-weekend'            => ['label' => 'Weekendcursus met examen',  'price' => 245.00],
+        // Vertaalde/aliassen / legacy keys
+        'cursus-weekend'            => ['label' => 'Weekendcursus met examen',    'price' => 245.00],
         'vca-basis-proefexamens-nl' => ['label' => 'VCA Basis Proefexamens (NL)', 'price' => 25.00],
         'vca-vol-proefexamens-nl'   => ['label' => 'VCA Vol Proefexamens (NL)',   'price' => 25.00],
         'proefexamens-en'           => ['label' => 'Proefexamens (EN)',           'price' => 25.00],
     ];
 
     /**
-     * Interne materiaal-combinaties (bewust afgeschermd)
+     * Materiaal-combi mapping (intern).
+     * Gebruik de public getter om dit buiten de class te benaderen.
+     *
+     * @var array<string, array<string, list<string>>>
      */
     private const COMBI_MAP = [
         '' => [],
@@ -105,6 +113,7 @@ final class ProductRegistry
         ],
     ];
 
+    /** @var array<string, list<string>> */
     public const WEEKEND_ALLOWED_BY_EXAM = [
         'los-examen-vca-basis'       => ['nl', 'en'],
         'los-examen-vca-vol'         => ['nl', 'en'],
@@ -112,33 +121,25 @@ final class ProductRegistry
         'los-examen-vca-vil'         => [],
     ];
 
-    /* =========================
-       PUBLIC GETTERS (FIX)
-       ========================= */
-
-    public static function getMaterialCombis(): array
-    {
-        return self::COMBI_MAP;
-    }
-
-    /* =========================
-       BUSINESS LOGIC
-       ========================= */
-
     private static function isPracticeExamItem(string $key, array $item): bool
     {
-        return str_contains($key, 'proefexamen')
-            || str_contains($key, 'proefexamens')
-            || str_contains($key, 'practice')
-            || str_contains(strtolower($item['label'] ?? ''), 'proef')
-            || str_contains(strtolower($item['label'] ?? ''), 'practice');
+        $label = strtolower((string)($item['label'] ?? ''));
+        $k = strtolower($key);
+
+        return str_contains($k, 'proefexamen')
+            || str_contains($k, 'proefexamens')
+            || str_contains($k, 'practice')
+            || str_contains($label, 'proef')
+            || str_contains($label, 'practice');
     }
 
+    /** @return array<string, array{label:string, price:float}> */
     public static function getFilteredExtraProducts(): array
     {
-        return array_filter(
+        /** @var array<string, array{label:string, price:float}> $filtered */
+        $filtered = array_filter(
             self::EXTRA_PRODUCTS,
-            static function (string $key, array $item): bool {
+            static function (array $item, string $key): bool {
                 return !(
                     self::isPracticeExamItem($key, $item)
                     && !str_contains($key, '_nl')
@@ -147,6 +148,8 @@ final class ProductRegistry
             },
             ARRAY_FILTER_USE_BOTH
         );
+
+        return $filtered;
     }
 
     public static function normalizeExamKey(string $key): string
@@ -165,16 +168,27 @@ final class ProductRegistry
         $examType = self::normalizeExamKey($examType);
         $prices = self::EXAMS[$examType]['prices'] ?? null;
 
-        if ($prices === null) {
+        if (!is_array($prices)) {
             return 0.0;
         }
 
-        return (float) ($prices[$language] ?? $prices['nl'] ?? 0);
+        $v = $prices[$language] ?? $prices['nl'] ?? 0;
+        return (float) $v;
     }
 
     public static function getMaterialPrice(string $key): float
     {
         return (float) (self::EXTRA_PRODUCTS[$key]['price'] ?? 0.0);
+    }
+
+    /**
+     * Public getter voor materiaalcombi mapping.
+     *
+     * @return array<string, array<string, list<string>>>
+     */
+    public static function getMaterialCombis(): array
+    {
+        return self::COMBI_MAP;
     }
 
     public static function calculateTotalPrice(
@@ -184,14 +198,15 @@ final class ProductRegistry
     ): float {
         $total = self::getExamPrice($examType, $language);
 
-        if ((string) $materialChoice === '1' || $materialChoice === '') {
+        $materialChoice = (string) $materialChoice;
+        if ($materialChoice === '1' || $materialChoice === '') {
             return $total;
         }
 
         $isVol = str_contains($examType, 'vol') || str_contains($examType, 'vil');
         $type = $isVol ? 'vol' : 'basis';
 
-        $combiId = match ((string) $materialChoice) {
+        $combiId = match ($materialChoice) {
             '2' => 'boek',
             '4' => 'elearning',
             '5' => 'proef',
@@ -200,11 +215,12 @@ final class ProductRegistry
             default => null,
         };
 
-        if ($combiId === null || !isset(self::COMBI_MAP[$combiId][$type])) {
+        $map = self::COMBI_MAP;
+        if ($combiId === null || !isset($map[$combiId][$type])) {
             return $total;
         }
 
-        foreach (self::COMBI_MAP[$combiId][$type] as $materialKey) {
+        foreach ($map[$combiId][$type] as $materialKey) {
             $total += self::getMaterialPrice($materialKey);
         }
 
@@ -216,8 +232,8 @@ final class ProductRegistry
         $examProducts = [];
         foreach (self::EXAMS as $key => $data) {
             $examProducts[$key] = [
-                'label'  => $data['label'],
-                'prices' => $data['prices'],
+                'label'  => (string) $data['label'],
+                'prices' => (array) ($data['prices'] ?? []),
             ];
         }
 
@@ -231,16 +247,13 @@ final class ProductRegistry
     }
 }
 
-/* =============================================================================
-   BACKWARD COMPATIBILITY LAYER
-   ============================================================================= */
-
+// Backward compatibility globals
 $GLOBALS['EXAM_PRODUCTS']     = ProductRegistry::EXAMS;
 $GLOBALS['EXTRA_PRODUCTS']    = ProductRegistry::EXTRA_PRODUCTS;
 $GLOBALS['MATERIAL_PRODUCTS'] = ProductRegistry::EXTRA_PRODUCTS;
 $GLOBALS['MATERIAL_COMBIS']   = ProductRegistry::getMaterialCombis();
 
 $GLOBALS['EXAM_PRICES'] = array_map(
-    static fn($exam) => $exam['prices'],
+    static fn(array $exam): array => (array) ($exam['prices'] ?? []),
     ProductRegistry::EXAMS
 );

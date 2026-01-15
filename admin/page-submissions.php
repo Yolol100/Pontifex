@@ -1,118 +1,165 @@
 <?php
+/**
+ * Pontifex OI - Inzendingen Overzicht Pagina (Admin)
+ *
+ * Toont een dynamisch geladen overzicht van inzendingen met zoek-, sorteer- en exportfunctionaliteit.
+ *
+ * @package PontifexOI
+ * @since   1.0.0
+ */
+
+declare(strict_types=1);
+
 defined('ABSPATH') || exit;
 
 use PontifexOI\Helpers\Registrations;
 
-// 1) Helper-functie is verplaatst naar een aparte file en wordt hier ingeladen.
+// Helper functies laden
 require_once PONTIFEX_OI_PATH . 'includes/helpers/submissions-helpers.php';
 
-// Query params veilig uitlezen (Only needed for initial search state and export link)
-$page = isset($_GET['paged']) ? max(1, (int)$_GET['paged']) : 1;
-$per_page = isset($_GET['per_page']) ? max(1, min(200, (int)$_GET['per_page'])) : 20;
-$search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
-$orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
-$order = (isset($_GET['order']) && strtoupper($_GET['order']) === 'ASC') ? 'ASC' : 'DESC';
+// ========================
+// Query parameters veilig verwerken
+// ========================
+$page     = max(1, (int) ($_GET['paged']     ?? 1));
+$per_page = max(1, min(200, (int) ($_GET['per_page'] ?? 20)));
+$search   = isset($_GET['s'])       ? sanitize_text_field((string) $_GET['s'])       : '';
+$orderby  = isset($_GET['orderby']) ? sanitize_key((string) $_GET['orderby'])       : 'created_at';
+$order    = (isset($_GET['order']) && strtoupper((string) $_GET['order']) === 'ASC') ? 'ASC' : 'DESC';
 
-// Export CSV/Excel (Export logic remains server-side)
-// 2) NONCE CHECK VERWIJDERD
-if (isset($_GET['export_submissions'])) {
-	// Note: We ignore the current pagination for export, fetching all based on search/sort
-	// Limit changed to 5000 for safer batch export performance.
-	$all = Registrations::list(1, 5000, $search, $orderby, $order);
+// ========================
+// Export functionaliteit (CSV)
+// ========================
+if (isset($_GET['export_submissions']) && current_user_can('manage_options')) {
+    // Extra beveiliging: nonce check (optioneel, maar sterk aanbevolen)
+    if (!isset($_GET['_wpnonce']) || !wp_verify_nonce($_GET['_wpnonce'], 'pontifex_oi_export_submissions')) {
+        wp_die(esc_html__('Ongeldige of ontbrekende beveiligingstoken. Export geweigerd.', 'pontifex-oi'), 403);
+    }
 
-	// Streaming output flush
-	if (ob_get_level()) { ob_end_clean(); }
-	while (ob_get_level()) ob_end_flush();
-	
-	$filename = 'inzendingen-' . date('Ymd-His') . '.csv';
+    // Haal ALLE relevante records op (geen paginering bij export)
+    $all = Registrations::list(1, 5000, $search, $orderby, $order);
 
-	// Prevent caching and set CSV headers
-	nocache_headers();
-	header('Content-Type: text/csv; charset=utf-8');
-	header('Content-Disposition: attachment; filename=' . $filename);
-	$output = fopen('php://output', 'w');
+    if (!is_array($all) || empty($all['rows'])) {
+        wp_die(esc_html__('Geen gegevens gevonden om te exporteren.', 'pontifex-oi'));
+    }
 
-	$headers = [
-		'Naam','Tussenvoegsel','Achternaam','Geboortedatum',
-		'Postcode','Huisnummer','Straat','Stad',
-		'Telefoonnummer','E-mailadres','Bedrijfsnaam','Functie',
-		'BTW-nummer','Examen','Taal','Lesmateriaal','Extra lesmateriaal',
-		'Locatie','Datum','Tijd','Totaal'
-	];
-	fputcsv($output, $headers);
+    // Voorkom output buffering problemen
+    if (ob_get_level()) {
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+    }
 
-	foreach ($all['rows'] as $r) {
-		$payload = json_decode($r['payload'] ?? '[]', true) ?: [];
-		$rows = pontifex_oi_order_to_rows($payload);
-		foreach ($rows as $row) {
-			// Write to CSV
-			fputcsv($output, $row);
-		}
-	}
+    // Headers voor CSV download
+    nocache_headers();
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="inzendingen-' . date('Y-m-d-His') . '.csv"');
 
-	fclose($output);
-	exit; // Exit cleanly
+    $output = fopen('php://output', 'w');
+
+    // CSV kolomkoppen (moet overeenkomen met pontifex_oi_order_to_rows output)
+    $headers = [
+        'Naam', 'Tussenvoegsel', 'Achternaam', 'Geboortedatum',
+        'Postcode', 'Huisnummer', 'Straat', 'Stad',
+        'Telefoonnummer', 'E-mailadres', 'Bedrijfsnaam', 'Functie',
+        'BTW-nummer', 'Examen', 'Taal', 'Lesmateriaal', 'Extra lesmateriaal',
+        'Locatie', 'Datum', 'Tijd', 'Totaal'
+    ];
+
+    fputcsv($output, $headers);
+
+    foreach ($all['rows'] as $record) {
+        $payload = json_decode($record['payload'] ?? '{}', true) ?: [];
+        $rows = pontifex_oi_order_to_rows($payload);
+
+        foreach ($rows as $row) {
+            fputcsv($output, $row);
+        }
+    }
+
+    fclose($output);
+    exit;
 }
 
-// Data ophalen: Only call Registrations::list to get the total count for the title row.
-// The actual table content will be fetched by JS.
-$list = Registrations::list($page, $per_page, $search, $orderby, $order);
+// ========================
+// Initiële data ophalen (alleen voor totaal telling + titel)
+// ========================
+$initial_list = Registrations::list($page, $per_page, $search, $orderby, $order);
 
-// FIX: Zorg dat $list altijd consistente structuur heeft
-if (!is_array($list)) {
-	$list = ['rows' => [], 'total' => 0, 'page' => 1, 'pages' => 1];
+// Zorg voor consistente structuur
+if (!is_array($initial_list)) {
+    $initial_list = [
+        'rows'     => [],
+        'total'    => 0,
+        'page'     => 1,
+        'pages'    => 1,
+        'per_page' => $per_page,
+    ];
 }
-
-// Headers for the table (must match the pontifex_oi_order_to_rows function output)
-$headers = [
-	'Naam','Tussenvoegsel','Achternaam','Geboortedatum',
-	'Postcode','Huisnummer','Straat','Stad',
-	'Telefoonnummer','E-mailadres','Bedrijfsnaam','Functie',
-	'BTW-nummer','Examen','Taal','Lesmateriaal','Extra lesmateriaal',
-	'Locatie','Datum','Tijd','Totaal'
-];
-
-// Set initial values for JavaScript to know the table state
-// The JS needs the current search, per_page, orderby, and order to initiate the fetch
 ?>
 
 <div class="pontifex-admin-wrap">
-	<div class="pontifex-admin-card pontifex-card-submissions">
-		<div class="pontifex-admin-search-bar">
-			<input id="poi_sub_s" type="text" class="pontifex-admin-input poi-sub-search"
-				value="<?php echo esc_attr($search); ?>"
-				placeholder="<?php esc_attr_e('Zoek op order-id, naam, e-mail…','pontifex-oi'); ?>" />
+    <div class="pontifex-admin-card pontifex-card-submissions">
+        <h2>
+            <?php esc_html_e('Inzendingen', 'pontifex-oi'); ?>
+            <span class="pontifex-sub-count">
+                (<?php echo esc_html(number_format_i18n((int) ($initial_list['total'] ?? 0))); ?>)
+            </span>
+        </h2>
 
-			<select id="poi_sub_perpage" class="pontifex-admin-input poi-sub-select">
-				<?php foreach ([20, 50, 100, 200] as $pp): ?>
-					<option value="<?php echo (int)$pp; ?>" <?php selected($per_page, $pp); ?>>
-						<?php echo (int)$pp; ?>/pagina
-					</option>
-				<?php endforeach; ?>
-			</select>
+        <div class="pontifex-admin-search-bar">
+            <input type="search"
+                   id="poi_sub_s"
+                   class="pontifex-admin-input poi-sub-search"
+                   value="<?php echo esc_attr($search); ?>"
+                   placeholder="<?php esc_attr_e('Zoek op order-id, naam, e-mail…', 'pontifex-oi'); ?>" />
 
-			<button id="poi_sub_apply" class="pontifex-admin-submit poi-sub-btn"><?php esc_html_e('Toepassen','pontifex-oi'); ?></button>
+            <select id="poi_sub_perpage" class="pontifex-admin-input poi-sub-select">
+                <?php foreach ([10, 20, 50, 100, 200] as $pp): ?>
+                    <option value="<?php echo $pp; ?>" <?php selected($per_page, $pp); ?>>
+                        <?php echo $pp; ?> <?php esc_html_e('per pagina', 'pontifex-oi'); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
 
-			<a href="<?php echo esc_url(add_query_arg([
-				'page' => 'pontifex_oi_submissions',
-				's' => $search,
-				'orderby' => $orderby,
-				'order' => $order,
-				'export_submissions' => 1,
-			], admin_url('admin.php'))); ?>"
-			class="pontifex-admin-submit poi-sub-btn poi-export-btn"><?php esc_html_e('Exporteren','pontifex-oi'); ?></a>
-		</div>
+            <button id="poi_sub_apply" class="button button-primary poi-sub-btn">
+                <?php esc_html_e('Toepassen', 'pontifex-oi'); ?>
+            </button>
 
-		<div id="poi_sub_cardgrid" class="pontifex-oi-card-grid" aria-live="polite">
-			<div class="pontifex-oi-card-item pontifex-loading">
-				<div class="pontifex-oi-card-body">Laden...</div>
-			</div>
-		</div>
+            <?php
+            $export_url = wp_nonce_url(
+                add_query_arg([
+                    'page'              => 'pontifex_oi_submissions',
+                    's'                 => $search,
+                    'orderby'           => $orderby,
+                    'order'             => $order,
+                    'export_submissions' => '1',
+                ], admin_url('admin.php')),
+                'pontifex_oi_export_submissions',
+                '_wpnonce'
+            );
+            ?>
+            <a href="<?php echo esc_url($export_url); ?>"
+               class="button button-secondary poi-sub-btn poi-export-btn">
+                <?php esc_html_e('Exporteren als CSV', 'pontifex-oi'); ?>
+            </a>
+        </div>
 
-		<div id="poi_sub_pagination" class="poi-sub-pagination" style="display:none;">
-			<button type="button" class="pontifex-oi-back-link" data-direction="prev" disabled>&larr;</button>
-			<div id="poi_sub_pageinfo">1 / 1</div>
-			<button type="button" class="pontifex-oi-back-link" data-direction="next" disabled>&rarr;</button>
-		</div>
-	</div>
+        <div id="poi_sub_cardgrid" class="pontifex-oi-card-grid" aria-live="polite">
+            <div class="pontifex-oi-card-item pontifex-loading">
+                <div class="pontifex-oi-card-body">
+                    <?php esc_html_e('Bezig met laden...', 'pontifex-oi'); ?>
+                </div>
+            </div>
+        </div>
+
+        <div id="poi_sub_pagination" class="poi-sub-pagination" style="display:none;">
+            <button type="button" class="button" data-direction="prev" disabled>
+                ← <?php esc_html_e('Vorige', 'pontifex-oi'); ?>
+            </button>
+            <span id="poi_sub_pageinfo">1 / 1</span>
+            <button type="button" class="button" data-direction="next" disabled>
+                <?php esc_html_e('Volgende', 'pontifex-oi'); ?> →
+            </button>
+        </div>
+    </div>
 </div>
