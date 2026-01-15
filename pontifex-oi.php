@@ -17,7 +17,7 @@ declare(strict_types=1);
 defined('ABSPATH') || exit;
 
 // -----------------------------------------------------------------------------
-//  CONSTANTS – altijd als eerste
+// CONSTANTS – altijd als eerste
 // -----------------------------------------------------------------------------
 define('PONTIFEX_OI_VERSION', '1.0.0');
 define('PONTIFEX_OI_PATH', plugin_dir_path(__FILE__));
@@ -25,7 +25,7 @@ define('PONTIFEX_OI_URL', plugin_dir_url(__FILE__));
 define('PONTIFEX_OI_BASENAME', plugin_basename(__FILE__));
 
 // -----------------------------------------------------------------------------
-//  Centrale plugin class
+// HOOFDPLUGIN CLASS
 // -----------------------------------------------------------------------------
 final class Pontifex_OI
 {
@@ -44,7 +44,7 @@ final class Pontifex_OI
     }
 
     /**
-     * Laadt configuratiebestanden die altijd nodig zijn
+     * Configuratie (MOET altijd als eerste)
      */
     private function load_config(): void
     {
@@ -52,11 +52,15 @@ final class Pontifex_OI
     }
 
     /**
-     * Laadt alle benodigde classes, helpers en handlers
+     * ALLE benodigde bestanden expliciet laden
+     * (geen onbetrouwbare autoloading)
      */
     private function load_dependencies(): void
     {
         $files = [
+            // API / extern
+            'includes/api/class-soap-client.php',
+
             // Helpers
             'includes/helpers/class-payment-helpers.php',
             'includes/helpers/class-mail-helpers.php',
@@ -64,8 +68,8 @@ final class Pontifex_OI
 
             // Core
             'includes/class-registrations.php',
-            'includes/class-frontend.php',
             'includes/class-admin.php',
+            'includes/class-frontend.php',
 
             // AJAX / Webhooks / Cron
             'includes/ajax-soap-fetch-handler.php',
@@ -75,72 +79,75 @@ final class Pontifex_OI
 
         foreach ($files as $file) {
             $path = PONTIFEX_OI_PATH . $file;
-            if (file_exists($path)) {
+            if (is_readable($path)) {
                 require_once $path;
             }
         }
     }
 
     /**
-     * Registreert alle WordPress hooks op het juiste moment
+     * Hooks pas registreren als alles geladen is
      */
     private function register_hooks(): void
     {
-        // Start alle componenten pas als plugins volledig geladen zijn
-        add_action('plugins_loaded', function (): void {
-            // Admin (menu, instellingen, AJAX)
-            if (class_exists('\PontifexOI\Admin\Admin')) {
+        add_action('plugins_loaded', static function (): void {
+
+            // ADMIN
+            if (class_exists(\PontifexOI\Admin\Admin::class)) {
                 \PontifexOI\Admin\Admin::get_instance();
             }
 
-            // Frontend (shortcodes, planning, inschrijven)
-            if (class_exists('\PontifexOI\PublicPart\Frontend')) {
+            // FRONTEND
+            if (class_exists(\PontifexOI\PublicPart\Frontend::class)) {
                 \PontifexOI\PublicPart\Frontend::get_instance();
             }
         });
 
-        // Publieke assets (frontend)
         add_action('wp_enqueue_scripts', [self::class, 'enqueue_public_assets']);
-
-        // Admin assets
         add_action('admin_enqueue_scripts', [self::class, 'enqueue_admin_assets']);
     }
 
     /**
-     * Laadt publieke assets (frontend)
+     * Frontend assets – alleen laden als nodig
      */
     public static function enqueue_public_assets(): void
     {
-        // Alleen laden als een relevante shortcode aanwezig is
         global $post;
-        if (is_a($post, 'WP_Post') && (
-            has_shortcode($post->post_content, 'pontifex_oi_planning') ||
-            has_shortcode($post->post_content, 'pontifex_oi_registration')
-        )) {
-            wp_enqueue_style(
-                'pontifex-oi-public',
-                PONTIFEX_OI_URL . 'public/css/public.css',
-                [],
-                PONTIFEX_OI_VERSION
-            );
 
-            wp_enqueue_script(
-                'pontifex-oi-public',
-                PONTIFEX_OI_URL . 'public/js/public.js',
-                ['jquery'],
-                PONTIFEX_OI_VERSION,
-                true
-            );
-
-            wp_localize_script('pontifex-oi-public', 'PontifexOI', [
-                'ajaxurl' => admin_url('admin-ajax.php'),
-                'nonce'   => wp_create_nonce('pontifex_oi_public'),
-            ]);
+        if (
+            !is_a($post, 'WP_Post') ||
+            (
+                !has_shortcode($post->post_content, 'pontifex_oi_planning') &&
+                !has_shortcode($post->post_content, 'pontifex_oi_registration') &&
+                !has_shortcode($post->post_content, 'pontifex_oi_payment_success')
+            )
+        ) {
+            return;
         }
+
+        wp_enqueue_style(
+            'pontifex-oi-public',
+            PONTIFEX_OI_URL . 'public/css/public.css',
+            [],
+            PONTIFEX_OI_VERSION
+        );
+
+        wp_enqueue_script(
+            'pontifex-oi-public',
+            PONTIFEX_OI_URL . 'public/js/public.js',
+            ['jquery'],
+            PONTIFEX_OI_VERSION,
+            true
+        );
+
+        wp_localize_script('pontifex-oi-public', 'PontifexOI', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce'   => wp_create_nonce('pontifex_oi_public'),
+        ]);
     }
 
     /**
-     * Laadt admin assets (alleen op Pontifex pagina's)
+     * Admin assets – alleen op Pontifex pagina’s
      */
     public static function enqueue_admin_assets(string $hook): void
     {
@@ -171,6 +178,6 @@ final class Pontifex_OI
 }
 
 // -----------------------------------------------------------------------------
-//  START DE PLUGIN
+// START PLUGIN
 // -----------------------------------------------------------------------------
 Pontifex_OI::get_instance();
