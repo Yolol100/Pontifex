@@ -1,5 +1,4 @@
 ## Pontifex OI
-
 **Contributors:** andrewbaeten  
 **Tags:** pontifex, exam registration, SOAP API, planning, payments, shortcodes  
 **Requires at least:** 6.0  
