@@ -1,0 +1,40 @@
+name: Maak Plugin Zip Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Create Zip Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create clean release folder
+        run: |
+          mkdir release
+          rsync -av . release \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="node_modules" \
+            --exclude=".env" \
+            --exclude="tests" \
+            --exclude="*.log"
+
+      - name: Create zip archive
+        run: |
+          cd release
+          zip -r ../pontifex-plugin-${GITHUB_REF_NAME}.zip .
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: pontifex-plugin-${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
