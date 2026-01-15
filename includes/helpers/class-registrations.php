@@ -1,119 +1,153 @@
 <?php
+/**
+ * Modernized Registrations Manager (2026 Edition)
+ * Gebruikt PHP 8.4 features en verbeterde SQL-bouwers.
+ */
+declare(strict_types=1);
+
 namespace PontifexOI\Helpers;
 
-if (!defined('ABSPATH')) exit;
+defined('ABSPATH') || exit;
 
-class Registrations {
-	/**
-	 * Returns the full table name with the WordPress prefix.
-	 *
-	 * @return string
-	 */
-	private static function table_name() {
-		global $wpdb;
-		return $wpdb->prefix . 'pontifex_oi_registrations';
-	}
+class Registrations
+{
+    private static ?string $cached_table_name = null;
 
-	/**
-	 * Saves a new registration entry to the database.
-	 *
-	 * @param string $order_id
-	 * @param array $order
-	 * @param string|null $planning_identifier
-	 * @return int|false The insert ID on success, false on failure.
-	 */
-	public static function save(string $order_id, array $order, ?string $planning_identifier = null) {
-		global $wpdb;
-		$data = [
-			'order_id' => sanitize_text_field($order_id),
-			'planning_identifier' => $planning_identifier ? sanitize_text_field($planning_identifier) : null,
-			'payload' => wp_json_encode($order, JSON_UNESCAPED_UNICODE),
-			'created_at' => current_time('mysql'),
-			'updated_at' => null,
-		];
-		// Use correct format specifiers: %s for strings/text, including JSON and dates
-		$ok = $wpdb->insert(self::table_name(), $data, ['%s', '%s', '%s', '%s', '%s']);
-		return $ok ? (int)$wpdb->insert_id : false;
-	}
+    /**
+     * Cachet de tabelnaam voor performance.
+     */
+    private static function table(): string
+    {
+        global $wpdb;
+        return self::$cached_table_name ??= $wpdb->prefix . 'pontifex_oi_registrations';
+    }
 
-	/**
-	 * Fetches a paginated and searchable list of registrations.
-	 *
-	 * @param int $page The current page number.
-	 * @param int $per_page Items per page.
-	 * @param string $search Search term (applies to order_id and payload).
-	 * @param string $orderby Column to order by.
-	 * @param string $order Sort direction (ASC or DESC).
-	 * @return array
-	 */
-	public static function list(
-		int $page = 1,
-		int $per_page = 20,
-		string $search = '',
-		string $orderby = 'created_at',
-		string $order = 'DESC'
-	): array {
-		global $wpdb;
-		$table = self::table_name();
-		$offset = ($page - 1) * $per_page;
+    /**
+     * Slaat een nieuwe registratie op.
+     * Nu met strikte type-hinting en Union Types voor ID retourwaarde.
+     */
+    public static function save(string $order_id, array $order, ?string $planning_id = null): int|false
+    {
+        global $wpdb;
 
-		// Whitelist allowed columns for ORDER BY to prevent SQL injection
-		$allowed_orderby = ['id', 'order_id', 'created_at'];
-		if (!in_array($orderby, $allowed_orderby, true)) {
-			$orderby = 'created_at';
-		}
-		// Sanitize order direction
-		$order = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
+        $data = [
+            'order_id'            => sanitize_text_field($order_id),
+            'planning_identifier' => $planning_id ? sanitize_text_field($planning_id) : null,
+            'payload'             => wp_json_encode($order, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'created_at'          => current_time('mysql'),
+            'updated_at'          => null,
+        ];
 
-		$where = '1=1';
-		$params = [];
-		if ($search !== '') {
-			// Apply search filter to order_id and payload
-			$where .= ' AND (order_id LIKE %s OR payload LIKE %s)';
-			$like = '%' . $wpdb->esc_like($search) . '%';
-			$params[] = $like;
-			$params[] = $like;
-		}
+        $ok = $wpdb->insert(
+            self::table(),
+            $data,
+            ['%s', '%s', '%s', '%s', '%s']
+        );
 
-		// --- Fix: Conditioneel gebruik van wpdb::prepare voor de COUNT query ---
-		if (!empty($params)) {
-			// Search active: Use prepare with the search parameters
-			$query_total = $wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE {$where}", ...$params);
-		} else {
-			// No search: Safe to use the query directly as there are no placeholders in the WHERE clause
-			$query_total = "SELECT COUNT(*) FROM {$table} WHERE {$where}";
-		}
-		$total = (int)$wpdb->get_var($query_total);
+        return $ok ? (int) $wpdb->insert_id : false;
+    }
 
+    /**
+     * Haalt registraties op met een vereenvoudigde query-opbouw.
+     */
+    public static function list(
+        int $page = 1,
+        int $per_page = 20,
+        string $search = '',
+        string $orderby = 'created_at',
+        string $order = 'DESC'
+    ): array {
+        global $wpdb;
 
-		// Get the actual rows
-		// Note: $orderby and $order zijn veilig afgehandeld hierboven
-		$sql = "SELECT id, order_id, planning_identifier, payload, created_at
-				FROM {$table} WHERE {$where}
-				ORDER BY {$orderby} {$order}
-				LIMIT %d OFFSET %d";
+        $table = self::table();
+        $offset = ($page - 1) * $per_page;
 
-		// --- Fix: Conditioneel gebruik van wpdb::prepare voor de ROWS query ---
-		if (!empty($params)) {
-			// If there are search parameters, merge them with LIMIT/OFFSET parameters
-			$rows = $wpdb->get_results(
-				$wpdb->prepare($sql, ...array_merge($params, [$per_page, $offset])),
-				ARRAY_A
-			);
-		} else {
-			// If there are NO search parameters, only pass LIMIT/OFFSET parameters
-			$rows = $wpdb->get_results(
-				$wpdb->prepare($sql, $per_page, $offset),
-				ARRAY_A
-			);
-		}
+        $orderby = in_array($orderby, ['id', 'order_id', 'created_at'], true) ? $orderby : 'created_at';
+        $order = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
 
-		return [
-			'rows'     => $rows ?: [],
-			'total'    => $total,
-			'pages'    => max(1, (int)ceil($total / $per_page)),
-			'page'     => $page,
-			'per_page' => $per_page,
-		];
-	}
+        // Initialiseer query onderdelen
+        $where = '1=1';
+        $params = [];
+
+        if ($search !== '') {
+            $where .= ' AND (order_id LIKE %s OR payload LIKE %s)';
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $params = [$like, $like];
+        }
+
+        // 1. Totaal aantal ophalen
+        $total_query = "SELECT COUNT(*) FROM {$table} WHERE {$where}";
+        $total = (int) $wpdb->get_var(
+            !empty($params) ? $wpdb->prepare($total_query, ...$params) : $total_query
+        );
+
+        // 2. Rijen ophalen
+        $sql = "SELECT id, order_id, planning_identifier, payload, created_at
+                FROM {$table}
+                WHERE {$where}
+                ORDER BY {$orderby} {$order}
+                LIMIT %d OFFSET %d";
+
+        $query_params = [...$params, $per_page, $offset];
+        $rows = $wpdb->get_results($wpdb->prepare($sql, ...$query_params), ARRAY_A);
+
+        return [
+            'rows'     => self::hydrate_rows($rows ?: []),
+            'total'    => $total,
+            'pages'    => (int) ceil($total / $per_page),
+            'page'     => $page,
+            'per_page' => $per_page,
+        ];
+    }
+
+    /**
+     * Decodeert de JSON payload automatisch voor gebruik in de UI.
+     */
+    private static function hydrate_rows(array $rows): array
+    {
+        return array_map(function ($row) {
+            $row['data'] = json_decode($row['payload'], true) ?? [];
+            return $row;
+        }, $rows);
+    }
+
+    /**
+     * Update de status van een inschrijving.
+     * (momenteel alleen updated_at — voeg status kolom toe als je die gebruikt)
+     */
+    public static function update_status(string $order_id, string $status): bool
+    {
+        global $wpdb;
+
+        return (bool) $wpdb->update(
+            self::table(),
+            [
+                'updated_at' => current_time('mysql'),
+                // 'status'  => $status,   ← uncomment + kolom toevoegen in db als nodig
+            ],
+            ['order_id' => $order_id]
+        );
+    }
+
+    /**
+     * Haal een registratie op inclusief de decoded payload.
+     */
+    public static function get_by_order_id(string $order_id): ?array
+    {
+        global $wpdb;
+
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM " . self::table() . " WHERE order_id = %s",
+                $order_id
+            ),
+            ARRAY_A
+        );
+
+        if ($row && !empty($row['payload'])) {
+            $row['data'] = json_decode($row['payload'], true);
+        }
+
+        return $row ?: null;
+    }
 }

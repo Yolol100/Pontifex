@@ -1,59 +1,79 @@
 <?php
-// includes/cron/fetch-planning-cron.php
+declare(strict_types=1);
+
+namespace PontifexOI\Cron;
+
+use PontifexOI\Api\SoapClient;
+use Throwable;
+use RuntimeException;
+
 if (!defined('ABSPATH')) exit;
 
+/**
+ * Modernized Fetch Planning Cron
+ */
 add_action('pontifex_oi_cron_fetch_planning', function () {
-    if (!defined('ABSPATH')) return;
-
     try {
-        if (!class_exists('\PontifexOI\Api\SoapClient') && file_exists(PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php')) {
-            require_once PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
+        // 1. Dependency Loading
+        if (!class_exists(SoapClient::class)) {
+            $path = PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
+            if (file_exists($path)) require_once $path;
         }
 
-        $soap = new \PontifexOI\Api\SoapClient();
+        $soap = new SoapClient();
         
-        // CORRECTIE: fetchAndStorePlanning() retourneert een array.
-        $updated = $soap->fetchAndStorePlanning();
-        $count   = is_array($updated) ? count($updated) : 0;
-
-        global $wpdb;
-        $table = $wpdb->prefix . 'pontifex_planning';
-
-        // (Optioneel) verleden weggooien: geen oude maanden/steden meer tonen
-        $wpdb->query("DELETE FROM {$table} WHERE planning_date < CURDATE()");
-
-        // De logica voor het opschonen van 'stale' toekomstige planningen is nu
-        // verplaatst naar de SoapClient::fetchAndStorePlanning() methode.
-        // Dit blok is daarom niet meer nodig in dit bestand.
-
-        // Bust filter-caches voor Stap 1
-        delete_transient('pontifex_oi_filter_months');
-        delete_transient('pontifex_oi_filter_provinces');
-        // Nieuwe cache keys voor steden zijn per-provincie (suffix)
-        // Wis in elk geval de 'all' variant; extra: bekende provincies ook
-        delete_transient('pontifex_oi_filter_cities_all');
-        global $wpdb;
-        $table = $wpdb->prefix . 'pontifex_planning';
-        $provs = $wpdb->get_col("
-            SELECT DISTINCT location_province 
-            FROM {$table}
-            WHERE location_province IS NOT NULL AND location_province <> ''
-        ");
-        if ($provs) {
-            foreach ($provs as $p) {
-                // Let op: 'sanitize_title' (zoals gebruikt in de SoapClient) is hier beter dan strtolower(trim())
-                $k = 'pontifex_oi_filter_cities_' . sanitize_title($p); 
-                delete_transient($k);
-            }
-        }
+        // 2. Fetch & Store
+        $updated_data = $soap->fetchAndStorePlanning();
+        $count = is_array($updated_data) ? count($updated_data) : 0;
 
         if ($count === 0) {
-            error_log('PontifexOI CRON: geen planning-data ontvangen.');
-        } else {
-            error_log("PontifexOI CRON: $count planningen bijgewerkt.");
+            // We gebruiken een log in plaats van een Exception als 0 items een valide (maar zeldzame) status is
+            error_log("PontifexOI CRON: Geen nieuwe planning-data ontvangen.");
+            return;
         }
 
-    } catch (\Throwable $e) {
-        error_log('PontifexOI CRON fout: ' . $e->getMessage());
+        // 3. Database Cleanup (Verleden opschonen)
+        global $wpdb;
+        $table = $wpdb->prefix . 'pontifex_planning';
+        
+        $wpdb->query(
+            $wpdb->prepare("DELETE FROM {$table} WHERE planning_date < %s", current_time('mysql', 0))
+        );
+
+        // 4. Intelligente Cache Invalidation
+        // GEEN self:: gebruiken hier, want we zitten niet in een class.
+        invalidate_planning_caches($table);
+
+        error_log("PontifexOI CRON: $count planningen succesvol bijgewerkt.");
+
+    } catch (Throwable $e) {
+        error_log(sprintf('PontifexOI CRON Error [%s]: %s', get_class($e), $e->getMessage()));
     }
 });
+
+/**
+ * Helper functie om alle gerelateerde transients te wissen.
+ */
+function invalidate_planning_caches(string $table): void 
+{
+    global $wpdb;
+
+    $transients_to_clear = [
+        'pontifex_oi_filter_months',
+        'pontifex_oi_filter_provinces',
+        'pontifex_oi_filter_cities_all'
+    ];
+
+    foreach ($transients_to_clear as $t) {
+        delete_transient($t);
+    }
+
+    // Haal provincies op om specifieke steden-caches te wissen
+    $provinces = $wpdb->get_col("SELECT DISTINCT location_province FROM {$table} WHERE location_province > ''");
+    
+    if (!empty($provinces)) {
+        foreach ($provinces as $province) {
+            delete_transient('pontifex_oi_filter_cities_' . sanitize_title($province));
+        }
+    }
+}
