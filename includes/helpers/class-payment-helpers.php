@@ -295,7 +295,8 @@ class PaymentHelpers
             $webhook_url  = esc_url_raw(rest_url('pontifex-oi/v1/webhook'));
             $secret       = get_option('pontifex_oi_webhook_secret');
             if (!empty($secret)) {
-                $webhook_url = add_query_arg('secret', rawurlencode($secret), $webhook_url);
+                $token = hash_hmac('sha256', 'pontifex-webhook', (string) $secret);
+                $webhook_url = add_query_arg('token', $token, $webhook_url);
             }
 
             $payment = $mollie->payments->create([

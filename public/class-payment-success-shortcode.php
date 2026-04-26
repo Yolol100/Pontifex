@@ -76,7 +76,6 @@ class PaymentSuccessShortcode {
 
                     // ✅ Alleen doorgaan bij geslaagde betaling
                     if (!in_array($status, ['paid', 'authorized'], true)) {
-                        error_log('[Pontifex OI Debug] Betaling niet voltooid (status: ' . $status . '). Redirect naar stap 2.');
                         wp_safe_redirect(site_url('/cursus-zoeken/'));
                         exit;
                     }

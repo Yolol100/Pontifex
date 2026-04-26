@@ -108,7 +108,9 @@ class MailHelpers
                 'From: Certipro <info@test1.certipro.nl>'
             ];
             $result_klant = wp_mail($to_klant, $subject_klant, $klantmail, $headers_klant);
-            if (!$result_klant) error_log("[Pontifex OI] wp_mail() failed for customer {$to_klant}");
+            if (!$result_klant) {
+                error_log('[Pontifex OI] wp_mail() failed for customer.');
+            }
         }
 
         /**
@@ -132,9 +134,9 @@ class MailHelpers
 
         $result_owner = wp_mail($to_owner, $subject_owner, $eigenaarmail, $headers_owner);
         if (!$result_owner) {
-            error_log("[Pontifex OI] wp_mail() failed for owner {$to_owner}");
+            error_log('[Pontifex OI] wp_mail() failed for owner.');
         } else {
-            error_log("[Pontifex OI] Owner mail sent successfully to {$to_owner}");
+            error_log('[Pontifex OI] Owner mail sent successfully.');
         }
     }
 

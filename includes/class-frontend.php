@@ -535,14 +535,29 @@ final class Frontend
         register_rest_route('pontifex-oi/v1', '/planning', [
             'methods'             => 'POST',
             'callback'            => [$this, 'rest_get_planning'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'rest_public_permission'],
         ]);
 
         register_rest_route('pontifex-oi/v1', '/price', [
             'methods'             => 'POST',
             'callback'            => [$this, 'rest_get_price'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'rest_public_permission'],
         ]);
+    }
+
+    public function rest_public_permission(WP_REST_Request $request): bool
+    {
+        $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : 'unknown';
+        $route = sanitize_key((string) $request->get_route());
+        $key = 'pontifex_oi_rl_' . md5($ip . '|' . $route);
+        $count = (int) get_transient($key);
+
+        if ($count > 120) {
+            return false;
+        }
+
+        set_transient($key, $count + 1, MINUTE_IN_SECONDS);
+        return true;
     }
 
     public function rest_get_planning(WP_REST_Request $request): WP_REST_Response

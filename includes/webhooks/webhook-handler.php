@@ -21,9 +21,36 @@ add_action('rest_api_init', function () {
     register_rest_route('pontifex-oi/v1', '/webhook', [
         'methods'               => 'POST',
         'callback'              => 'pontifex_oi_mollie_webhook_handler',
-        'permission_callback'   => '__return_true', // Public endpoint for Mollie.
+        'permission_callback'   => 'pontifex_oi_mollie_webhook_permission',
     ]);
 });
+
+/**
+ * Permission callback voor webhook endpoint.
+ *
+ * @param \WP_REST_Request $request
+ * @return bool
+ */
+function pontifex_oi_mollie_webhook_permission(\WP_REST_Request $request): bool {
+    $expected_secret = (string) get_option('pontifex_oi_webhook_secret', '');
+    if ($expected_secret === '') {
+        return false;
+    }
+
+    $expected_token = hash_hmac('sha256', 'pontifex-webhook', $expected_secret);
+    $received_token = (string) ($request->get_param('token') ?? '');
+    $received_secret = (string) ($request->get_header('x-pontifex-secret') ?: $request->get_param('secret'));
+
+    if ($received_token !== '' && hash_equals($expected_token, $received_token)) {
+        return true;
+    }
+
+    if ($received_secret !== '' && hash_equals($expected_secret, $received_secret)) {
+        return true;
+    }
+
+    return false;
+}
 
 /**
  * Main webhook handler.
