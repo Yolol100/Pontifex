@@ -37,6 +37,20 @@ class Registrations {
 	}
 
 	/**
+	 * Controleert of een order/payment id al is opgeslagen.
+	 *
+	 * @param string $order_id
+	 * @return bool
+	 */
+	public static function exists_by_order_id(string $order_id): bool {
+		global $wpdb;
+		$table = self::table_name();
+		$sql = "SELECT id FROM {$table} WHERE order_id = %s LIMIT 1";
+		$found = $wpdb->get_var($wpdb->prepare($sql, sanitize_text_field($order_id)));
+		return !empty($found);
+	}
+
+	/**
 	 * Fetches a paginated and searchable list of registrations.
 	 *
 	 * @param int $page The current page number.
