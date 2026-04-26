@@ -90,11 +90,18 @@ final class Frontend
 
     public function add_viewport_meta_tag(): void
     {
+        if (!$this->should_enqueue_frontend_assets()) {
+            return;
+        }
         echo '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
     }
 
     public function enqueue_assets(): void
     {
+        if (!$this->should_enqueue_frontend_assets()) {
+            return;
+        }
+
         $base_url = PONTIFEX_OI_URL;
         $base_path = PONTIFEX_OI_PATH;
         $version = static function (string $file) use ($base_path): string {
@@ -189,6 +196,28 @@ final class Frontend
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce'   => wp_create_nonce('pontifex_oi_nonce'),
         ]);
+    }
+
+    private function should_enqueue_frontend_assets(): bool
+    {
+        if (is_admin()) {
+            return false;
+        }
+
+        if (is_singular()) {
+            $post = get_post();
+            if ($post && has_shortcode((string) $post->post_content, 'pontifex_oi_planning')) {
+                return true;
+            }
+            if ($post && has_shortcode((string) $post->post_content, 'pontifex_oi_registration')) {
+                return true;
+            }
+            if ($post && has_shortcode((string) $post->post_content, 'pontifex_oi_payment_success')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function render_planning_shortcode(array $atts = []): string
@@ -506,14 +535,29 @@ final class Frontend
         register_rest_route('pontifex-oi/v1', '/planning', [
             'methods'             => 'POST',
             'callback'            => [$this, 'rest_get_planning'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'rest_public_permission'],
         ]);
 
         register_rest_route('pontifex-oi/v1', '/price', [
             'methods'             => 'POST',
             'callback'            => [$this, 'rest_get_price'],
-            'permission_callback' => '__return_true',
+            'permission_callback' => [$this, 'rest_public_permission'],
         ]);
+    }
+
+    public function rest_public_permission(WP_REST_Request $request): bool
+    {
+        $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : 'unknown';
+        $route = sanitize_key((string) $request->get_route());
+        $key = 'pontifex_oi_rl_' . md5($ip . '|' . $route);
+        $count = (int) get_transient($key);
+
+        if ($count > 120) {
+            return false;
+        }
+
+        set_transient($key, $count + 1, MINUTE_IN_SECONDS);
+        return true;
     }
 
     public function rest_get_planning(WP_REST_Request $request): WP_REST_Response

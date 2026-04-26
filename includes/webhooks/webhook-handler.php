@@ -21,9 +21,36 @@ add_action('rest_api_init', function () {
     register_rest_route('pontifex-oi/v1', '/webhook', [
         'methods'               => 'POST',
         'callback'              => 'pontifex_oi_mollie_webhook_handler',
-        'permission_callback'   => '__return_true', // Public endpoint for Mollie.
+        'permission_callback'   => 'pontifex_oi_mollie_webhook_permission',
     ]);
 });
+
+/**
+ * Permission callback voor webhook endpoint.
+ *
+ * @param \WP_REST_Request $request
+ * @return bool
+ */
+function pontifex_oi_mollie_webhook_permission(\WP_REST_Request $request): bool {
+    $expected_secret = (string) get_option('pontifex_oi_webhook_secret', '');
+    if ($expected_secret === '') {
+        return false;
+    }
+
+    $expected_token = hash_hmac('sha256', 'pontifex-webhook', $expected_secret);
+    $received_token = (string) ($request->get_param('token') ?? '');
+    $received_secret = (string) ($request->get_header('x-pontifex-secret') ?: $request->get_param('secret'));
+
+    if ($received_token !== '' && hash_equals($expected_token, $received_token)) {
+        return true;
+    }
+
+    if ($received_secret !== '' && hash_equals($expected_secret, $received_secret)) {
+        return true;
+    }
+
+    return false;
+}
 
 /**
  * Main webhook handler.
@@ -32,16 +59,10 @@ add_action('rest_api_init', function () {
  * @return \WP_REST_Response
  */
 function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
-    // --- WIJZIGING: BEVEILIGINGSCONTROLE MET GEHEIME SLEUTEL ---
-    $expected_secret = (string) get_option('pontifex_oi_webhook_secret', '');
-    $received_secret = (string) ($request->get_header('x-pontifex-secret') ?: $request->get_param('secret'));
-
-    // Alleen controleren als een geheime sleutel is geconfigureerd
-    if ($expected_secret !== '' && !hash_equals($expected_secret, $received_secret)) {
-        error_log('[Pontifex OI Webhook Error] Ontvangen geheime sleutel komt niet overeen.');
+    if (!pontifex_oi_mollie_webhook_permission($request)) {
+        error_log('[Pontifex OI Webhook Error] Ongeautoriseerde webhook call.');
         return new \WP_REST_Response(['status' => 'error', 'message' => 'Forbidden'], 403);
     }
-    // -----------------------------------------------------------
 
     $payment_id = sanitize_text_field((string) $request->get_param('id'));
     if (empty($payment_id)) {
@@ -69,9 +90,11 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
         $mollie = new \Mollie\Api\MollieApiClient();
         $mollie->setApiKey($apiKey);
 
-        // Duplicate guard (idempotent)
-        $processed_key = 'pontifex_processed_' . md5($payment_id);
-        if (get_transient($processed_key)) {
+        // Persistente duplicate guard.
+        if (!class_exists('\PontifexOI\Helpers\Registrations')) {
+            require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registrations.php';
+        }
+        if (\PontifexOI\Helpers\Registrations::exists_by_order_id($payment_id)) {
             return new \WP_REST_Response(['status' => 'ignored', 'message' => 'Already processed'], 200);
         }
 
@@ -132,10 +155,6 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
             }
         }
 
-        // Markeer als verwerkt (nu 15 min i.p.v. 5 min)
-        set_transient($processed_key, 1, 15 * MINUTE_IN_SECONDS);
-
-        // ✅ Bevestigingsrespons uitgebreid
         return new \WP_REST_Response(['status' => 'ok', 'id' => $payment_id], 200);
     } catch (\Throwable $e) {
         error_log('[Pontifex OI Webhook Fatal] ' . $e->getMessage());
