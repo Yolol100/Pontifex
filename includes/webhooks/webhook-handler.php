@@ -59,8 +59,16 @@ function pontifex_oi_mollie_webhook_permission(\WP_REST_Request $request): bool 
  * @return \WP_REST_Response
  */
 function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
-    if (!pontifex_oi_mollie_webhook_permission($request)) {
-        error_log('[Pontifex OI Webhook Error] Ongeautoriseerde webhook call.');
+    // Secret is verplicht voor webhook beveiliging.
+    $expected_secret = (string) get_option('pontifex_oi_webhook_secret', '');
+    $received_secret = (string) ($request->get_header('x-pontifex-secret') ?: $request->get_param('secret'));
+
+    if ($expected_secret === '') {
+        error_log('[Pontifex OI Webhook Error] Webhook secret ontbreekt in plugin instellingen.');
+        return new \WP_REST_Response(['status' => 'error', 'message' => 'Webhook not configured'], 500);
+    }
+    if (!hash_equals($expected_secret, $received_secret)) {
+        error_log('[Pontifex OI Webhook Error] Ontvangen geheime sleutel komt niet overeen.');
         return new \WP_REST_Response(['status' => 'error', 'message' => 'Forbidden'], 403);
     }
 

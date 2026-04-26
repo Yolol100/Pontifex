@@ -90,10 +90,10 @@ class PaymentSuccessShortcode {
                     error_log('[Pontifex OI Error] PaymentSuccessShortcode: Kon Mollie betaling niet ophalen.');
                 }
             } else {
-                error_log('[Pontifex OI Error] PaymentSuccessShortcode: Geen payment reference gevonden.');
+                error_log('[Pontifex OI Error] PaymentSuccessShortcode: Geen Mollie payment ID gevonden in transient.');
             }
         } else {
-            error_log('[Pontifex OI Error] PaymentSuccessShortcode: Geen order referentie gevonden.');
+            error_log('[Pontifex OI Error] PaymentSuccessShortcode: Geen order_token gevonden in URL.');
         }
 
         // De vereenvoudigde lay-out toont geen gedetailleerde order_data meer,
