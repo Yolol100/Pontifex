@@ -25,7 +25,19 @@ if (!defined('PONTIFEX_OI_VERSION')) {
 
 // --- AUTOLOAD/INCLUDES ---
 // Mollie API integration via composer autoloader.
-require_once PONTIFEX_OI_PATH . 'vendor/autoload.php';
+$pontifex_autoload = PONTIFEX_OI_PATH . 'vendor/autoload.php';
+if (file_exists($pontifex_autoload)) {
+    require_once $pontifex_autoload;
+} else {
+    add_action('admin_notices', static function () {
+        if (!current_user_can('activate_plugins')) {
+            return;
+        }
+        echo '<div class="notice notice-error"><p>'
+            . esc_html__('Pontifex OI: vendor/autoload.php ontbreekt. Draai "composer install" of lever de vendor-map mee in de pluginrelease.', 'pontifex-oi')
+            . '</p></div>';
+    });
+}
 
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-payment-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-mail-helpers.php';
@@ -126,7 +138,7 @@ register_activation_hook(__FILE__, function () {
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NULL,
         PRIMARY KEY (id),
-        KEY idx_order (order_id)
+        UNIQUE KEY uq_order (order_id)
     ) {$wpdb->get_charset_collate()};";
 
     $table_logs = $prefix . 'pontifex_oi_logs';
@@ -166,7 +178,6 @@ register_deactivation_hook(__FILE__, function () {
             wp_unschedule_event($ts, $hook);
         }
     }
-    flush_rewrite_rules();
 });
 
 /**

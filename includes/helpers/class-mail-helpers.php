@@ -54,7 +54,7 @@ class MailHelpers
      */
     public static function send_inschrijving_mails($order)
     {
-        error_log('[Pontifex OI] Sending mails triggered for order: ' . json_encode($order));
+        error_log('[Pontifex OI] Sending mails triggered.');
 
         // --- Normaliseer formulier-keys ---
         $map = [
