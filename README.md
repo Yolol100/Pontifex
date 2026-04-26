@@ -3,7 +3,7 @@
 **Contributors:** andrewbaeten  
 **Tags:** pontifex, exam registration, SOAP API, planning, payments, shortcodes  
 **Requires at least:** 6.0  
-**Tested up to:** 6.5  
+**Tested up to:** 6.6  
 **Requires PHP:** 8.1  
 **Stable tag:** 1.0.0  
 **License:** GPLv2 or later  
@@ -45,8 +45,8 @@ For the best user experience, place each shortcode on a separate page.
 ### REST API
 
 The plugin registers the following endpoints:
-* `GET /wp-json/pontifex-oi/v1/planning`: Returns cached exam planning data.
-* `GET /wp-json/pontifex-oi/v1/price`: Returns dynamic pricing information.
+* `POST /wp-json/pontifex-oi/v1/planning`: Returns cached exam planning data.
+* `POST /wp-json/pontifex-oi/v1/price`: Returns dynamic pricing information.
 * `POST /wp-json/pontifex-oi/v1/webhook`: Secured Mollie payment webhook.
 
 ### Requirements
