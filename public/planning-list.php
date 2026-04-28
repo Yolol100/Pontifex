@@ -15,29 +15,29 @@ $registration_url = $args['registration_url'] ?? (
 	: '/cursus-inschrijven/'
 );
 // Afhandeling van de 'go'-redirect bij GET-request (vervolgens naar de inschrijfpagina)
-if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['go'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['go'])) {
 	$query = http_build_query(array_filter([
 		'go' => 1,
-		'exam_type' => isset($_GET['exam_type']) ? sanitize_text_field(wp_unslash($_GET['exam_type'])) : '',
-		'language' => isset($_GET['language']) ? sanitize_text_field(wp_unslash($_GET['language'])) : '',
-		'material' => isset($_GET['material']) ? sanitize_text_field(wp_unslash($_GET['material'])) : '',
-		'date' => isset($_GET['date']) ? sanitize_text_field(wp_unslash($_GET['date'])) : '',
-		'time' => isset($_GET['time']) ? sanitize_text_field(wp_unslash($_GET['time'])) : '',
-		'location' => isset($_GET['location']) ? sanitize_text_field(wp_unslash($_GET['location'])) : '',
-		'province' => isset($_GET['province']) ? sanitize_text_field(wp_unslash($_GET['province'])) : '',
-		'spots' => isset($_GET['spots']) ? sanitize_text_field(wp_unslash($_GET['spots'])) : '',
-		'price' => isset($_GET['price']) ? sanitize_text_field(wp_unslash($_GET['price'])) : '', // (laat in form leeg; server berekent)
+		'exam_type' => $_GET['exam_type'] ?? '',
+		'language' => $_GET['language'] ?? '',
+		'material' => $_GET['material'] ?? '',
+		'date' => $_GET['date'] ?? '',
+		'time' => $_GET['time'] ?? '',
+		'location' => $_GET['location'] ?? '',
+		'province' => $_GET['province'] ?? '',
+		'spots' => $_GET['spots'] ?? '',
+		'price' => $_GET['price'] ?? '', // (laat in form leeg; server berekent)
 	]));
 	// Redirect naar de registratie-URL met de geselecteerde parameters
 	wp_redirect( trailingslashit($registration_url) . '?' . $query );
 	exit;
 }
 // Standaardwaarden en initialisatie van filters
-$exam_type = $args['filters']['exam_type'] ?? (isset($_GET['exam_type']) ? sanitize_text_field(wp_unslash($_GET['exam_type'])) : 'los-examen-vca-basis');
+$exam_type = $args['filters']['exam_type'] ?? $_GET['exam_type'] ?? 'los-examen-vca-basis';
 if (empty($exam_type)) $exam_type = 'los-examen-vca-basis';
-$language = $args['filters']['language'] ?? (isset($_GET['language']) ? sanitize_text_field(wp_unslash($_GET['language'])) : 'nl');
+$language = $args['filters']['language'] ?? $_GET['language'] ?? 'nl';
 if (empty($language)) $language = 'nl';
-$material = $args['filters']['material'] ?? (isset($_GET['material']) ? sanitize_text_field(wp_unslash($_GET['material'])) : '1');
+$material = $args['filters']['material'] ?? $_GET['material'] ?? '1';
 if (empty($material)) $material = '1';
 // Ophalen van filteropties
 $examTypes = array_filter($args['exam_types'] ?? [], fn($et) => !empty($et['id']) || $et['id'] === '');

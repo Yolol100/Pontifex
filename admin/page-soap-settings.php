@@ -14,70 +14,70 @@ $hash        = esc_attr(get_option('pontifex_oi_soap_hash', ''));
     <form method="post" action="options.php" autocomplete="off" id="pontifex-soap-form">
       <?php settings_fields('pontifex_oi_soap_group'); ?>
 
-      <?php if (isset($_GET['settings-updated']) && wp_validate_boolean(wp_unslash($_GET['settings-updated']))) : ?>
+      <?php if (isset($_GET['settings-updated']) && $_GET['settings-updated']) : ?>
         <div id="message"
              class="updated notice notice-success is-dismissible"
              style="margin: 0 0 1rem 0 !important; width:89%;">
-          <p><?php esc_html_e('Instellingen zijn opgeslagen.', 'pontifex-oi'); ?></p>
+          <p>Instellingen zijn opgeslagen.</p>
         </div>
       <?php endif; ?>
 
       <div class="pontifex-admin-row">
-        <label for="pontifex_oi_soap_url" class="pontifex-admin-label"><?php esc_html_e('Soap API URL', 'pontifex-oi'); ?></label>
+        <label for="pontifex_oi_soap_url" class="pontifex-admin-label">Soap API URL</label>
         <input type="text"
                id="pontifex_oi_soap_url"
                name="pontifex_oi_soap_url"
                class="pontifex-admin-input"
                value="<?php echo $soap_url; ?>" />
         <div class="pontifex-admin-desc">
-          <?php esc_html_e('De URL naar de SOAP-webservice (staging of productie).', 'pontifex-oi'); ?>
+          De URL naar de SOAP-webservice (staging of productie).
         </div>
       </div>
 
       <div class="pontifex-admin-row">
-        <label for="pontifex_oi_soap_user_id" class="pontifex-admin-label"><?php esc_html_e('User Identifier', 'pontifex-oi'); ?></label>
+        <label for="pontifex_oi_soap_user_id" class="pontifex-admin-label">User Identifier</label>
         <input type="text"
                id="pontifex_oi_soap_user_id"
                name="pontifex_oi_soap_user_id"
                class="pontifex-admin-input"
                value="<?php echo $user_id; ?>" />
         <div class="pontifex-admin-desc">
-          <?php esc_html_e('Je user ID voor authenticatie.', 'pontifex-oi'); ?>
+          Je user ID voor authenticatie.
         </div>
       </div>
 
       <div class="pontifex-admin-row">
-        <label for="pontifex_oi_soap_company_id" class="pontifex-admin-label"><?php esc_html_e('Company Identifier', 'pontifex-oi'); ?></label>
+        <label for="pontifex_oi_soap_company_id" class="pontifex-admin-label">Company Identifier</label>
         <input type="text"
                id="pontifex_oi_soap_company_id"
                name="pontifex_oi_soap_company_id"
                class="pontifex-admin-input"
                value="<?php echo $company_id; ?>" />
         <div class="pontifex-admin-desc">
-          <?php esc_html_e('Je company ID voor authenticatie.', 'pontifex-oi'); ?>
+          Je company ID voor authenticatie.
         </div>
       </div>
 
       <div class="pontifex-admin-row">
-        <label for="pontifex_oi_soap_hash" class="pontifex-admin-label"><?php esc_html_e('Hash', 'pontifex-oi'); ?></label>
+        <label for="pontifex_oi_soap_hash" class="pontifex-admin-label">Hash</label>
         <input type="password"
                id="pontifex_oi_soap_hash"
                name="pontifex_oi_soap_hash"
                class="pontifex-admin-input"
                value="<?php echo $hash; ?>" />
         <div class="pontifex-admin-desc">
-          <?php esc_html_e('SHA256 hash van user ID + company ID.', 'pontifex-oi'); ?>
+          SHA256 hash van user ID + company ID.
         </div>
       </div>
 
       <div class="pontifex-admin-btn-row">
         <button type="submit" class="pontifex-admin-submit">
-          <?php esc_html_e('Gegevens opslaan', 'pontifex-oi'); ?>
+          Gegevens opslaan
         </button>
         <button type="button"
                 id="pontifex-soap-fetch-btn"
                 class="pontifex-admin-submit">
-          <?php esc_html_e('Haal gegevens op', 'pontifex-oi'); ?>
+          Haal gegevens op
         </button>
       </div>
       <div id="pontifex-soap-fetch-feedback"></div>

@@ -59,38 +59,45 @@ class PaymentSuccessShortcode {
         ob_start();
 
         // Haal onze unieke order_token op uit de URL
-        $order_token = isset($_GET['order_token']) ? sanitize_text_field(wp_unslash($_GET['order_token'])) : '';
+        $order_token = sanitize_text_field($_GET['order_token'] ?? '');
         $mollie_payment_id = '';
         $order_data = [];
         $total_price_display = esc_html__('Onbekend', 'pontifex-oi'); // Not strictly needed for the simplified page, but kept for consistency
 
         if (!empty($order_token)) {
+            error_log('[Pontifex OI Debug] PaymentSuccessShortcode: order_token gevonden: ' . $order_token);
+
             // Haal het Mollie payment ID op via de transient
             $mollie_payment_id = get_transient('mollie_payment_id_for_token_' . $order_token);
 
             if (!empty($mollie_payment_id)) {
+                error_log('[Pontifex OI Debug] PaymentSuccessShortcode: Mollie payment ID opgehaald via transient: ' . $mollie_payment_id);
                 $payment = PaymentHelpers::get_mollie_payment($mollie_payment_id);
 
                 if ($payment) {
                     $status = strtolower($payment->status ?? '');
+                    error_log('[Pontifex OI Debug] PaymentSuccessShortcode: Mollie betaling opgehaald. Status: ' . $status);
 
                     // ✅ Alleen doorgaan bij geslaagde betaling
                     if (!in_array($status, ['paid', 'authorized'], true)) {
+                        error_log('[Pontifex OI Debug] Betaling niet voltooid (status: ' . $status . '). Redirect naar stap 2.');
                         wp_safe_redirect(site_url('/cursus-zoeken/'));
                         exit;
                     }
 
                     // ✅ Alles oké — betaling is goedgekeurd
                     $order_data = (array) ($payment->metadata ?? []);
+                    error_log('[Pontifex OI Debug] PaymentSuccessShortcode: Mollie metadata inhoud: ' . print_r($order_data, true));
                     $total_price_display = '€' . number_format((float)($payment->amount->value ?? 0), 2, ',', '.');
 
                     // Verwijder de transient na succesvol gebruik om op te ruimen
                     delete_transient('mollie_payment_id_for_token_' . $order_token);
+                    error_log('[Pontifex OI Debug] Transient verwijderd voor token: ' . $order_token);
                 } else {
-                    error_log('[Pontifex OI Error] PaymentSuccessShortcode: Kon Mollie betaling niet ophalen.');
+                    error_log('[Pontifex OI Error] PaymentSuccessShortcode: Kon Mollie betaling niet ophalen met ID: ' . $mollie_payment_id);
                 }
             } else {
-                error_log('[Pontifex OI Error] PaymentSuccessShortcode: Geen Mollie payment ID gevonden in transient.');
+                error_log('[Pontifex OI Error] PaymentSuccessShortcode: Geen Mollie payment ID gevonden in transient voor token: ' . $order_token);
             }
         } else {
             error_log('[Pontifex OI Error] PaymentSuccessShortcode: Geen order_token gevonden in URL.');

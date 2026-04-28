@@ -7,22 +7,15 @@ use PontifexOI\Helpers\Registrations;
 require_once PONTIFEX_OI_PATH . 'includes/helpers/submissions-helpers.php';
 
 // Query params veilig uitlezen (Only needed for initial search state and export link)
-$page = isset($_GET['paged']) ? max(1, (int) wp_unslash($_GET['paged'])) : 1;
-$per_page = isset($_GET['per_page']) ? max(1, min(200, (int) wp_unslash($_GET['per_page']))) : 20;
-$search = isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
-$orderby = isset($_GET['orderby']) ? sanitize_text_field(wp_unslash($_GET['orderby'])) : 'created_at';
-$order = (isset($_GET['order']) && strtoupper(sanitize_text_field(wp_unslash($_GET['order']))) === 'ASC') ? 'ASC' : 'DESC';
+$page = isset($_GET['paged']) ? max(1, (int)$_GET['paged']) : 1;
+$per_page = isset($_GET['per_page']) ? max(1, min(200, (int)$_GET['per_page'])) : 20;
+$search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+$orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
+$order = (isset($_GET['order']) && strtoupper($_GET['order']) === 'ASC') ? 'ASC' : 'DESC';
 
 // Export CSV/Excel (Export logic remains server-side)
+// 2) NONCE CHECK VERWIJDERD
 if (isset($_GET['export_submissions'])) {
-	if (!current_user_can('manage_options')) {
-		wp_die(esc_html__('Je hebt geen rechten om inzendingen te exporteren.', 'pontifex-oi'));
-	}
-
-	$export_nonce = isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '';
-	if (!wp_verify_nonce($export_nonce, 'pontifex_oi_export_submissions')) {
-		wp_die(esc_html__('Ongeldige exportlink. Vernieuw de pagina en probeer opnieuw.', 'pontifex-oi'));
-	}
 	// Note: We ignore the current pagination for export, fetching all based on search/sort
 	// Limit changed to 5000 for safer batch export performance.
 	$all = Registrations::list(1, 5000, $search, $orderby, $order);
@@ -106,7 +99,6 @@ $headers = [
 				'orderby' => $orderby,
 				'order' => $order,
 				'export_submissions' => 1,
-				'_wpnonce' => wp_create_nonce('pontifex_oi_export_submissions'),
 			], admin_url('admin.php'))); ?>"
 			class="pontifex-admin-submit poi-sub-btn poi-export-btn"><?php esc_html_e('Exporteren','pontifex-oi'); ?></a>
 		</div>

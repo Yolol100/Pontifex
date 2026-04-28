@@ -226,7 +226,7 @@ class Admin {
 		?>
 		<div class="pontifex-admin-wrap">
 			<div class="pontifex-admin-card">
-				<?php if (isset($_GET['settings-updated']) && wp_validate_boolean(wp_unslash($_GET['settings-updated']))) : ?>
+				<?php if (isset($_GET['settings-updated']) && $_GET['settings-updated']) : ?>
 					<div id="message" class="updated notice notice-success is-dismissible" style="margin:0 0 0 0 !important; width:89%;">
 						<p><?php esc_html_e('Instellingen zijn opgeslagen.', 'pontifex-oi'); ?></p>
 					</div>
@@ -297,7 +297,7 @@ class Admin {
 		) {
 			wp_send_json_error([
 				'message' => 'Insufficient permissions or invalid security token.'
-			], 403);
+			]);
 		}
 
 		// Suppress errors for JSON output (Good practice for AJAX handlers)
@@ -313,11 +313,11 @@ class Admin {
 		header('Content-Type: application/json; charset=utf-8');
 
 		// Parse POST parameters
-		$page = isset($_POST['paged']) ? max(1, (int) wp_unslash($_POST['paged'])) : 1;
-		$per_page = isset($_POST['per_page']) ? max(1, min(200, (int) wp_unslash($_POST['per_page']))) : 20;
-		$search = isset($_POST['s']) ? sanitize_text_field(wp_unslash($_POST['s'])) : '';
-		$orderby = isset($_POST['orderby']) ? sanitize_text_field(wp_unslash($_POST['orderby'])) : 'created_at';
-		$order = (isset($_POST['order']) && strtoupper(sanitize_text_field(wp_unslash($_POST['order']))) === 'ASC') ? 'ASC' : 'DESC';
+		$page = isset($_POST['paged']) ? max(1, (int)$_POST['paged']) : 1;
+		$per_page = isset($_POST['per_page']) ? max(1, min(200, (int)$_POST['per_page'])) : 20;
+		$search = isset($_POST['s']) ? sanitize_text_field($_POST['s']) : '';
+		$orderby = isset($_POST['orderby']) ? sanitize_text_field($_POST['orderby']) : 'created_at';
+		$order = (isset($_POST['order']) && strtoupper($_POST['order']) === 'ASC') ? 'ASC' : 'DESC';
 
 		// Include the Registrations helper class
 		if (!class_exists('\PontifexOI\Helpers\Registrations')) {
