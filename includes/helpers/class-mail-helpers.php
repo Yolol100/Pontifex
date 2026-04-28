@@ -54,7 +54,7 @@ class MailHelpers
      */
     public static function send_inschrijving_mails($order)
     {
-        error_log('[Pontifex OI] Sending mails triggered.');
+        error_log('[Pontifex OI] Sending mails triggered for order: ' . json_encode($order));
 
         // --- Normaliseer formulier-keys ---
         $map = [
@@ -105,12 +105,10 @@ class MailHelpers
             $subject_klant = 'Bevestiging inschrijving - ' . ($order['exam_label'] ?? 'VCA Examen');
             $headers_klant = [
                 'Content-Type: text/html; charset=UTF-8',
-                'From: Certipro <info@test1.certipro.nl>'
+                'From: Certipro <info@certipro.nl>'
             ];
             $result_klant = wp_mail($to_klant, $subject_klant, $klantmail, $headers_klant);
-            if (!$result_klant) {
-                error_log('[Pontifex OI] wp_mail() failed for customer.');
-            }
+            if (!$result_klant) error_log("[Pontifex OI] wp_mail() failed for customer {$to_klant}");
         }
 
         /**
@@ -126,17 +124,17 @@ class MailHelpers
         $kandidaat_achternaam   = $candidate_lastname_arr[0] ?? '';
 
         $subject_owner = 'Nieuwe inschrijving van ' . trim($kandidaat_fullname . ' ' . $kandidaat_achternaam);
-        $to_owner = 'planning@test1.certipro.nl';
+        $to_owner = 'planning@certipro.nl';
         $headers_owner = [
             'Content-Type: text/html; charset=UTF-8',
-            'From: Certipro <info@test1.certipro.nl>'
+            'From: Certipro <info@certipro.nl>'
         ];
 
         $result_owner = wp_mail($to_owner, $subject_owner, $eigenaarmail, $headers_owner);
         if (!$result_owner) {
-            error_log('[Pontifex OI] wp_mail() failed for owner.');
+            error_log("[Pontifex OI] wp_mail() failed for owner {$to_owner}");
         } else {
-            error_log('[Pontifex OI] Owner mail sent successfully.');
+            error_log("[Pontifex OI] Owner mail sent successfully to {$to_owner}");
         }
     }
 

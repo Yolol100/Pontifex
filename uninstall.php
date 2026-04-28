@@ -22,9 +22,6 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
  */
 delete_option('pontifex_oi_settings');
 delete_option('pontifex_oi_api_cache');
-delete_option('pontifex_oi_registration_page_id');
-delete_option('pontifex_oi_webhook_secret');
-delete_option('pontifex_oi_cron_daily_migrated');
 // Voeg hier alle andere opties toe die de plugin opslaat (optioneel: gebruik get_option_keys pattern).
 
 /**
@@ -86,7 +83,7 @@ if (is_multisite()) {
  * 6. (Optioneel) Remove scheduled events, cron jobs
  */
 if (function_exists('wp_clear_scheduled_hook')) {
-    wp_clear_scheduled_hook('pontifex_oi_cron_fetch_planning');
+    wp_clear_scheduled_hook('pontifex_oi_cron_event');
 }
 
 // Einde uninstall.php

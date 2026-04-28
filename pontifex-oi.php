@@ -25,19 +25,11 @@ if (!defined('PONTIFEX_OI_VERSION')) {
 
 // --- AUTOLOAD/INCLUDES ---
 // Mollie API integration via composer autoloader.
-$pontifex_autoload = PONTIFEX_OI_PATH . 'vendor/autoload.php';
-if (file_exists($pontifex_autoload)) {
-    require_once $pontifex_autoload;
-} else {
-    add_action('admin_notices', static function () {
-        if (!current_user_can('activate_plugins')) {
-            return;
-        }
-        echo '<div class="notice notice-error"><p>'
-            . esc_html__('Pontifex OI: vendor/autoload.php ontbreekt. Draai "composer install" of lever de vendor-map mee in de pluginrelease.', 'pontifex-oi')
-            . '</p></div>';
-    });
-}
+require_once PONTIFEX_OI_PATH . 'vendor/autoload.php';
+
+// Zorg dat de cron-runner beschikbaar is
+require_once plugin_dir_path(__FILE__) . 'includes/cron/fetch-planning-cron.php';
+
 
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-payment-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-mail-helpers.php';
@@ -70,6 +62,23 @@ add_action('plugins_loaded', function () {
     }
 }, 20);
 
+// Plan dagelijkse cron bij activatie (03:15 Europe/Amsterdam)
+register_activation_hook(__FILE__, function () {
+    if (!wp_next_scheduled('pontifex_oi_cron_fetch_planning')) {
+        $tz  = new DateTimeZone('Europe/Amsterdam');
+        $now = new DateTime('now', $tz);
+        $run = new DateTime('03:15', $tz);
+        if ($run <= $now) { $run->modify('+1 day'); }
+        $run_utc = (new DateTime('@' . $run->getTimestamp()))->getTimestamp();
+        wp_schedule_event($run_utc, 'daily', 'pontifex_oi_cron_fetch_planning');
+    }
+});
+
+// Opruimen bij deactivatie
+register_deactivation_hook(__FILE__, function () {
+    $ts = wp_next_scheduled('pontifex_oi_cron_fetch_planning');
+    if ($ts) { wp_unschedule_event($ts, 'pontifex_oi_cron_fetch_planning'); }
+});
 
 /**
  * Helper function to determine the next daily timestamp in local WP time.
@@ -138,7 +147,7 @@ register_activation_hook(__FILE__, function () {
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NULL,
         PRIMARY KEY (id),
-        UNIQUE KEY uq_order (order_id)
+        KEY idx_order (order_id)
     ) {$wpdb->get_charset_collate()};";
 
     $table_logs = $prefix . 'pontifex_oi_logs';
@@ -178,6 +187,7 @@ register_deactivation_hook(__FILE__, function () {
             wp_unschedule_event($ts, $hook);
         }
     }
+    flush_rewrite_rules();
 });
 
 /**

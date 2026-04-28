@@ -124,7 +124,7 @@ class SoapClient
                     'location_street' => $planning->location?->location_street ?? '',
                     'location_number' => $planning->location?->location_number ?? '',
                     'location_suffix' => $planning->location?->location_suffix ?? '',
-                    'location_postcode' => $planning->location?->location_zip_code ?? $planning->location?->location_postcode ?? '',
+                    'location_zip_code' => $planning->location?->location_zip_code ?? '',
                     'location_city' => $planning->location?->location_city ?? '',
                     'location_province' => $planning->location?->location_province ?? '',
                     'location_country' => $planning->location?->location_country ?? '',
@@ -133,7 +133,7 @@ class SoapClient
 
                 $wpdb->query($wpdb->prepare(
                     "INSERT INTO {$table_name}
-                     (planning_identifier, planning_date, planning_time, planning_start_date, planning_updated, planning_status, available_seats, location_identifier, location_name, location_street, location_number, location_suffix, location_postcode, location_city, location_province, location_country, location_seats)
+                     (planning_identifier, planning_date, planning_time, planning_start_date, planning_updated, planning_status, available_seats, location_identifier, location_name, location_street, location_number, location_suffix, location_zip_code, location_city, location_province, location_country, location_seats)
                      VALUES (%s, %s, %s, %s, %s, %s, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %d)
                      ON DUPLICATE KEY UPDATE
                       planning_date = VALUES(planning_date),
@@ -147,7 +147,7 @@ class SoapClient
                       location_street = VALUES(location_street),
                       location_number = VALUES(location_number),
                       location_suffix = VALUES(location_suffix),
-                      location_postcode = VALUES(location_postcode),
+                      location_zip_code = VALUES(location_zip_code),
                       location_city = VALUES(location_city),
                       location_province = VALUES(location_province),
                       location_country = VALUES(location_country),
