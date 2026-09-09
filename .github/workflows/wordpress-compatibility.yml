@@ -66,6 +66,23 @@ jobs:
           set -euo pipefail
           find . -type f -name '*.php' -not -path './.git/*' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
 
+      - name: Enforce payment privacy invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -Fq 'Ingediende order_details:' includes/helpers/class-payment-helpers.php
+          ! grep -Fq 'Kandidaat namen:' includes/class-frontend.php
+          ! grep -Fq 'Volledige order_data:' includes/class-frontend.php
+          ! grep -Fq "'voor: ' . \$candidate_list" includes/class-frontend.php
+          ! grep -Fq 'uniqid("pontifex_order_"' includes/class-frontend.php
+          ! grep -Fq 'Mollie metadata inhoud:' public/class-payment-success-shortcode.php
+          ! grep -Fq 'order_token gevonden:' public/class-payment-success-shortcode.php
+          ! grep -Fq 'Sending mails triggered for order:' includes/helpers/class-mail-helpers.php
+          ! grep -Fq 'print_r($wp_error, true)' includes/helpers/class-mail-helpers.php
+          ! grep -Fq '"order_email" => sanitize_email' includes/helpers/class-payment-helpers.php
+          grep -Fq "bin2hex(random_bytes(16))" includes/class-frontend.php
+          grep -Fq "delete_transient('pontifex_order_data_for_token_' . \$order_token)" includes/webhooks/webhook-handler.php
+
       - name: Install verified WP-CLI 2.12.0
         shell: bash
         run: |
