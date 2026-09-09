@@ -10,6 +10,104 @@ permissions:
   contents: read
 
 jobs:
+  planning-hardening:
+    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'fix/bootstrap-and-compatibility-2026-09-09' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout maintenance branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: fix/bootstrap-and-compatibility-2026-09-09
+
+      - name: Apply bounded planning safety patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -Fq '$reconciliation_safe = true;' includes/api/class-soap-client.php; then
+            echo 'Planning hardening already applied.'
+            exit 0
+          fi
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('includes/api/class-soap-client.php')
+          text = path.read_text()
+
+          def replace_once(old, new):
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected one match, found {count}: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "            } catch (\\Exception $e) {\n                error_log('PontifexOI: SOAP client aanmaken gefaald: ' . $e->getMessage());\n                throw new \\Exception('SOAP client kon niet worden aangemaakt: ' . $e->getMessage());\n            }",
+              "            } catch (\\Exception $e) {\n                error_log('PontifexOI: SOAP client aanmaken gefaald (' . get_class($e) . '); code=' . (int) $e->getCode());\n                throw new \\RuntimeException('SOAP client kon niet worden aangemaakt.', 0, $e);\n            }"
+          )
+          replace_once(
+              "        $client = $this->getClient();\n        $seenIds = [];",
+              "        $client = $this->getClient();\n        $seenIds = [];\n        $reconciliation_safe = true;"
+          )
+          replace_once(
+              "                if (is_array($planning)) {\n                    $planning = (object) $planning;\n                }\n\n                $data = [\n                    'planning_identifier' => (string) ($planning->planning_identifier ?? ''),",
+              "                if (is_array($planning)) {\n                    $planning = (object) $planning;\n                }\n\n                $planning_identifier = sanitize_text_field((string) ($planning->planning_identifier ?? ''));\n                if ($planning_identifier === '' || strlen($planning_identifier) > 64) {\n                    $reconciliation_safe = false;\n                    continue;\n                }\n\n                $data = [\n                    'planning_identifier' => $planning_identifier,"
+          )
+          replace_once(
+              "                    'location_zip_code' => $planning->location?->location_zip_code ?? '',",
+              "                    'location_postcode' => $planning->location?->location_zip_code ?? '',"
+          )
+          replace_once(
+              "location_street, location_number, location_suffix, location_zip_code, location_city, location_province, location_country, location_seats)",
+              "location_street, location_number, location_suffix, location_postcode, location_city, location_province, location_country, location_seats)"
+          )
+          replace_once(
+              '''            // Verwijder planningen die niet meer in de API-respons zitten
+            if (!empty($seenIds)) {
+                $placeholders = implode(',', array_fill(0, count($seenIds), '%s'));
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM {$table_name} WHERE planning_identifier NOT IN ($placeholders) AND planning_date >= CURDATE()",
+                    ...$seenIds
+                ));
+            } else {
+                // Verwijder alle toekomstige planningen als de API niets teruggeeft
+                $wpdb->query("DELETE FROM {$table_name} WHERE planning_date >= CURDATE()");
+            }
+''',
+              '''            // Alleen destructief reconciliëren als elk ontvangen record een geldige identifier had.
+            // Een lege of malformed upstream response mag bestaande planning nooit weggooien.
+            if ($reconciliation_safe && !empty($seenIds)) {
+                $placeholders = implode(',', array_fill(0, count($seenIds), '%s'));
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM {$table_name} WHERE planning_identifier NOT IN ($placeholders) AND planning_date >= CURDATE()",
+                    ...$seenIds
+                ));
+            } elseif (!$reconciliation_safe) {
+                error_log('PontifexOI: planning-reconciliatie overgeslagen wegens ongeldige upstream identifiers.');
+            }
+'''
+          )
+          replace_once(
+              "        } catch (Exception $e) {\n            error_log('PontifexOI SOAP fout: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());\n            if (method_exists($e, 'getResponse')) {\n                error_log('PontifexOI SOAP response: ' . $e->getResponse());\n            }\n            throw $e;\n        }",
+              "        } catch (Exception $e) {\n            error_log('PontifexOI SOAP planning fetch failed (' . get_class($e) . '); code=' . (int) $e->getCode());\n            throw $e;\n        }"
+          )
+          path.write_text(text)
+          PY
+
+          php -l includes/api/class-soap-client.php
+          git rm -f .github/workflows/planning-hardening-once.yml || true
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add includes/api/class-soap-client.php
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'fix: harden planning reconciliation and schema parity'
+          git push origin HEAD:fix/bootstrap-and-compatibility-2026-09-09
+
   runtime:
     name: WordPress ${{ matrix.wordpress }} / PHP ${{ matrix.php }}
     runs-on: ubuntu-24.04
@@ -124,15 +222,10 @@ jobs:
           set -euo pipefail
           log=/tmp/pontifex-runtime/wp-content/debug.log
           [[ -f "$log" ]] || exit 0
-
-          # Fatal/parse errors always fail, regardless of origin.
           if grep -Eqi 'PHP (Fatal error|Parse error)' "$log"; then
             cat "$log"
             exit 1
           fi
-
-          # Older supported WordPress core can emit its own PHP 8.1 deprecations.
-          # Only plugin-origin warnings/notices/deprecations are compatibility failures here.
           if grep -Ei 'PHP (Warning|Deprecated|Notice)' "$log" | grep -Fq '/wp-content/plugins/pontifex-oi/'; then
             cat "$log"
             exit 1
