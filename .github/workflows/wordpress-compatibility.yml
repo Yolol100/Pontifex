@@ -106,7 +106,17 @@ jobs:
         run: |
           set -euo pipefail
           log=/tmp/pontifex-runtime/wp-content/debug.log
-          if [[ -f "$log" ]] && grep -Eqi 'PHP (Fatal error|Parse error|Warning|Deprecated|Notice)' "$log"; then
+          [[ -f "$log" ]] || exit 0
+
+          # Fatal/parse errors always fail, regardless of origin.
+          if grep -Eqi 'PHP (Fatal error|Parse error)' "$log"; then
+            cat "$log"
+            exit 1
+          fi
+
+          # Older supported WordPress core can emit its own PHP 8.1 deprecations.
+          # Only plugin-origin warnings/notices/deprecations are compatibility failures here.
+          if grep -Ei 'PHP (Warning|Deprecated|Notice)' "$log" | grep -Fq '/wp-content/plugins/pontifex-oi/'; then
             cat "$log"
             exit 1
           fi
