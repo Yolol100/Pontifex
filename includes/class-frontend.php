@@ -568,7 +568,6 @@ class Frontend
        
         // ✅ DEBUG: Log het aantal gevonden kandidaten
         error_log('[Pontifex OI DEBUG][' . self::get_log_context() . '] Aantal kandidaten na filtering: ' . $candidate_count);
-        error_log('[Pontifex OI DEBUG][' . self::get_log_context() . '] Kandidaat namen: ' . print_r($order_data['candidate_fullname'], true));
        
         // Pad arrays to the correct length
         foreach ($candidate_fields as $field) {
@@ -612,8 +611,6 @@ class Frontend
 
         if ($amount_from_frontend <= 0 || $difference > 0.05) {
             error_log('[Pontifex OI ERROR][' . self::get_log_context() . '] Bedragvalidatie GEFAALD - Te groot verschil of nul bedrag');
-            error_log('[Pontifex OI DEBUG][' . self::get_log_context() . '] Volledige order_data: ' . json_encode($order_data, JSON_PRETTY_PRINT));
-            error_log('[Pontifex OI DEBUG][' . self::get_log_context() . '] Herberekende totals: ' . json_encode($totals, JSON_PRETTY_PRINT));
 
             wp_send_json_error([
                 'message' => 'Ongeldig bedrag (BTW). Probeer het opnieuw.',
@@ -628,13 +625,6 @@ class Frontend
         global $EXAM_PRODUCTS;
         $exam_label = $EXAM_PRODUCTS[$order_data['exam_type']]['label'] ?? 'Onbekend Examen';
         $language_label = $order_data['language'];
-        $candidate_names = [];
-        foreach ($order_data['candidate_fullname'] as $key => $fullname) {
-            $infix = $order_data['candidate_infix'][$key] ?? '';
-            $lastname = $order_data['candidate_lastname'][$key] ?? '';
-            $candidate_names[] = trim($fullname . ' ' . $infix . ' ' . $lastname);
-        }
-        $candidate_list = implode(', ', array_filter($candidate_names));
         // Create payment description
         $description_parts = [
             'Inschrijving',
@@ -643,16 +633,13 @@ class Frontend
             'op ' . ($order_data['date'] ?? 'onbekende datum'),
             'om ' . ($order_data['time'] ?? 'onbekende tijd'),
         ];
-        if (!empty($candidate_list)) {
-            $description_parts[] = 'voor: ' . $candidate_list;
-        }
         $description = implode(' ', $description_parts);
         // Pak e-mailadres uit order_data, met fallback naar 'email'
         $order_email = sanitize_email(
             $order_data['order_email'] ?? ($order_data['email'] ?? '')
         );
         try {
-            $order_token = uniqid("pontifex_order_", true);
+            $order_token = 'pontifex_order_' . bin2hex(random_bytes(16));
             $order_data["order_token"] = $order_token;
 
             // AI-PATCH: bewaar de volledige inschrijving tijdelijk in WordPress.
@@ -676,7 +663,8 @@ class Frontend
                 'order_token' => $order_token,
             ]);
         } catch (\Throwable $e) {
-            wp_send_json_error(['message' => 'Fout bij starten betaling: ' . $e->getMessage()]);
+            error_log('[Pontifex OI ERROR][' . self::get_log_context() . '] Payment start failed (' . get_class($e) . ').');
+            wp_send_json_error(['message' => 'Fout bij starten betaling. Probeer het opnieuw.']);
         }
     }
     /**

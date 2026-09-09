@@ -155,6 +155,10 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
         $state['completed_at'] = time();
         pontifex_oi_webhook_store_state($state_key, $state);
 
+        if ($order_token !== '') {
+            delete_transient('pontifex_order_data_for_token_' . $order_token);
+        }
+
         return new \WP_REST_Response(['status' => 'ok'], 200);
     } catch (\Throwable $e) {
         error_log('[Pontifex OI Webhook] Processing failed (' . get_class($e) . ').');

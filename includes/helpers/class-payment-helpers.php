@@ -317,15 +317,13 @@ class PaymentHelpers
 
         global $EXTRA_PRODUCTS, $EXAM_PRODUCTS, $MATERIAL_PRODUCTS;
 
-        error_log('[Pontifex OI DEBUG][' . $log_context . '] Ingediende order_details: ' . print_r($order_details, true));
-        error_log('[Pontifex OI DEBUG][' . $log_context . '] Ingediende total_amount: ' . $total_amount);
+        error_log('[Pontifex OI DEBUG][' . $log_context . '] Payment creation started; candidates=' . (int) ($order_details['candidate_count'] ?? 0));
 
         $amount_incl = (float) $total_amount;
         $amountStr = number_format($amount_incl, 2, '.', '');
 
         $totals = self::calculate_totals_with_vat($order_details);
-        error_log('[Pontifex OI DEBUG][' . $log_context . '] Herberekende totals (controle): ' . print_r($totals, true));
-        error_log('[Pontifex OI DEBUG][' . $log_context . '] Mollie amountStr: ' . $amountStr);
+        error_log('[Pontifex OI DEBUG][' . $log_context . '] Server-side payment total recalculated.');
 
         if (empty($order_details['language'])) {
             $order_details['language'] = $_POST['language'] ?? $_GET['language'] ?? 'nl';
@@ -407,7 +405,6 @@ class PaymentHelpers
             // De volledige order staat tijdelijk in WordPress via order_token.
             $metadata = [
                 "order_token" => (string) ($order_details["order_token"] ?? ""),
-                "order_email" => sanitize_email($customer_email),
                 "exam_type"   => sanitize_text_field((string) ($order_details["exam_type"] ?? "")),
                 "language"    => sanitize_text_field((string) ($order_details["language"] ?? "nl")) ,
                 "total_incl"  => $amountStr,
@@ -433,11 +430,11 @@ class PaymentHelpers
 
             return $payment;
         } catch (\Mollie\Api\Exceptions\ApiException $e) {
-            error_log("[Pontifex OI ERROR][" . $log_context . "] Mollie API fout: " . $e->getMessage());
-            throw new \RuntimeException("Mollie API fout: " . $e->getMessage(), 0, $e);
+            error_log('[Pontifex OI ERROR][' . $log_context . '] Mollie API request failed; code=' . (int) $e->getCode());
+            throw new \RuntimeException('Mollie API fout.', 0, $e);
         } catch (\Throwable $e) {
-            error_log("[Pontifex OI ERROR][" . $log_context . "] Algemene fout bij aanmaken betaling: " . $e->getMessage());
-            throw new \RuntimeException("Mollie betaling kon niet worden aangemaakt: " . $e->getMessage(), 0, $e);
+            error_log('[Pontifex OI ERROR][' . $log_context . '] Payment creation failed (' . get_class($e) . '); code=' . (int) $e->getCode());
+            throw new \RuntimeException('Mollie betaling kon niet worden aangemaakt.', 0, $e);
         }
     }
 
@@ -468,10 +465,10 @@ class PaymentHelpers
 
             return $payment;
         } catch (\Mollie\Api\Exceptions\ApiException $e) {
-            error_log('[Pontifex OI ERROR][' . $log_context . '] Mollie ophalen fout: ' . $e->getMessage());
+            error_log('[Pontifex OI ERROR][' . $log_context . '] Mollie lookup failed; code=' . (int) $e->getCode());
             return null;
         } catch (\Exception $e) {
-            error_log('[Pontifex OI ERROR][' . $log_context . '] Algemene fout bij ophalen betaling: ' . $e->getMessage());
+            error_log('[Pontifex OI ERROR][' . $log_context . '] Payment lookup failed (' . get_class($e) . '); code=' . (int) $e->getCode());
             return null;
         }
     }
