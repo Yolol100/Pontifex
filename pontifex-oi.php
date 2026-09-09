@@ -37,6 +37,7 @@ require_once PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/ajax-soap-fetch-handler.php';
 require_once PONTIFEX_OI_PATH . 'includes/webhooks/webhook-handler.php';
 require_once PONTIFEX_OI_PATH . 'includes/class-frontend.php';
+require_once PONTIFEX_OI_PATH . 'includes/frontend-asset-guard.php';
 
 if (is_admin()) {
     require_once PONTIFEX_OI_PATH . 'admin/class-admin.php';
