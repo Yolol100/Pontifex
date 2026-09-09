@@ -3,12 +3,13 @@ namespace PontifexOI\Helpers;
 
 if (!defined('ABSPATH')) exit;
 
-// ✅ Charset fix
+// Charset voor uitgaande pluginmail.
 add_filter('wp_mail_charset', fn() => 'UTF-8');
 
-// ✅ Log mailfouten voor debugging
+// Log alleen foutcodes; WP_Error kan volledige maildata en ontvangers bevatten.
 add_action('wp_mail_failed', function($wp_error) {
-    error_log('[Pontifex OI Plugin] Mail failed: ' . print_r($wp_error, true));
+    $codes = is_wp_error($wp_error) ? implode(',', $wp_error->get_error_codes()) : 'unknown';
+    error_log('[Pontifex OI Plugin] Mail failed; codes: ' . $codes);
 });
 
 require_once PONTIFEX_OI_PATH . 'includes/config/producten-prijzen.php';
@@ -50,11 +51,11 @@ class MailHelpers
     }
 
     /**
-     * Stuur mails zonder Excel-bijlage
+     * Stuur bevestigingsmails zonder gevoelige orderdata te loggen.
      */
-    public static function send_inschrijving_mails($order)
+    public static function send_inschrijving_mails($order): bool
     {
-        error_log('[Pontifex OI] Sending mails triggered for order: ' . json_encode($order));
+        error_log('[Pontifex OI] Mail dispatch started.');
 
         // --- Normaliseer formulier-keys ---
         $map = [
@@ -94,12 +95,13 @@ class MailHelpers
         }
 
         /**
-         * 📨 KLANTMAIL
+         * KLANTMAIL
          */
         ob_start();
         include PONTIFEX_OI_PATH . 'public/emails/payment-success-email-template.php';
         $klantmail = ob_get_clean();
 
+        $customer_ok = true;
         $to_klant = $order['order_email'] ?? $order['email'] ?? '';
         if (!empty($to_klant)) {
             $subject_klant = 'Bevestiging inschrijving - ' . ($order['exam_label'] ?? 'VCA Examen');
@@ -107,12 +109,14 @@ class MailHelpers
                 'Content-Type: text/html; charset=UTF-8',
                 'From: Certipro <info@certipro.nl>'
             ];
-            $result_klant = wp_mail($to_klant, $subject_klant, $klantmail, $headers_klant);
-            if (!$result_klant) error_log("[Pontifex OI] wp_mail() failed for customer {$to_klant}");
+            $customer_ok = (bool) wp_mail($to_klant, $subject_klant, $klantmail, $headers_klant);
+            if (!$customer_ok) {
+                error_log('[Pontifex OI] Customer mail failed.');
+            }
         }
 
         /**
-         * 📨 EIGENAARSMAIL
+         * EIGENAARSMAIL
          */
         ob_start();
         include PONTIFEX_OI_PATH . 'public/emails/owner-notification-email-template.php';
@@ -130,12 +134,14 @@ class MailHelpers
             'From: Certipro <info@certipro.nl>'
         ];
 
-        $result_owner = wp_mail($to_owner, $subject_owner, $eigenaarmail, $headers_owner);
-        if (!$result_owner) {
-            error_log("[Pontifex OI] wp_mail() failed for owner {$to_owner}");
+        $owner_ok = (bool) wp_mail($to_owner, $subject_owner, $eigenaarmail, $headers_owner);
+        if (!$owner_ok) {
+            error_log('[Pontifex OI] Owner mail failed.');
         } else {
-            error_log("[Pontifex OI] Owner mail sent successfully to {$to_owner}");
+            error_log('[Pontifex OI] Owner mail sent successfully.');
         }
+
+        return $customer_ok && $owner_ok;
     }
 
     public static function format_exam_label_for_summary($order)
