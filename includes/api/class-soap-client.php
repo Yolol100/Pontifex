@@ -37,8 +37,8 @@ class SoapClient
                 }
                 $this->client = new \SoapClient($this->endpoint, $this->options);
             } catch (\Exception $e) {
-                error_log('PontifexOI: SOAP client aanmaken gefaald: ' . $e->getMessage());
-                throw new \Exception('SOAP client kon niet worden aangemaakt: ' . $e->getMessage());
+                error_log('PontifexOI: SOAP client aanmaken gefaald (' . get_class($e) . '); code=' . (int) $e->getCode());
+                throw new \RuntimeException('SOAP client kon niet worden aangemaakt.', 0, $e);
             }
         }
         return $this->client;
@@ -86,6 +86,7 @@ class SoapClient
 
         $client = $this->getClient();
         $seenIds = [];
+        $reconciliation_safe = true;
 
         try {
             $response = $client->__soapCall('getWalkInPlanning', $params);
@@ -111,8 +112,14 @@ class SoapClient
                     $planning = (object) $planning;
                 }
 
+                $planning_identifier = sanitize_text_field((string) ($planning->planning_identifier ?? ''));
+                if ($planning_identifier === '' || strlen($planning_identifier) > 64) {
+                    $reconciliation_safe = false;
+                    continue;
+                }
+
                 $data = [
-                    'planning_identifier' => (string) ($planning->planning_identifier ?? ''),
+                    'planning_identifier' => $planning_identifier,
                     'planning_date' => $planning->planning_date ?? null,
                     'planning_time' => $planning->planning_time ?? null,
                     'planning_start_date' => isset($planning->planning_start_date) ? date('Y-m-d H:i:s', strtotime($planning->planning_start_date)) : null,
@@ -124,7 +131,7 @@ class SoapClient
                     'location_street' => $planning->location?->location_street ?? '',
                     'location_number' => $planning->location?->location_number ?? '',
                     'location_suffix' => $planning->location?->location_suffix ?? '',
-                    'location_zip_code' => $planning->location?->location_zip_code ?? '',
+                    'location_postcode' => $planning->location?->location_zip_code ?? '',
                     'location_city' => $planning->location?->location_city ?? '',
                     'location_province' => $planning->location?->location_province ?? '',
                     'location_country' => $planning->location?->location_country ?? '',
@@ -133,7 +140,7 @@ class SoapClient
 
                 $wpdb->query($wpdb->prepare(
                     "INSERT INTO {$table_name}
-                     (planning_identifier, planning_date, planning_time, planning_start_date, planning_updated, planning_status, available_seats, location_identifier, location_name, location_street, location_number, location_suffix, location_zip_code, location_city, location_province, location_country, location_seats)
+                     (planning_identifier, planning_date, planning_time, planning_start_date, planning_updated, planning_status, available_seats, location_identifier, location_name, location_street, location_number, location_suffix, location_postcode, location_city, location_province, location_country, location_seats)
                      VALUES (%s, %s, %s, %s, %s, %s, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %d)
                      ON DUPLICATE KEY UPDATE
                       planning_date = VALUES(planning_date),
@@ -157,16 +164,16 @@ class SoapClient
                 $seenIds[] = $data['planning_identifier'];
             }
 
-            // Verwijder planningen die niet meer in de API-respons zitten
-            if (!empty($seenIds)) {
+            // Alleen destructief reconciliëren als elk ontvangen record een geldige identifier had.
+            // Een lege of malformed upstream response mag bestaande planning nooit weggooien.
+            if ($reconciliation_safe && !empty($seenIds)) {
                 $placeholders = implode(',', array_fill(0, count($seenIds), '%s'));
                 $wpdb->query($wpdb->prepare(
                     "DELETE FROM {$table_name} WHERE planning_identifier NOT IN ($placeholders) AND planning_date >= CURDATE()",
                     ...$seenIds
                 ));
-            } else {
-                // Verwijder alle toekomstige planningen als de API niets teruggeeft
-                $wpdb->query("DELETE FROM {$table_name} WHERE planning_date >= CURDATE()");
+            } elseif (!$reconciliation_safe) {
+                error_log('PontifexOI: planning-reconciliatie overgeslagen wegens ongeldige upstream identifiers.');
             }
 
             // Bust caches
@@ -191,10 +198,7 @@ class SoapClient
             return $seenIds;
 
         } catch (Exception $e) {
-            error_log('PontifexOI SOAP fout: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
-            if (method_exists($e, 'getResponse')) {
-                error_log('PontifexOI SOAP response: ' . $e->getResponse());
-            }
+            error_log('PontifexOI SOAP planning fetch failed (' . get_class($e) . '); code=' . (int) $e->getCode());
             throw $e;
         }
     }
