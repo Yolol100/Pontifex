@@ -154,7 +154,7 @@ class SoapClient
                       location_street = VALUES(location_street),
                       location_number = VALUES(location_number),
                       location_suffix = VALUES(location_suffix),
-                      location_zip_code = VALUES(location_zip_code),
+                      location_postcode = VALUES(location_postcode),
                       location_city = VALUES(location_city),
                       location_province = VALUES(location_province),
                       location_country = VALUES(location_country),
