@@ -48,10 +48,10 @@ add_action('plugins_loaded', function () {
 
 add_action('plugins_loaded', function () {
     if (is_admin() && class_exists('\\PontifexOI\\Admin\\Admin')) {
-        \\PontifexOI\\Admin\\Admin::get_instance();
+        \PontifexOI\Admin\Admin::get_instance();
     }
     if (class_exists('\\PontifexOI\\PublicPart\\Frontend')) {
-        \\PontifexOI\\PublicPart\\Frontend::get_instance();
+        \PontifexOI\PublicPart\Frontend::get_instance();
     }
 }, 20);
 
