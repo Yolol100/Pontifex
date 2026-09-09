@@ -2,108 +2,83 @@
 /**
  * Plugin Name: Pontifex OI
  * Description: Koppeling met Pontifex Open Inschrijvingen (SOAP-API).
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Andrew
  * Text Domain: pontifex-oi
  * Domain Path: /languages
  * Requires at least: 6.0
  * Requires PHP: 8.1
+ * Update URI: https://github.com/Yolol100/Pontifex
  *
  * @package PontifexOI
  */
 
-// Prevent direct access to the file.
 defined('ABSPATH') || exit;
 
-// --- CONSTANTS ---
 if (!defined('PONTIFEX_OI_VERSION')) {
-    define('PONTIFEX_OI_VERSION', '1.0.0');
+    define('PONTIFEX_OI_VERSION', '1.0.1');
     define('PONTIFEX_OI_PATH', plugin_dir_path(__FILE__));
     define('PONTIFEX_OI_URL', plugin_dir_url(__FILE__));
     define('PONTIFEX_OI_FILE', __FILE__);
 }
 
-// --- AUTOLOAD/INCLUDES ---
-// Mollie API integration via composer autoloader.
-require_once PONTIFEX_OI_PATH . 'vendor/autoload.php';
+// Composer dependencies are required only for Mollie/payment paths. A source
+// checkout without vendor/ must still be able to bootstrap planning/admin code.
+$autoload = PONTIFEX_OI_PATH . 'vendor/autoload.php';
+if (is_readable($autoload)) {
+    require_once $autoload;
+}
 
-// Zorg dat de cron-runner beschikbaar is
-require_once plugin_dir_path(__FILE__) . 'includes/cron/fetch-planning-cron.php';
-
-
+require_once PONTIFEX_OI_PATH . 'includes/cron/fetch-planning-cron.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-payment-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-mail-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registrations.php';
 require_once PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/ajax-soap-fetch-handler.php';
-require_once PONTIFEX_OI_PATH . 'includes/cron/fetch-planning-cron.php';
 require_once PONTIFEX_OI_PATH . 'includes/webhooks/webhook-handler.php';
-
-// Frontend class.
 require_once PONTIFEX_OI_PATH . 'includes/class-frontend.php';
 
-// Admin class needs to be loaded if it's an admin request, including AJAX.
 if (is_admin()) {
     require_once PONTIFEX_OI_PATH . 'admin/class-admin.php';
 }
 
-// --- TRANSLATIONS ---
 add_action('plugins_loaded', function () {
     load_plugin_textdomain('pontifex-oi', false, dirname(plugin_basename(__FILE__)) . '/languages');
 }, 1);
 
-// --- BOOTSTRAP CLASSES ---
 add_action('plugins_loaded', function () {
-    if (is_admin() && class_exists('\PontifexOI\Admin\Admin')) {
-        \PontifexOI\Admin\Admin::get_instance();
+    if (is_admin() && class_exists('\\PontifexOI\\Admin\\Admin')) {
+        \\PontifexOI\\Admin\\Admin::get_instance();
     }
-    if (class_exists('\PontifexOI\PublicPart\Frontend')) {
-        \PontifexOI\PublicPart\Frontend::get_instance();
+    if (class_exists('\\PontifexOI\\PublicPart\\Frontend')) {
+        \\PontifexOI\\PublicPart\\Frontend::get_instance();
     }
 }, 20);
 
-// Plan dagelijkse cron bij activatie (03:15 Europe/Amsterdam)
-register_activation_hook(__FILE__, function () {
-    if (!wp_next_scheduled('pontifex_oi_cron_fetch_planning')) {
-        $tz  = new DateTimeZone('Europe/Amsterdam');
-        $now = new DateTime('now', $tz);
-        $run = new DateTime('03:15', $tz);
-        if ($run <= $now) { $run->modify('+1 day'); }
-        $run_utc = (new DateTime('@' . $run->getTimestamp()))->getTimestamp();
-        wp_schedule_event($run_utc, 'daily', 'pontifex_oi_cron_fetch_planning');
-    }
-});
-
-// Opruimen bij deactivatie
-register_deactivation_hook(__FILE__, function () {
-    $ts = wp_next_scheduled('pontifex_oi_cron_fetch_planning');
-    if ($ts) { wp_unschedule_event($ts, 'pontifex_oi_cron_fetch_planning'); }
-});
-
 /**
- * Helper function to determine the next daily timestamp in local WP time.
- * Example: 03:15 a.m. (silent) - adjust as desired.
+ * Determine the next daily timestamp in local WordPress time.
  */
 function pontifex_oi_next_daily_timestamp($hour = 3, $minute = 15, $second = 0) {
     if (!function_exists('wp_timezone')) {
-        // Fallback for very old WP versions
         $tz_string = get_option('timezone_string') ?: 'UTC';
         $tz = new DateTimeZone($tz_string);
     } else {
         $tz = wp_timezone();
     }
+
     $now = new DateTime('now', $tz);
     $run = new DateTime('today', $tz);
-    $run->setTime((int)$hour, (int)$minute, (int)$second);
+    $run->setTime((int) $hour, (int) $minute, (int) $second);
 
     if ($run <= $now) {
         $run->modify('+1 day');
     }
+
     return $run->getTimestamp();
 }
 
 /**
- * ACTIVATION: create DB tables (dbDelta) and schedule the CRON job once a day.
+ * Create database tables and schedule the daily planning refresh.
  */
 register_activation_hook(__FILE__, function () {
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -111,7 +86,6 @@ register_activation_hook(__FILE__, function () {
 
     $prefix = $wpdb->prefix;
 
-    // === Tables ===
     $table_planning = $prefix . 'pontifex_planning';
     $sql_planning = "CREATE TABLE {$table_planning} (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -165,7 +139,6 @@ register_activation_hook(__FILE__, function () {
     dbDelta($sql_regs);
     dbDelta($sql_logs);
 
-    // === CRON: once per day, starting with the next 03:15 a.m. local time ===
     $hook = 'pontifex_oi_cron_fetch_planning';
     if (!wp_next_scheduled($hook)) {
         wp_schedule_event(pontifex_oi_next_daily_timestamp(3, 15, 0), 'daily', $hook);
@@ -174,12 +147,8 @@ register_activation_hook(__FILE__, function () {
     flush_rewrite_rules();
 });
 
-/**
- * DEACTIVATION: clean up CRON.
- */
 register_deactivation_hook(__FILE__, function () {
     $hook = 'pontifex_oi_cron_fetch_planning';
-    // Remove all scheduled instances of this hook
     if (function_exists('wp_clear_scheduled_hook')) {
         wp_clear_scheduled_hook($hook);
     } else {
@@ -191,15 +160,13 @@ register_deactivation_hook(__FILE__, function () {
 });
 
 /**
- * MIGRATION: if an old 'hourly' schedule was running, reschedule it to 'daily'.
- * This runs once and sets a flag in the options.
+ * Migrate an old hourly schedule to the daily schedule once.
  */
 add_action('plugins_loaded', function () {
     $flag = 'pontifex_oi_cron_daily_migrated';
     if (!get_option($flag)) {
         $hook = 'pontifex_oi_cron_fetch_planning';
 
-        // Remove all old schedules
         if (function_exists('wp_clear_scheduled_hook')) {
             wp_clear_scheduled_hook($hook);
         } else {
@@ -208,9 +175,7 @@ add_action('plugins_loaded', function () {
             }
         }
 
-        // New 'daily' schedule starting from the next 03:15 a.m. local time
         wp_schedule_event(pontifex_oi_next_daily_timestamp(3, 15, 0), 'daily', $hook);
-
         update_option($flag, 1, true);
     }
 });
