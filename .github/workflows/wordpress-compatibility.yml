@@ -99,7 +99,6 @@ jobs:
           set -euo pipefail
           grep -Fq "'location_postcode' => \$planning->location?->location_zip_code" includes/api/class-soap-client.php
           grep -Fq 'location_suffix, location_postcode, location_city' includes/api/class-soap-client.php
-          grep -Fq 'location_postcode = VALUES(location_postcode)' includes/api/class-soap-client.php
           ! grep -Fq 'location_zip_code = VALUES(location_zip_code)' includes/api/class-soap-client.php
           grep -Fq '$reconciliation_safe = true;' includes/api/class-soap-client.php
           grep -Fq '$reconciliation_safe = false;' includes/api/class-soap-client.php
@@ -107,6 +106,11 @@ jobs:
           ! grep -Fq 'DELETE FROM {$table_name} WHERE planning_date >= CURDATE()' includes/api/class-soap-client.php
           ! grep -Fq 'getTraceAsString()' includes/api/class-soap-client.php
           ! grep -Fq "SOAP response: ' . \$e->getResponse()" includes/api/class-soap-client.php
+          ! grep -Fq 'ON DUPLICATE KEY UPDATE' includes/api/class-soap-client.php
+          grep -Fq 'SELECT id FROM {$table_name} WHERE planning_identifier = %s LIMIT 1' includes/api/class-soap-client.php
+          grep -Fq '$wpdb->update(' includes/api/class-soap-client.php
+          grep -Fq '$wpdb->insert($table_name, $data, $formats)' includes/api/class-soap-client.php
+          grep -Fq "throw new \\RuntimeException('planning_persistence_failed');" includes/api/class-soap-client.php
 
       - name: Install verified WP-CLI 2.12.0
         shell: bash
