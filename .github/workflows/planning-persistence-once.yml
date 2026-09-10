@@ -27,32 +27,13 @@ jobs:
 
           path = Path('includes/api/class-soap-client.php')
           text = path.read_text()
-          old = '''                $wpdb->query($wpdb->prepare(
-                    "INSERT INTO {$table_name}
-                     (planning_identifier, planning_date, planning_time, planning_start_date, planning_updated, planning_status, available_seats, location_identifier, location_name, location_street, location_number, location_suffix, location_postcode, location_city, location_province, location_country, location_seats)
-                     VALUES (%s, %s, %s, %s, %s, %s, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %d)
-                     ON DUPLICATE KEY UPDATE
-                      planning_date = VALUES(planning_date),
-                      planning_time = VALUES(planning_time),
-                      planning_start_date = VALUES(planning_start_date),
-                      planning_updated = VALUES(planning_updated),
-                      planning_status = VALUES(planning_status),
-                      available_seats = VALUES(available_seats),
-                      location_identifier = VALUES(location_identifier),
-                      location_name = VALUES(location_name),
-                      location_street = VALUES(location_street),
-                      location_number = VALUES(location_number),
-                      location_suffix = VALUES(location_suffix),
-                      location_postcode = VALUES(location_postcode),
-                      location_city = VALUES(location_city),
-                      location_province = VALUES(location_province),
-                      location_country = VALUES(location_country),
-                      location_seats = VALUES(location_seats)",
-                    ...array_values($data)
-                ));
-                $seenIds[] = $data['planning_identifier'];
-          '''
-          new = '''                $formats = [
+          start_marker = '                $wpdb->query($wpdb->prepare(\n                    "INSERT INTO {$table_name}'
+          end_marker = "                $seenIds[] = $data['planning_identifier'];\n"
+          if text.count(start_marker) != 1 or text.count(end_marker) != 1:
+              raise SystemExit('planning persistence anchors are not unique')
+          start = text.index(start_marker)
+          end = text.index(end_marker, start) + len(end_marker)
+          replacement = '''                $formats = [
                     '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s',
                     '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d',
                 ];
@@ -79,9 +60,7 @@ jobs:
 
                 $seenIds[] = $planning_identifier;
           '''
-          if text.count(old) != 1:
-              raise SystemExit(f'expected one legacy upsert block, found {text.count(old)}')
-          path.write_text(text.replace(old, new, 1))
+          path.write_text(text[:start] + replacement + text[end:])
           PY
 
           php -l includes/api/class-soap-client.php
