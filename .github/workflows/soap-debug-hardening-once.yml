@@ -105,8 +105,8 @@ jobs:
           php -l includes/api/class-soap-client.php
           ! grep -Fq '__getLastRequest()' includes/api/class-soap-client.php
           ! grep -Fq '__getLastResponse()' includes/api/class-soap-client.php
-          ! grep -Fq "$out['message']" includes/api/class-soap-client.php
-          grep -Fq "$out['error_type'] = get_class($e);" includes/api/class-soap-client.php
+          ! grep -Fq "\$out['message']" includes/api/class-soap-client.php
+          grep -Fq "\$out['error_type'] = get_class(\$e);" includes/api/class-soap-client.php
 
       - name: Commit repair and remove one-shot workflow
         shell: bash
