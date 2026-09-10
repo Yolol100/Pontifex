@@ -98,17 +98,22 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
 
         $metadata = (array) ($payment->metadata ?? []);
         $order_token = isset($metadata['order_token']) ? sanitize_text_field((string) $metadata['order_token']) : '';
-        $order = [];
 
         if ($order_token !== '') {
             $stored_order = get_transient('pontifex_order_data_for_token_' . $order_token);
-            if (is_array($stored_order)) {
-                $order = $stored_order;
+            if (!is_array($stored_order) || empty($stored_order)) {
+                // Tokenized payments deliberately keep personal/order data out of Mollie.
+                // Never complete such a payment from the intentionally sparse metadata.
+                throw new \RuntimeException('order_data_missing');
             }
-        }
-
-        if (empty($order)) {
+            $order = $stored_order;
+        } else {
+            // Legacy payments without an order token may still contain the full
+            // historical order payload in Mollie metadata.
             $order = $metadata;
+            if (empty($order)) {
+                throw new \RuntimeException('legacy_order_data_missing');
+            }
         }
 
         $order['candidate_fullname'] = isset($order['candidate_fullname']) ? (array) $order['candidate_fullname'] : [];
