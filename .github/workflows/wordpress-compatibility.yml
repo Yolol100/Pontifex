@@ -112,6 +112,16 @@ jobs:
           grep -Fq '$wpdb->insert($table_name, $data, $formats)' includes/api/class-soap-client.php
           grep -Fq "throw new \\RuntimeException('planning_persistence_failed');" includes/api/class-soap-client.php
 
+      - name: Enforce credential-safe SOAP diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -Fq '__getLastRequest()' includes/api/class-soap-client.php
+          ! grep -Fq '__getLastResponse()' includes/api/class-soap-client.php
+          ! grep -Fq "\$out['message']" includes/api/class-soap-client.php
+          grep -Fq "\$out['error_type'] = get_class(\$e);" includes/api/class-soap-client.php
+          grep -Fq "\$out['error_code'] = (int) \$e->getCode();" includes/api/class-soap-client.php
+
       - name: Install verified WP-CLI 2.12.0
         shell: bash
         run: |
