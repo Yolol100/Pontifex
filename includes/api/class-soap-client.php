@@ -138,30 +138,32 @@ class SoapClient
                     'location_seats' => (int) ($planning->location?->location_seats ?? 0),
                 ];
 
-                $wpdb->query($wpdb->prepare(
-                    "INSERT INTO {$table_name}
-                     (planning_identifier, planning_date, planning_time, planning_start_date, planning_updated, planning_status, available_seats, location_identifier, location_name, location_street, location_number, location_suffix, location_postcode, location_city, location_province, location_country, location_seats)
-                     VALUES (%s, %s, %s, %s, %s, %s, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %d)
-                     ON DUPLICATE KEY UPDATE
-                      planning_date = VALUES(planning_date),
-                      planning_time = VALUES(planning_time),
-                      planning_start_date = VALUES(planning_start_date),
-                      planning_updated = VALUES(planning_updated),
-                      planning_status = VALUES(planning_status),
-                      available_seats = VALUES(available_seats),
-                      location_identifier = VALUES(location_identifier),
-                      location_name = VALUES(location_name),
-                      location_street = VALUES(location_street),
-                      location_number = VALUES(location_number),
-                      location_suffix = VALUES(location_suffix),
-                      location_postcode = VALUES(location_postcode),
-                      location_city = VALUES(location_city),
-                      location_province = VALUES(location_province),
-                      location_country = VALUES(location_country),
-                      location_seats = VALUES(location_seats)",
-                    ...array_values($data)
-                ));
-                $seenIds[] = $data['planning_identifier'];
+                $formats = [
+          '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s',
+          '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d',
+      ];
+      $existing_id = $wpdb->get_var($wpdb->prepare(
+          "SELECT id FROM {$table_name} WHERE planning_identifier = %s LIMIT 1",
+          $planning_identifier
+      ));
+
+      if ($existing_id !== null) {
+          $persisted = $wpdb->update(
+              $table_name,
+              $data,
+              ['planning_identifier' => $planning_identifier],
+              $formats,
+              ['%s']
+          );
+      } else {
+          $persisted = $wpdb->insert($table_name, $data, $formats);
+      }
+
+      if ($persisted === false) {
+          throw new \RuntimeException('planning_persistence_failed');
+      }
+
+      $seenIds[] = $planning_identifier;
             }
 
             // Alleen destructief reconciliëren als elk ontvangen record een geldige identifier had.
