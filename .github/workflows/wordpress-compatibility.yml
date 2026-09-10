@@ -83,6 +83,16 @@ jobs:
           grep -Fq "bin2hex(random_bytes(16))" includes/class-frontend.php
           grep -Fq "delete_transient('pontifex_order_data_for_token_' . \$order_token)" includes/webhooks/webhook-handler.php
 
+      - name: Enforce payment lifecycle invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "throw new \\RuntimeException('order_data_missing');" includes/webhooks/webhook-handler.php
+          grep -Fq 'Legacy payments without an order token' includes/webhooks/webhook-handler.php
+          grep -Fq 'private static function render_unverified(): string' public/class-payment-success-shortcode.php
+          grep -Fq 'if (!$is_paid || $has_refunds || $has_chargebacks)' public/class-payment-success-shortcode.php
+          ! grep -Fq "['paid', 'authorized']" public/class-payment-success-shortcode.php
+
       - name: Enforce planning data-layer invariants
         shell: bash
         run: |
