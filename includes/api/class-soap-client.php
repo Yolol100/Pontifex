@@ -139,31 +139,31 @@ class SoapClient
                 ];
 
                 $formats = [
-          '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s',
-          '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d',
-      ];
-      $existing_id = $wpdb->get_var($wpdb->prepare(
-          "SELECT id FROM {$table_name} WHERE planning_identifier = %s LIMIT 1",
-          $planning_identifier
-      ));
+                    '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s',
+                    '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d',
+                ];
+                $existing_id = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$table_name} WHERE planning_identifier = %s LIMIT 1",
+                    $planning_identifier
+                ));
 
-      if ($existing_id !== null) {
-          $persisted = $wpdb->update(
-              $table_name,
-              $data,
-              ['planning_identifier' => $planning_identifier],
-              $formats,
-              ['%s']
-          );
-      } else {
-          $persisted = $wpdb->insert($table_name, $data, $formats);
-      }
+                if ($existing_id !== null) {
+                    $persisted = $wpdb->update(
+                        $table_name,
+                        $data,
+                        ['planning_identifier' => $planning_identifier],
+                        $formats,
+                        ['%s']
+                    );
+                } else {
+                    $persisted = $wpdb->insert($table_name, $data, $formats);
+                }
 
-      if ($persisted === false) {
-          throw new \RuntimeException('planning_persistence_failed');
-      }
+                if ($persisted === false) {
+                    throw new \RuntimeException('planning_persistence_failed');
+                }
 
-      $seenIds[] = $planning_identifier;
+                $seenIds[] = $planning_identifier;
             }
 
             // Alleen destructief reconciliëren als elk ontvangen record een geldige identifier had.
@@ -445,7 +445,7 @@ class SoapClient
      */
     public function debugHandshake(bool $do_ping = false): array
     {
-        $out = ['ok' => false];
+        $out = ['ok' => false, 'ping_attempted' => $do_ping];
         try {
             $client = $this->getClient();
             $out['soap_functions'] = $client->__getFunctions();
@@ -461,12 +461,9 @@ class SoapClient
                 }
             }
             $out['ok'] = true;
-            $out['last_request'] = $client->__getLastRequest();
-            $out['last_response'] = $client->__getLastResponse();
         } catch (\Throwable $e) {
-            $out['message'] = $e->getMessage();
-            $out['last_request'] = isset($client) ? $client->__getLastRequest() : null;
-            $out['last_response'] = isset($client) ? $client->__getLastResponse() : null;
+            $out['error_type'] = get_class($e);
+            $out['error_code'] = (int) $e->getCode();
         }
         return $out;
     }
