@@ -1,0 +1,174 @@
+name: WordPress compatibility
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  runtime:
+    name: WordPress ${{ matrix.wordpress }} / PHP ${{ matrix.php }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - wordpress: '6.0'
+            php: '8.1'
+          - wordpress: '7.1'
+            php: '8.3'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          extensions: mysqli, soap
+          tools: composer:v2
+
+      - name: Install and audit locked Composer dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          composer validate --no-check-publish
+          composer install --no-interaction --no-progress --prefer-dist
+          composer audit --locked
+
+      - name: PHP syntax check
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.php' -not -path './.git/*' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+
+      - name: Enforce payment privacy invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -Fq 'Ingediende order_details:' includes/helpers/class-payment-helpers.php
+          ! grep -Fq 'Kandidaat namen:' includes/class-frontend.php
+          ! grep -Fq 'Volledige order_data:' includes/class-frontend.php
+          ! grep -Fq "'voor: ' . \$candidate_list" includes/class-frontend.php
+          ! grep -Fq 'uniqid("pontifex_order_"' includes/class-frontend.php
+          ! grep -Fq 'Mollie metadata inhoud:' public/class-payment-success-shortcode.php
+          ! grep -Fq 'order_token gevonden:' public/class-payment-success-shortcode.php
+          ! grep -Fq 'Sending mails triggered for order:' includes/helpers/class-mail-helpers.php
+          ! grep -Fq 'print_r($wp_error, true)' includes/helpers/class-mail-helpers.php
+          ! grep -Fq '"order_email" => sanitize_email' includes/helpers/class-payment-helpers.php
+          grep -Fq "bin2hex(random_bytes(16))" includes/class-frontend.php
+          grep -Fq "delete_transient('pontifex_order_data_for_token_' . \$order_token)" includes/webhooks/webhook-handler.php
+
+      - name: Enforce payment lifecycle invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "throw new \\RuntimeException('order_data_missing');" includes/webhooks/webhook-handler.php
+          grep -Fq 'Legacy payments without an order token' includes/webhooks/webhook-handler.php
+          grep -Fq 'private static function render_unverified(): string' public/class-payment-success-shortcode.php
+          grep -Fq 'if (!$is_paid || $has_refunds || $has_chargebacks)' public/class-payment-success-shortcode.php
+          ! grep -Fq "['paid', 'authorized']" public/class-payment-success-shortcode.php
+
+      - name: Enforce planning data-layer invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "'location_postcode' => \$planning->location?->location_zip_code" includes/api/class-soap-client.php
+          ! grep -Fq 'location_zip_code = VALUES(location_zip_code)' includes/api/class-soap-client.php
+          grep -Fq '$reconciliation_safe = true;' includes/api/class-soap-client.php
+          grep -Fq '$reconciliation_safe = false;' includes/api/class-soap-client.php
+          grep -Fq 'if ($reconciliation_safe && !empty($seenIds))' includes/api/class-soap-client.php
+          ! grep -Fq 'DELETE FROM {$table_name} WHERE planning_date >= CURDATE()' includes/api/class-soap-client.php
+          ! grep -Fq 'getTraceAsString()' includes/api/class-soap-client.php
+          ! grep -Fq "SOAP response: ' . \$e->getResponse()" includes/api/class-soap-client.php
+          ! grep -Fq 'ON DUPLICATE KEY UPDATE' includes/api/class-soap-client.php
+          grep -Fq 'SELECT id FROM {$table_name} WHERE planning_identifier = %s LIMIT 1' includes/api/class-soap-client.php
+          grep -Fq '$wpdb->update(' includes/api/class-soap-client.php
+          grep -Fq '$wpdb->insert($table_name, $data, $formats)' includes/api/class-soap-client.php
+          grep -Fq "throw new \\RuntimeException('planning_persistence_failed');" includes/api/class-soap-client.php
+
+      - name: Enforce credential-safe SOAP diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -Fq '__getLastRequest()' includes/api/class-soap-client.php
+          ! grep -Fq '__getLastResponse()' includes/api/class-soap-client.php
+          ! grep -Fq "\$out['message']" includes/api/class-soap-client.php
+          grep -Fq "\$out['error_type'] = get_class(\$e);" includes/api/class-soap-client.php
+          grep -Fq "\$out['error_code'] = (int) \$e->getCode();" includes/api/class-soap-client.php
+
+      - name: Install verified WP-CLI 2.12.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --output /tmp/wp-cli.phar \
+            https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar
+          echo 'ce34ddd838f7351d6759068d09793f26755463b4a4610a5a5c0a97b68220d85c  /tmp/wp-cli.phar' | sha256sum --check --strict
+
+      - name: Create clean WordPress runtime and activate plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime=/tmp/pontifex-runtime
+          plugin_dir="$runtime/wp-content/plugins/pontifex-oi"
+          rm -rf "$runtime"
+          php /tmp/wp-cli.phar core download --path="$runtime" --version='${{ matrix.wordpress }}' --locale=en_US --force
+          php /tmp/wp-cli.phar config create --path="$runtime" --dbname=wordpress --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306
+          php /tmp/wp-cli.phar config set WP_DEBUG true --raw --path="$runtime"
+          php /tmp/wp-cli.phar config set WP_DEBUG_LOG true --raw --path="$runtime"
+          php /tmp/wp-cli.phar core install \
+            --path="$runtime" \
+            --url=http://pontifex.test \
+            --title='Pontifex Runtime' \
+            --admin_user=admin \
+            --admin_password='runtime-only-password' \
+            --admin_email=runtime@example.invalid \
+            --skip-email
+          mkdir -p "$plugin_dir"
+          rsync -a --exclude='.git/' "$GITHUB_WORKSPACE/" "$plugin_dir/"
+          rm -f "$runtime/wp-content/debug.log"
+          php /tmp/wp-cli.phar plugin activate pontifex-oi --path="$runtime"
+          php /tmp/wp-cli.phar plugin status pontifex-oi --path="$runtime"
+          php /tmp/wp-cli.phar eval 'echo defined("PONTIFEX_OI_VERSION") ? PONTIFEX_OI_VERSION . "\n" : "missing\n";' --path="$runtime"
+
+      - name: Reject runtime PHP errors
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          log=/tmp/pontifex-runtime/wp-content/debug.log
+          [[ -f "$log" ]] || exit 0
+
+          if grep -Eqi 'PHP (Fatal error|Parse error)' "$log"; then
+            cat "$log"
+            exit 1
+          fi
+
+          if grep -Ei 'PHP (Warning|Deprecated|Notice)' "$log" | grep -Fq '/wp-content/plugins/pontifex-oi/'; then
+            cat "$log"
+            exit 1
+          fi
