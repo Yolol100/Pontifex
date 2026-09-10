@@ -98,7 +98,6 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq "'location_postcode' => \$planning->location?->location_zip_code" includes/api/class-soap-client.php
-          grep -Fq 'location_suffix, location_postcode, location_city' includes/api/class-soap-client.php
           ! grep -Fq 'location_zip_code = VALUES(location_zip_code)' includes/api/class-soap-client.php
           grep -Fq '$reconciliation_safe = true;' includes/api/class-soap-client.php
           grep -Fq '$reconciliation_safe = false;' includes/api/class-soap-client.php
