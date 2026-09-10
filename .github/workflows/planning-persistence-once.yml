@@ -51,7 +51,7 @@ jobs:
                     ...array_values($data)
                 ));
                 $seenIds[] = $data['planning_identifier'];
-'''
+          '''
           new = '''                $formats = [
                     '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s',
                     '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d',
@@ -78,7 +78,7 @@ jobs:
                 }
 
                 $seenIds[] = $planning_identifier;
-'''
+          '''
           if text.count(old) != 1:
               raise SystemExit(f'expected one legacy upsert block, found {text.count(old)}')
           path.write_text(text.replace(old, new, 1))
