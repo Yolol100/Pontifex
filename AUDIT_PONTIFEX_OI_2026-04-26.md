@@ -1,5 +1,7 @@
 # Auditrapport Pontifex OI (2026-04-26)
 
+> **Historische snapshot:** dit rapport beschrijft de toestand op 26 april 2026. Bevindingen kunnen later zijn opgelost; gebruik de huidige `main`-bron, README en actuele tests voor de huidige status.
+
 Technische en security-audit op codebasis, met focus op activatie, hooks, compatibiliteit, security, performance en release-readiness.
 
 Belangrijkste bevindingen:
