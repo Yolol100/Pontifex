@@ -2,7 +2,7 @@
 
 > **Supporting engineering project · WordPress/PHP · SOAP API · Mollie · registration and payment flow**
 
-**Built by:** [Andrew Baeten](https://github.com/Yolol100) · [Portfolio cases](https://andrewbaeten.nl/category/cases)
+**Developer profile:** [Andrew Baeten](https://github.com/Yolol100) · [Portfolio cases](https://andrewbaeten.nl/category/cases)
 
 Pontifex OI is a WordPress integration for the Pontifex Open Inschrijvingen SOAP API. It exposes exam planning, candidate registration and payment-related frontend flows through WordPress.
 
