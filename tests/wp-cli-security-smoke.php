@@ -314,4 +314,24 @@ if (pontifex_oi_webhook_load_state($state_key) !== $fixture
 delete_option($state_key);
 delete_transient($state_key);
 
+
+/**
+ * A confirmed local payment ID must map to one order, and the persisted payload
+ * must be recoverable after a transient disappears.
+ */
+$test_payment_id = 'tr_pontifex_ci_' . substr(hash('sha256', wp_generate_uuid4()), 0, 16);
+$first_id = \PontifexOI\Helpers\Registrations::save($test_payment_id, $validated, 'ci-plan');
+$second_id = \PontifexOI\Helpers\Registrations::save($test_payment_id, $validated, 'ci-plan');
+$restored_order = \PontifexOI\Helpers\Registrations::find_order($test_payment_id);
+$count = (int) $wpdb->get_var($wpdb->prepare(
+    "SELECT COUNT(*) FROM {$wpdb->prefix}pontifex_oi_registrations WHERE order_id = %s",
+    $test_payment_id
+));
+$wpdb->delete($wpdb->prefix . 'pontifex_oi_registrations', ['order_id' => $test_payment_id], ['%s']);
+if (!$first_id || $first_id !== $second_id || $count !== 1
+    || !is_array($restored_order)
+    || ($restored_order['order_email'] ?? null) !== 'inschrijving@example.test') {
+    throw new RuntimeException('Local webhook registration upsert and recovery regression.');
+}
+
 echo 'Pontifex security, lifecycle and pricing smoke tests: OK' . PHP_EOL;
