@@ -217,6 +217,12 @@ jobs:
           set -euo pipefail
           php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/wp-cli-privacy-smoke.php" --path=/tmp/pontifex-runtime
 
+      - name: Mollie refund, retry and durable pending lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/wp-cli-mollie-lifecycle-smoke.php" --path=/tmp/pontifex-runtime
+
       - name: WordPress uninstall lifecycle regression
         shell: bash
         run: |
