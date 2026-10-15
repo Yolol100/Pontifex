@@ -2,6 +2,13 @@
     'use strict';
     const PontifexOI = window.PontifexOI = window.PontifexOI || {};
     const $ = window.jQuery;
+    // Reuse the same HTML escaping in the table and accordion card views.
+    PontifexOI.escapeHtml = function(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      }[ch]));
+    };
+    PontifexOI.escapeAttr = PontifexOI.escapeHtml;
     PontifexOI.getSelectedExtras = function() {
       const extras = [];
       $('.extra-material-checkbox:checked').each(function() {
@@ -40,42 +47,42 @@
                 const rowLanguage = row.language || selectedLanguage;
                 const rowMaterial = row.material || selectedMaterial;
                 const prijsLoader = `<span class="pontifex-oi-dynamic-price"
-                    data-date="${row.date || ''}"
-                    data-time="${row.time || ''}"
-                    data-location="${row.location || ''}"
-                    data-exam="${rowExam}"
-                    data-language="${rowLanguage}"
-                    data-material="${rowMaterial}">
+                    data-date="${PontifexOI.escapeAttr(row.date || '')}"
+                    data-time="${PontifexOI.escapeAttr(row.time || '')}"
+                    data-location="${PontifexOI.escapeAttr(row.location || '')}"
+                    data-exam="${PontifexOI.escapeAttr(rowExam)}"
+                    data-language="${PontifexOI.escapeAttr(rowLanguage)}"
+                    data-material="${PontifexOI.escapeAttr(rowMaterial)}">
                     <span class="pontifex-oi-price-amount"></span>
                     <span class="pontifex-oi-price-loader" style="min-width:40px;">…</span>
                 </span>`;
       
-                const actionBtn = (row.spots && row.spots.toLowerCase() !== 'vol') ?
-                    `<form method="get" style="display:inline;" action="${registrationPageUrl}" class="pontifex-oi-aanmeld-form">
+                const actionBtn = (row.spots && String(row.spots).toLowerCase() !== 'vol') ?
+                    `<form method="get" style="display:inline;" action="${PontifexOI.escapeAttr(registrationPageUrl)}" class="pontifex-oi-aanmeld-form">
                     <input type="hidden" name="go" value="1">
-                    <input type="hidden" name="exam_type" value="${rowExam}">
-                    <input type="hidden" name="language" value="${rowLanguage}">
-                    <input type="hidden" name="material" value="${rowMaterial}">
-                    <input type="hidden" name="date" value="${row.date || ''}">
-                    <input type="hidden" name="time" value="${row.time || ''}">
-                    <input type="hidden" name="location" value="${(row.venue || row.location || '')}">
-                    <input type="hidden" name="province" value="${row.province || ''}">
-                    <input type="hidden" name="spots" value="${row.spots || ''}">
+                    <input type="hidden" name="exam_type" value="${PontifexOI.escapeAttr(rowExam)}">
+                    <input type="hidden" name="language" value="${PontifexOI.escapeAttr(rowLanguage)}">
+                    <input type="hidden" name="material" value="${PontifexOI.escapeAttr(rowMaterial)}">
+                    <input type="hidden" name="date" value="${PontifexOI.escapeAttr(row.date || '')}">
+                    <input type="hidden" name="time" value="${PontifexOI.escapeAttr(row.time || '')}">
+                    <input type="hidden" name="location" value="${PontifexOI.escapeAttr((row.venue || row.location || ''))}">
+                    <input type="hidden" name="province" value="${PontifexOI.escapeAttr(row.province || '')}">
+                    <input type="hidden" name="spots" value="${PontifexOI.escapeAttr(row.spots || '')}">
                     <input type="hidden" name="price" value="" class="pontifex-oi-price-input">
                     ${(window.PontifexOI && PontifexOI.getSelectedExtras)
                       ? PontifexOI.getSelectedExtras().map(id =>
-                          `<input type="hidden" name="extra_options[]" value="${id}">`
+                          `<input type="hidden" name="extra_options[]" value="${PontifexOI.escapeAttr(id)}">`
                         ).join('')
                       : ''}
                     <button type="submit" class="pontifex-oi-aanmelden pontifex-register-link">Kandidaat aanmelden</button>
                 </form>` :
                     '<span class="pontifex-oi-vol">VOL</span>';
                 html += `<tr class="pontifex-oi-table-row">
-                    <td>${row.date || '-'}</td>
-                    <td>${row.time || '-'}</td>
-                    <td>${row.location || '-'}</td>
-                    <td>${row.province || '-'}</td>
-                    <td>${row.spots || '-'}</td>
+                    <td>${PontifexOI.escapeHtml(row.date || '-')}</td>
+                    <td>${PontifexOI.escapeHtml(row.time || '-')}</td>
+                    <td>${PontifexOI.escapeHtml(row.location || '-')}</td>
+                    <td>${PontifexOI.escapeHtml(row.province || '-')}</td>
+                    <td>${PontifexOI.escapeHtml(row.spots || '-')}</td>
                     <td>${prijsLoader}</td>
                     <td>${actionBtn}</td>
                 </tr>`;
@@ -152,8 +159,8 @@
 (function(window, $) {
     'use strict';
     const PontifexOI = window.PontifexOI = window.PontifexOI || {};
-    function escHtml(s) { return String(s || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])); }
-    function escAttr(s) { return escHtml(s).replace(/"/g, '&quot;'); }
+    const escHtml = PontifexOI.escapeHtml;
+    const escAttr = PontifexOI.escapeAttr;
     PontifexOI.renderCards = function(planning, registrationPageUrl = '/cursus-inschrijven/') {
         const $wrap = $('#pontifex-oi-cards-container');
         if (!$wrap.length) return;
@@ -224,7 +231,7 @@
                             ${isVol ? `
                                 <span class="pontifex-oi-vol">VOL</span>`
                                 :
-                                `<form method="get" class="pontifex-oi-aanmeld-form" action="${registrationPageUrl}">
+                                `<form method="get" class="pontifex-oi-aanmeld-form" action="${escAttr(registrationPageUrl)}">
                                     <input type="hidden" name="go" value="1">
                                     <input type="hidden" name="exam_type" value="${escAttr(ex)}">
                                     <input type="hidden" name="language" value="${escAttr(lang)}">
@@ -237,7 +244,7 @@
                                     <input type="hidden" name="price" value="" class="pontifex-oi-price-input">
                                     ${(window.PontifexOI && PontifexOI.getSelectedExtras)
                                       ? PontifexOI.getSelectedExtras().map(id =>
-                                          `<input type="hidden" name="extra_options[]" value="${id}">`
+                                          `<input type="hidden" name="extra_options[]" value="${escAttr(id)}">`
                                         ).join('')
                                       : ''}
                                     <button type="submit" class="pontifex-oi-aanmelden pontifex-register-link">Kandidaat aanmelden</button>
