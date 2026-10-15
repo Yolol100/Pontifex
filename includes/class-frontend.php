@@ -539,53 +539,31 @@ class Frontend
     public function process_payment()
     {
         $this->set_no_cache_headers();
-        $order_data = $_POST['order'] ?? [];
-       
-        // ✅ FIX: Sanitize and normalize candidate data (filter lege entries)
-        $candidate_fields = ['candidate_fullname', 'candidate_infix', 'candidate_lastname', 'candidate_birthdate'];
-        foreach ($candidate_fields as $field) {
-            if (isset($order_data[$field]) && is_array($order_data[$field])) {
-                // Filter lege strings en sanitize
-                $order_data[$field] = array_values(array_filter(
-                    array_map('sanitize_text_field', $order_data[$field]),
-                    function($val) { return trim($val) !== ''; }
-                ));
-            } else {
-                $order_data[$field] = [];
-            }
+
+        // Authorize the request before processing potentially large untrusted form data.
+        if (!check_ajax_referer('pontifex_oi_nonce', 'nonce', false)) {
+            wp_send_json_error([
+                'message' => 'Ongeldige beveiligingstoken. Vernieuw de pagina en probeer opnieuw.',
+            ], 403);
         }
-       
-        $max_candidates = 12;
-        // Tel echte kandidaten (niet-lege fullnames)
-        $candidate_count = min(count($order_data['candidate_fullname']), $max_candidates);
-       
-        if ($candidate_count === 0) {
-            wp_send_json_error(['message' => 'Geen kandidaten gevonden. Vul minimaal 1 kandidaat in.']);
-            return;
+
+        if (!isset($_POST['order']) || !is_array($_POST['order'])) {
+            wp_send_json_error(['message' => 'De inschrijvingsgegevens zijn ongeldig.'], 400);
         }
-       
-        $order_data['candidate_count'] = $candidate_count;
-       
-        // ✅ DEBUG: Log het aantal gevonden kandidaten
-        error_log('[Pontifex OI DEBUG][' . self::get_log_context() . '] Aantal kandidaten na filtering: ' . $candidate_count);
-       
-        // Pad arrays to the correct length
-        foreach ($candidate_fields as $field) {
-            $order_data[$field] = array_slice(array_pad($order_data[$field], $candidate_count, ''), 0, $candidate_count);
+
+        $order_data = wp_unslash($_POST['order']);
+        $normalized_order = \PontifexOI\Helpers\RegistrationValidator::normalize_candidates($order_data);
+        if (is_wp_error($normalized_order)) {
+            wp_send_json_error(['message' => $normalized_order->get_error_message()], 400);
         }
+        $order_data = $normalized_order;
+
         // Sanitize other data
         $order_data['exam_type'] = sanitize_text_field($order_data['exam_type'] ?? '');
         $order_data['language'] = sanitize_text_field($order_data['language'] ?? 'nl');
         $order_data['material'] = sanitize_text_field($order_data['material'] ?? '');
         $order_data['extra_options'] = isset($order_data['extra_options']) && is_array($order_data['extra_options']) ? array_map('sanitize_text_field', $order_data['extra_options']) : [];
         $order_data['order_email'] = $order_data['order_email'] ?? ($order_data['email'] ?? null);
-        // Check nonce for security
-        if (!check_ajax_referer('pontifex_oi_nonce', 'nonce', false)) {
-            wp_send_json_error([
-                'message' => 'Ongeldige beveiligingstoken. Vernieuw de pagina en probeer opnieuw.'
-            ]);
-            return;
-        }
         // Vroege check of Mollie correct is ingesteld
         if (!\PontifexOI\Helpers\PaymentHelpers::is_configured()) {
             wp_send_json_error([
@@ -595,7 +573,11 @@ class Frontend
         }
         $totals = \PontifexOI\Helpers\PaymentHelpers::calculate_totals_with_vat($order_data);
         $calculated_total_incl = (float) ($totals['incl'] ?? 0.0);
-        $amount_from_frontend = (float) ($_POST['amount'] ?? ($_POST['payment_amount'] ?? 0));
+        $submitted_amount = $_POST['amount'] ?? ($_POST['payment_amount'] ?? null);
+        if (!is_scalar($submitted_amount)) {
+            wp_send_json_error(['message' => 'Ongeldig bedrag.'], 400);
+        }
+        $amount_from_frontend = (float) wp_unslash((string) $submitted_amount);
         $difference = abs($amount_from_frontend - $calculated_total_incl);
 
         // AI-PATCH: herstel bedragvalidatie; de oorspronkelijke regel had een inline // comment waardoor de controle niet werd uitgevoerd.
