@@ -351,6 +351,17 @@ try {
 } finally {
     $_GET = $previous_get;
 }
+$previous_query = $_GET;
+try {
+    $_GET = ['exam_type' => ['tampered'], 'language' => 'nl'];
+    $rejected_form = do_shortcode('[pontifex_oi_registration]');
+    if (strpos($rejected_form, 'pontifex-oi-error') === false
+        || strpos($rejected_form, 'Ongeldige inschrijvingsgegevens') === false) {
+        throw new RuntimeException('Registration shortcode did not reject nested URL inputs.');
+    }
+} finally {
+    $_GET = $previous_query;
+}
 if (substr_count($first_form, 'id="registration-form"') !== 1
     || substr_count($second_form, 'id="registration-form"') !== 1) {
     throw new RuntimeException('Registration shortcode must render on repeated invocation.');
