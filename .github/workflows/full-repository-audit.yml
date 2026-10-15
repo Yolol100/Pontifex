@@ -1,0 +1,38 @@
+name: Pontifex exhaustive source inventory
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  file-by-file:
+    name: Track every source file and static-risk signal
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Verify scanner syntax
+        run: python3 -m py_compile tests/repository-audit.py
+
+      - name: Audit complete tracked tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/repository-audit.py --root . --outdir /tmp/pontifex-source-audit
+          cat /tmp/pontifex-source-audit/repository-audit.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload per-file SHA256, lines, functions and risk signals
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pontifex-file-by-file-audit
+          path: /tmp/pontifex-source-audit
+          if-no-files-found: warn
+          retention-days: 30
