@@ -293,13 +293,8 @@ showFeedback(`<div class="pontifex-soap-feedback error"><span class="pontifex-fe
 });
 }
 // ===================== Inzendingen AJAX Logic =====================
-// ---- helper: log response voor debugging ----
-function logResponse(response) {
-console.log('AJAX Response:', response);
-console.log('Response type:', typeof response);
-console.log('Response.data type:', typeof response?.data);
-console.log('Response.data.rows type:', Array.isArray(response?.data?.rows) ? 'array' : typeof response?.data?.rows);
-}
+// Escape user-submitted fields before inserting them into admin HTML.
+const escapeSubmissionText = (value) => $('<div>').text(String(value ?? '')).html();
 // ---- helper: render cards (UPDATED) ----
 function renderCards(data) {
 const $grid = $('#poi_sub_cardgrid');
@@ -323,12 +318,12 @@ return;
 data.rows.forEach((row, idx) => {
 if (!row || typeof row !== 'object') return;
 // Gebruik 'title' uit de data, anders een fallback
-const title = row.title || `${t('submission', 'Inzending')} #${idx+1}`;
+const title = escapeSubmissionText(row.title || `${t('submission', 'Inzending')} #${idx+1}`);
 const fields = Array.isArray(row.fields) ? row.fields : [];
 // Bouw alle velden onder elkaar
 const bodyLines = fields.map(f => {
-const label = (f && f.label) ? f.label : '';
-const value = (f && f.value) ? f.value : '';
+const label = escapeSubmissionText((f && f.label) ? f.label : '');
+const value = escapeSubmissionText((f && f.value) ? f.value : '');
 // Gebruik een check voor lege label/waarde om lege divs te vermijden
 if (!label && !value) return '';
 return `<div><strong>${label}:</strong> ${value}</div>`;
@@ -379,7 +374,6 @@ s: $searchInput.val() || ''
 },
 })
 .done(function (response) {
-logResponse(response);
 $grid.removeAttr('aria-busy');
 // CHECK IF RESPONSE HAS ERROR
 if (!response.success) {
