@@ -55,4 +55,39 @@ if (\PontifexOI\Helpers\PendingOrders::get_order($token, $payment) !== null
 if (\PontifexOI\Helpers\PendingOrders::payment_id($token) !== '') {
     throw new RuntimeException('Pending option cleanup failed.');
 }
+global $wpdb;
+$index = $wpdb->get_var(
+    "SHOW INDEX FROM {$wpdb->prefix}pontifex_oi_registrations WHERE Key_name = 'pontifex_unique_order_id'"
+);
+if ($index === null) {
+    throw new RuntimeException('Clean WordPress must have an atomic unique payment ID index.');
+}
+$registered_id = 'tr_retry_' . substr(hash('sha256', wp_generate_uuid4()), 0, 16);
+$first = \PontifexOI\Helpers\Registrations::save($registered_id, ['order_email' => 'original@example.test']);
+$second = \PontifexOI\Helpers\Registrations::save($registered_id, ['order_email' => 'changed@example.test']);
+$still_original = \PontifexOI\Helpers\Registrations::find_order($registered_id);
+$wpdb->delete($wpdb->prefix . 'pontifex_oi_registrations', ['order_id' => $registered_id], ['%s']);
+if (!$first || $second !== $first || ($still_original['order_email'] ?? '') !== 'original@example.test') {
+    throw new RuntimeException('A webhook replay must never overwrite an existing buyer record.');
+}
+
+// Pending PII expiry creates only a payment-id reconciliation marker.
+$expiring_token = 'pontifex_order_' . bin2hex(random_bytes(16));
+$expiring_id = 'tr_expire_' . substr(hash('sha256', $expiring_token), 0, 10);
+\PontifexOI\Helpers\PendingOrders::create($expiring_token, ['order_email' => 'expiring@example.test']);
+\PontifexOI\Helpers\PendingOrders::set_payment_id($expiring_token, $expiring_id);
+$hash = hash('sha256', $expiring_token);
+$pending_key = 'pontifex_pending_' . $hash;
+$record = get_option($pending_key);
+$record['created_at'] = time() - 31 * DAY_IN_SECONDS;
+update_option($pending_key, $record, false);
+\PontifexOI\Helpers\PendingOrders::cleanup_expired();
+$review = get_option('pontifex_review_' . $hash);
+if (get_option($pending_key, false) !== false
+    || !is_array($review)
+    || ($review['payment_id'] ?? '') !== $expiring_id) {
+    throw new RuntimeException('Expired pending buyer data must be erased, leaving only provider reconciliation.');
+}
+delete_option('pontifex_review_' . $hash);
+
 echo 'Mollie pure status scenarios + durable pending-order lifecycle: OK' . PHP_EOL;
