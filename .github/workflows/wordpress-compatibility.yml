@@ -58,7 +58,18 @@ jobs:
           set -euo pipefail
           composer validate --no-check-publish
           composer install --no-interaction --no-progress --prefer-dist
-          composer audit --locked
+          # Fail closed on advisories; retry only transient Packagist timeouts.
+          for attempt in 1 2 3; do
+            if composer audit --locked > /tmp/pontifex-composer-audit.log 2>&1; then
+              cat /tmp/pontifex-composer-audit.log
+              break
+            fi
+            cat /tmp/pontifex-composer-audit.log
+            if ! grep -Eqi 'curl error 28|Operation timed out' /tmp/pontifex-composer-audit.log || [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            sleep $((attempt * 2))
+          done
 
       - name: PHP syntax check
         shell: bash
