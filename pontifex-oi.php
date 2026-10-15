@@ -33,6 +33,7 @@ require_once PONTIFEX_OI_PATH . 'includes/cron/fetch-planning-cron.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-payment-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-mail-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registrations.php';
+require_once PONTIFEX_OI_PATH . 'includes/helpers/class-pending-orders.php';
 
 // Connect WordPress core verified personal-data request workflows to our
 // custom registration table. Access is gated by WordPress's privacy UI.
@@ -157,10 +158,14 @@ register_activation_hook(__FILE__, function () {
         wp_schedule_event(pontifex_oi_next_daily_timestamp(3, 15, 0), 'daily', $hook);
     }
 
+    if (!wp_next_scheduled('pontifex_oi_pending_cleanup')) {
+        wp_schedule_event(time() + HOUR_IN_SECONDS, 'daily', 'pontifex_oi_pending_cleanup');
+    }
     flush_rewrite_rules();
 });
 
 register_deactivation_hook(__FILE__, function () {
+    wp_clear_scheduled_hook('pontifex_oi_pending_cleanup');
     $hook = 'pontifex_oi_cron_fetch_planning';
     if (function_exists('wp_clear_scheduled_hook')) {
         wp_clear_scheduled_hook($hook);
@@ -192,3 +197,10 @@ add_action('plugins_loaded', function () {
         update_option($flag, 1, true);
     }
 });
+
+// Existing installations need cleanup scheduling without reactivation.
+add_action('init', static function (): void {
+    if (!wp_next_scheduled('pontifex_oi_pending_cleanup')) {
+        wp_schedule_event(time() + HOUR_IN_SECONDS, 'daily', 'pontifex_oi_pending_cleanup');
+    }
+}, 99);
