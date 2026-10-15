@@ -59,4 +59,36 @@ foreach ($cases as [$input, $expected]) {
     }
 }
 
-echo 'Pontifex admin export registration and CSV safety: OK' . PHP_EOL;
+
+/**
+ * Candidate rows must remain aligned even when a middle name is blank.
+ */
+$valid_order = [
+    'candidate_fullname'  => ['Eva', 'Lina'],
+    'candidate_infix'     => ['', 'van'],
+    'candidate_lastname'  => ['Vis', 'Berg'],
+    'candidate_birthdate' => ['01-01-1995', '02-02-1996'],
+];
+$normalized = \PontifexOI\Helpers\RegistrationValidator::normalize_candidates($valid_order);
+if (is_wp_error($normalized)
+    || ($normalized['candidate_count'] ?? null) !== 2
+    || ($normalized['candidate_infix'][0] ?? null) !== ''
+    || ($normalized['candidate_infix'][1] ?? null) !== 'van'
+    || ($normalized['candidate_lastname'][1] ?? null) !== 'Berg') {
+    throw new RuntimeException('Candidate fields must not shift when one value is blank.');
+}
+
+$invalid_orders = [
+    ['candidate_fullname' => 'not-an-array'],
+    ['candidate_fullname' => []],
+    ['candidate_fullname' => array_fill(0, 13, 'Candidate')],
+    ['candidate_fullname' => ['']],
+    ['candidate_fullname' => [['unexpected' => 'nested']]],
+];
+foreach ($invalid_orders as $invalid_order) {
+    if (!is_wp_error(\PontifexOI\Helpers\RegistrationValidator::normalize_candidates($invalid_order))) {
+        throw new RuntimeException('Malformed candidate input must fail validation.');
+    }
+}
+
+echo 'Pontifex CSV export and candidate validation: OK' . PHP_EOL;
