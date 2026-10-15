@@ -90,4 +90,14 @@ if (get_option($pending_key, false) !== false
 }
 delete_option('pontifex_review_' . $hash);
 
+if (pontifex_oi_webhook_mail_decision([]) !== 'send'
+    || pontifex_oi_webhook_mail_decision(['mail_attempted' => true]) !== 'needs_review'
+    || pontifex_oi_webhook_mail_decision(['mail_sent' => true]) !== 'already_sent') {
+    throw new RuntimeException('Uncertain mail delivery must never trigger automatic retry.');
+}
+$soap_stub = new \PontifexOI\Api\SoapClient();
+if ($soap_stub->sendRegistration(['test' => true]) !== false) {
+    throw new RuntimeException('Unimplemented SOAP registration must never report success.');
+}
+
 echo 'Mollie pure status scenarios + durable pending-order lifecycle: OK' . PHP_EOL;
