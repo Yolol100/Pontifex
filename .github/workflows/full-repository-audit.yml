@@ -27,6 +27,9 @@ jobs:
           set -euo pipefail
           python3 tests/repository-audit.py --root . --outdir /tmp/pontifex-source-audit
           cat /tmp/pontifex-source-audit/repository-audit.md >> "$GITHUB_STEP_SUMMARY"
+          # An exact SHA-bound archive of *tracked* source (no .git, vendor or secrets).
+          git archive --format=tar HEAD | gzip -9 > /tmp/pontifex-source-audit/source-snapshot.tar.gz
+          sha256sum /tmp/pontifex-source-audit/source-snapshot.tar.gz > /tmp/pontifex-source-audit/source-snapshot.sha256
 
       - name: Upload per-file SHA256, lines, functions and risk signals
         if: always()
