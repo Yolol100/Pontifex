@@ -16,6 +16,10 @@ $order = (isset($_GET['order']) && strtoupper($_GET['order']) === 'ASC') ? 'ASC'
 // Export CSV/Excel (Export logic remains server-side)
 // 2) NONCE CHECK VERWIJDERD
 if (isset($_GET['export_submissions'])) {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('Je hebt geen toegang tot deze export.', 'pontifex-oi'), '', ['response' => 403]);
+    }
+    check_admin_referer('pontifex_oi_export_submissions');
 	// Note: We ignore the current pagination for export, fetching all based on search/sort
 	// Limit changed to 5000 for safer batch export performance.
 	$all = Registrations::list(1, 5000, $search, $orderby, $order);
@@ -93,13 +97,13 @@ $headers = [
 
 			<button id="poi_sub_apply" class="pontifex-admin-submit poi-sub-btn"><?php esc_html_e('Toepassen','pontifex-oi'); ?></button>
 
-			<a href="<?php echo esc_url(add_query_arg([
+			<a href="<?php echo esc_url(wp_nonce_url(add_query_arg([
 				'page' => 'pontifex_oi_submissions',
 				's' => $search,
 				'orderby' => $orderby,
 				'order' => $order,
 				'export_submissions' => 1,
-			], admin_url('admin.php'))); ?>"
+			], admin_url('admin.php')), 'pontifex_oi_export_submissions')); ?>"
 			class="pontifex-admin-submit poi-sub-btn poi-export-btn"><?php esc_html_e('Exporteren','pontifex-oi'); ?></a>
 		</div>
 
