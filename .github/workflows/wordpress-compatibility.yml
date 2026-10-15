@@ -66,6 +66,12 @@ jobs:
           set -euo pipefail
           find . -type f -name '*.php' -not -path './.git/*' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
 
+      - name: JavaScript syntax check
+        shell: bash
+        run: |
+          set -euo pipefail
+          find assets/js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+
       - name: Enforce payment privacy invariants
         shell: bash
         run: |
@@ -154,6 +160,14 @@ jobs:
           php /tmp/wp-cli.phar plugin activate pontifex-oi --path="$runtime"
           php /tmp/wp-cli.phar plugin status pontifex-oi --path="$runtime"
           php /tmp/wp-cli.phar eval 'echo defined("PONTIFEX_OI_VERSION") ? PONTIFEX_OI_VERSION . "\n" : "missing\n";' --path="$runtime"
+
+      - name: WordPress registration-export security smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          php /tmp/wp-cli.phar eval-file \
+            /tmp/pontifex-runtime/wp-content/plugins/pontifex-oi/tests/wp-cli-security-smoke.php \
+            --path=/tmp/pontifex-runtime
 
       - name: Reject runtime PHP errors
         if: always()
