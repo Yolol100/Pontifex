@@ -100,4 +100,66 @@ if ($soap_stub->sendRegistration(['test' => true]) !== false) {
     throw new RuntimeException('Unimplemented SOAP registration must never report success.');
 }
 
+
+/**
+ * Never mutate an existing registrations table just because an admin opens
+ * wp-admin. On clean CI we can simulate an old installation without the index.
+ */
+$table = $wpdb->prefix . 'pontifex_oi_registrations';
+$other = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
+if ($other !== 0) {
+    throw new RuntimeException('Migration smoke requires an empty disposable registrations table.');
+}
+$dropped = $wpdb->query("ALTER TABLE {$table} DROP INDEX pontifex_unique_order_id");
+if ($dropped === false) {
+    throw new RuntimeException('CI fixture could not temporarily drop payment index.');
+}
+$legacy_id = 'tr_legacy_' . substr(hash('sha256', wp_generate_uuid4()), 0, 14);
+$fixture_id = \PontifexOI\Helpers\Registrations::save($legacy_id, ['order_email' => 'legacy@example.test']);
+if (!$fixture_id || pontifex_oi_ensure_unique_registration_index() !== false
+    || get_option('pontifex_oi_order_index_checked') !== 'needs_migration'
+    || $wpdb->get_var("SHOW INDEX FROM {$table} WHERE Key_name = 'pontifex_unique_order_id'") !== null) {
+    throw new RuntimeException('Existing registrations must block automatic schema migration.');
+}
+$wpdb->delete($table, ['order_id' => $legacy_id], ['%s']);
+if (!pontifex_oi_ensure_unique_registration_index()
+    || get_option('pontifex_oi_order_index_checked') !== 'installed') {
+    throw new RuntimeException('Empty test database must support controlled unique-index setup.');
+}
+
+/**
+ * Expiry batch must advance instead of revisiting the first young record.
+ * Keep this synthetic test completely separate from real customer PII.
+ */
+delete_option('pontifex_oi_pending_cleanup_cursor');
+$one = static fn ($n) => 1;
+add_filter('pontifex_oi_pending_cleanup_batch_size', $one);
+$keys = [];
+for ($i = 0; $i < 3; $i++) {
+    $token = 'pontifex_order_' . bin2hex(random_bytes(16));
+    \PontifexOI\Helpers\PendingOrders::create($token, ['order_email' => 'fixture@example.test']);
+    $key = 'pontifex_pending_' . hash('sha256', $token);
+    $value = get_option($key);
+    $value['created_at'] = time() - 40 * DAY_IN_SECONDS;
+    update_option($key, $value, false);
+    $keys[] = $key;
+}
+\PontifexOI\Helpers\PendingOrders::cleanup_expired();
+$after_one = count(array_filter($keys, static fn ($key) => get_option($key, false) !== false));
+if ($after_one !== 2) {
+    throw new RuntimeException('A single cursor batch must expire only one pending record.');
+}
+for ($i = 0; $i < 5; $i++) {
+    \PontifexOI\Helpers\PendingOrders::cleanup_expired();
+}
+remove_filter('pontifex_oi_pending_cleanup_batch_size', $one);
+$left = count(array_filter($keys, static fn ($key) => get_option($key, false) !== false));
+foreach ($keys as $key) {
+    delete_option($key);
+}
+delete_option('pontifex_oi_pending_cleanup_cursor');
+if ($left !== 0) {
+    throw new RuntimeException('Pending cleanup must eventually visit every expired record.');
+}
+
 echo 'Mollie pure status scenarios + durable pending-order lifecycle: OK' . PHP_EOL;
