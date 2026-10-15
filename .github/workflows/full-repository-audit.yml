@@ -39,3 +39,67 @@ jobs:
           path: /tmp/pontifex-source-audit
           if-no-files-found: warn
           retention-days: 30
+
+  wordpresscs:
+    name: WordPress PHP Coding Standards (advisory)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP and Composer
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Scan all tracked PHP with official WordPressCS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pontifex-wpcs /tmp/pontifex-wpcs-results
+          printf '%s\n' '{"name":"pontifex/read-only-wpcs","type":"project","require-dev":{"squizlabs/php_codesniffer":"^3.9","wp-coding-standards/wpcs":"^3.1","dealerdirect/phpcodesniffer-composer-installer":"^1.0"},"config":{"allow-plugins":{"dealerdirect/phpcodesniffer-composer-installer":true}}}' > /tmp/pontifex-wpcs/composer.json
+          if ! composer install --working-dir=/tmp/pontifex-wpcs --no-interaction --no-progress --prefer-dist > /tmp/pontifex-wpcs-results/install.log 2>&1; then
+            echo "WPCS_STATUS|unavailable|Composer dependency install failed" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          set +e
+          /tmp/pontifex-wpcs/vendor/bin/phpcs --standard=WordPress --extensions=php --report=json \
+            --ignore=vendor/ admin includes public pontifex-oi.php uninstall.php tests \
+            > /tmp/pontifex-wpcs-results/wpcs.json 2> /tmp/pontifex-wpcs-results/stderr.log
+          code=$?
+          set -e
+          echo "WPCS_EXIT_CODE=$code"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('/tmp/pontifex-wpcs-results/wpcs.json')
+          try:
+              data = json.loads(path.read_text())
+          except (ValueError, OSError):
+              print('WPCS_STATUS|unavailable|No parseable JSON')
+          else:
+              totals = data.get('totals', {})
+              print('WPCS_STATUS|completed|errors={}|warnings={}|fixable={}|files={}'.format(
+                  totals.get('errors', '?'), totals.get('warnings', '?'),
+                  totals.get('fixable', '?'), len(data.get('files', {}))))
+              for name, report in sorted(data.get('files', {}).items(),
+                                         key=lambda item: item[1].get('errors', 0) + item[1].get('warnings', 0),
+                                         reverse=True)[:12]:
+                  print('WPCS_FILE|{}|errors={}|warnings={}'.format(
+                      name, report.get('errors', 0), report.get('warnings', 0)))
+          PY
+          printf 'WordPressCS diagnostics are **advisory** and are not equivalent to a released or reviewed plugin.\n' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload standards diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pontifex-wordpress-coding-standards
+          path: /tmp/pontifex-wpcs-results
+          if-no-files-found: warn
+          retention-days: 30
