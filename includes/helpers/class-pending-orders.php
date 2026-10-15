@@ -92,13 +92,29 @@ final class PendingOrders {
         $days = min(365, max(7, (int) apply_filters('pontifex_oi_pending_retention_days', 30)));
         $cutoff = time() - $days * DAY_IN_SECONDS;
         $like = $wpdb->esc_like('pontifex_pending_') . '%';
-        $keys = $wpdb->get_col(
+        // An always-first-page scan can starve old options when the first
+        // 100 records are still young. Persist a cursor over option_id.
+        $batch_size = max(1, min(500, (int) apply_filters(
+            'pontifex_oi_pending_cleanup_batch_size',
+            100
+        )));
+        $cursor = max(0, (int) get_option('pontifex_oi_pending_cleanup_cursor', 0));
+        $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s ORDER BY option_id ASC LIMIT 100",
-                $like
-            )
+                "SELECT option_id, option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_id > %d ORDER BY option_id ASC LIMIT %d",
+                $like,
+                $cursor,
+                $batch_size
+            ),
+            ARRAY_A
         );
-        foreach ($keys ?: [] as $key) {
+        if (empty($rows)) {
+            update_option('pontifex_oi_pending_cleanup_cursor', 0, false);
+            return;
+        }
+        foreach ($rows as $row) {
+            $key = (string) $row['option_name'];
+            $cursor = (int) $row['option_id'];
             $record = get_option($key);
             if (!is_array($record) || (int) ($record['created_at'] ?? time()) > $cutoff) {
                 continue;
@@ -113,6 +129,7 @@ final class PendingOrders {
             }
             delete_option($key);
         }
+        update_option('pontifex_oi_pending_cleanup_cursor', $cursor, false);
     }
 }
 
