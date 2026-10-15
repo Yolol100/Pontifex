@@ -59,7 +59,7 @@ jQuery(function($) {
             candidate_birthdate: []
         };
         // Loop door alle kandidaatrijen en verzamel data
-        $('.pontifex-oi-candidate-row').each(function() {
+        $form.find('.pontifex-oi-candidate-row').each(function() {
             const $row = $(this);
             const fullname = $row.find('input[name*="candidate_fullname"]').val().trim(); // Gebruik *= om indexen te vangen
 
@@ -122,7 +122,8 @@ jQuery(function($) {
         orderData.candidate_count = candidateCount;
 
         // Haal bedrag op
-        let amountRaw = $('#payment_amount').val() || $('#payment_amount').data('base-price') || '0';
+        const $amountField = $form.find('input[name="payment_amount"]');
+        let amountRaw = $amountField.val() || $amountField.data('base-price') || '0';
         amountRaw = amountRaw.toString().replace(',', '.');
 
         // Bouw finale AJAX data
