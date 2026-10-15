@@ -134,6 +134,25 @@ if ($response->get_status() !== 200
 
 
 /**
+ * The public AJAX and REST planning handlers share one normalization routine.
+ * Verify that it strips unknown keys and returns a safe typed filter array.
+ */
+$planning_method = (new ReflectionClass(\PontifexOI\PublicPart\Frontend::class))->getMethod('normalize_planning_filters');
+$normalized_filters = $planning_method->invoke(null, [
+    'province' => '<b>Zuid-Holland</b>',
+    'page' => '2',
+    'per_page' => '25',
+    'unexpected_option' => 'ignored',
+]);
+if (is_wp_error($normalized_filters)
+    || ($normalized_filters['province'] ?? '') !== 'Zuid-Holland'
+    || ($normalized_filters['page'] ?? null) !== 2
+    || ($normalized_filters['per_page'] ?? null) !== 25
+    || isset($normalized_filters['unexpected_option'])) {
+    throw new RuntimeException('Public planning filters must normalize allowed values consistently.');
+}
+
+/**
  * Pricing reads must reject nonscalar filters and preserve valid calculations.
  */
 $invalid_prices = [
