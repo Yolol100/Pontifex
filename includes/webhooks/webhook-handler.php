@@ -203,6 +203,12 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
             if (!empty($state['mail_attempted'])) {
                 $state['mail_reconciliation_required'] = true;
                 pontifex_oi_webhook_store_state($state_key, $state);
+                add_option(
+                    'pontifex_reconciliation_' . $event_hash,
+                    ['payment_id' => $payment_id, 'reason' => 'mail_uncertain', 'created_at' => time()],
+                    '',
+                    false
+                );
                 return new \WP_REST_Response(['status' => 'mail_needs_review'], 202);
             }
             $state['mail_attempted'] = true;
@@ -211,6 +217,12 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
             if ($mail_result === false) {
                 $state['mail_reconciliation_required'] = true;
                 pontifex_oi_webhook_store_state($state_key, $state);
+                add_option(
+                    'pontifex_reconciliation_' . $event_hash,
+                    ['payment_id' => $payment_id, 'reason' => 'mail_uncertain', 'created_at' => time()],
+                    '',
+                    false
+                );
                 return new \WP_REST_Response(['status' => 'mail_needs_review'], 202);
             }
             $state['mail_sent'] = true;
