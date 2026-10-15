@@ -766,6 +766,26 @@ class Frontend
                 'order_token' => $order_token,
             ]);
         } catch (\Throwable $e) {
+            if (isset($order_token)) {
+                if (!isset($payment) || empty($payment->id)) {
+                    // No provider payment: clear unneeded buyer/candidate PII.
+                    \PontifexOI\Helpers\PendingOrders::discard($order_token);
+                } else {
+                    // Provider payment exists, but checkout cannot safely
+                    // redirect. Preserve an actionable, PII-free review marker.
+                    $payment_reference = (string) $payment->id;
+                    add_option(
+                        'pontifex_reconciliation_' . hash('sha256', $payment_reference),
+                        [
+                            'payment_id' => $payment_reference,
+                            'reason' => 'payment_start_uncertain',
+                            'created_at' => time(),
+                        ],
+                        '',
+                        false
+                    );
+                }
+            }
             error_log('[Pontifex OI ERROR][' . self::get_log_context() . '] Payment start failed (' . get_class($e) . ').');
             wp_send_json_error(['message' => 'Fout bij starten betaling. Probeer het opnieuw.']);
         }
