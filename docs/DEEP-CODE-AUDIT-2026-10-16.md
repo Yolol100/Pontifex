@@ -86,14 +86,14 @@ De GitHub-tree van de hoofdbranch bevat **55 van 55 gevolgde bestanden, niet afg
 | B-03 | `Registrations::save()` gebruikt SELECT→INSERT op `order_id` zonder unieke DB-constraint; semantisch geen atomaire idempotentie. | Migratieplan bestaande duplicaten, back-up/rollback, unieke index en parallelle webhookfixtures. |
 | B-04 | `MailHelpers::send_inschrijving_mails()` verstuurt twee mails, en blijft slechts één samengestelde bool geven: gedeeltelijke aflevering kan bij retry dubbele mail veroorzaken. | Status per ontvanger/side effect, uncertainty/reconciliation, geen blinde retry. |
 | B-05 | `SoapClient::sendRegistration()` is opzettelijke no-op. | Officieel extern registratiecontract: volstaat lokale inschrijving of verplicht providerstap? Vendor/staging vereist. |
-| B-06 | Geen aantoonbare WordPress privacy-exporter/eraser voor persoonsgegevens in custom registratietabel. | Privacybeleid, rechtmatige retentie, exporter/eraser of gedocumenteerde uitzonderingen volgens [WordPress Privacy](https://developer.wordpress.org/plugins/privacy/). |
+| [B-06](https://github.com/Yolol100/Pontifex/issues/14) | Geen aantoonbare WordPress privacy-exporter/eraser voor persoonsgegevens in custom registratietabel. | Privacybeleid, rechtmatige retentie, exporter/eraser of gedocumenteerde uitzonderingen volgens [WordPress Privacy](https://developer.wordpress.org/plugins/privacy/). |
 | B-07 | PHP/JS/CSS naming/style debt, ontbrekende release ZIP, ontbrekende uitvoerige browser-/WCAG- en providerproeven. | WPCS prioriteitsfixes, Plugin Check-triage, distributie-hash en stagingacceptatie. |
 
 ## Officiële kwaliteits- en compatibiliteitscontroles
 
-- Exact SHA-gebonden GitHub Actions voor PHP 8.1/WordPress 6.0 en PHP 8.3/WordPress 7.1; PHP syntax, Node syntax, XSS-, CSV-, REST-, kandidaat-, BTW-, uninstall- en optioneel Plugin Check-advies.
+- Exact SHA-gebonden [GitHub Actions compatibiliteitsmatrix](https://github.com/Yolol100/Pontifex/actions/runs/38819065769): PHP 8.1/WordPress 6.0 én PHP 8.3/WordPress 7.1 **groen**; PHP syntax, Node syntax, XSS-, CSV-, REST-, kandidaat-, BTW- en uninstall-tests. De officiële Plugin Check leverde diagnostische errors/warnings ondanks exitcode nul.
 - Iedere file komt terug in `repository-audit.json` en `repository-audit.md`; artifacts worden 30 dagen op de GitHub Actions-run bewaard. Source snapshot heeft SHA256.
-- WordPress Coding Standards-scan met `wp-coding-standards/wpcs`: **12.124 errors + 890 warnings**, waaronder veel mechanische whitespace/naming issues. Dit is **niet** het aantal functionele bugs. 103 output-escaping signalen, 47 MissingUnslash, 32 InputNotSanitized, 13 interpolated SQL signalen verdienen handmatige triage; `htmlspecialchars()` in emailtemplates is vaak een parserfalse-positive.
+- WordPress Coding Standards-scan met `wp-coding-standards/wpcs`: **12.259 errors + 901 warnings**, waaronder veel mechanische whitespace/naming issues. Dit is **niet** het aantal functionele bugs. 103 output-escaping signalen, 47 MissingUnslash, 32 InputNotSanitized, 13 interpolated SQL signalen verdienen handmatige triage; `htmlspecialchars()` in emailtemplates is vaak een parserfalse-positive.
 - Geen automatische php-cs-fixer over alle bestanden: codeformats, autoloading, backward compatibiliteit en visuele CSS-regressies eerst onderbouwen.
 
 ## Releasebesluit en grenzen
