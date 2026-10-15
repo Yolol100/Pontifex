@@ -19,6 +19,31 @@ defined('ABSPATH') || exit;
 // --- CSV EXPORT & FLATTENING ----------------------------------------
 // ====================================================================
 
+/**
+ * Keep spreadsheet software from interpreting submitted data as formulas.
+ *
+ * Escape only export cells, never the stored registration data.
+ *
+ * @param mixed $value Raw cell value.
+ * @return string Safe CSV cell content.
+ */
+if (!function_exists('pontifex_oi_csv_safe_cell')) {
+    function pontifex_oi_csv_safe_cell($value): string {
+        if (!is_scalar($value) && $value !== null) {
+            return '';
+        }
+
+        $cell = str_replace("\0", '', (string) ($value ?? ''));
+
+        // Spreadsheet parsers may ignore leading whitespace before a formula.
+        if (preg_match('/^[\\x00-\\x20]*[=+\\-@]/', $cell) || preg_match('/^[\\x00-\\x1f]/', $cell)) {
+            return "'" . $cell;
+        }
+
+        return $cell;
+    }
+}
+
 if (!function_exists('pontifex_oi_order_to_rows')) {
     /**
      * Zet order payload om naar een geïndexeerde array van rijen,
