@@ -32,13 +32,13 @@ Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository ge�
 
 | Bestand | Regels | Bronbevinding en volgende controle |
 |---|---:|---|
-| `includes/api/class-soap-client.php` | 470 | SOAP-planning + SQL; trace=1 en endpointcontrole; sendRegistration() is gedocumenteerde no-op, maar webhook gebruikt soap_sent. |
-| `includes/class-frontend.php` (branchupdate) | 863 | Betaling controleert nonce vóór de verwerking; kandidaatrijen genormaliseerd. Overige inputvelden, prijsvertrouwen en verdere code-splitsing blijven prioriteit. |
-| `includes/config/producten-prijzen.php` | 419 | Gedeelde product- en prijsconfig met globals; prijspariteit PHP/JS en BTW-matrix vastleggen. |
+| `includes/api/class-soap-client.php` (branchupdate) | 470 | SOAP-planning en SQL; tracing uitgeschakeld. `sendRegistration()` is gedocumenteerde no-op; webhook gebruikt nog misleidende `soap_sent`. Endpointvalidatie/sandbox open. |
+| `includes/class-frontend.php` (branchupdate) | 967 | Betaling: nonce/typenormalisatie; publieke AJAX/REST-planning en REST-prijs weigeren foute filtertypen. Prijscalculatie, formuliervalidatie en verdere modularisatie blijven aandachtspunt. |
+| `includes/config/producten-prijzen.php` (branchupdate) | 424 | Vijf catalogusarrays nu expliciet globaal gebonden; CI toonde eerder `catalog=0000`, waardoor een geldige examenprijs `0` werd. Prijsmatrix en i18n aanvullend testen. |
 | `includes/cron/fetch-planning-cron.php` | 59 | WP-Cron, planning-reconciliatie en cache; locks, tijdzone, fouten en uitval testen. |
 | `includes/frontend-asset-guard.php` | 56 | Conditionele enqueues via shortcode/slugs; dynamische templates en WordPress builders testen. |
 | `includes/helpers/ajax-soap-fetch-handler.php` | 55 | Admin-only AJAX met nonce/capability; providerresponses veilig begrenzen en loggen. |
-| `includes/helpers/class-mail-helpers.php` | 174 | Mailverzending met globale wp_mail_charset-filter; isoleer mailinstellingen en test foutafhandeling/PII. |
+| `includes/helpers/class-mail-helpers.php` (branchupdate) | 168 | Sitewide wp_mail_charset en wp_mail_failed-hooks verwijderd; eigen HTML/UTF-8 headers behouden. SMTP/live-verzending niet getest. |
 | `includes/helpers/class-payment-helpers.php` | 476 | Mollie API, prijsberekening, VAT/afronding; mode/secret handling en refund/retry testen. |
 | `includes/helpers/class-registrations.php` | 142 | Registratie-opslag en queries; order_id mist UNIQUE, idempotente migratie en retentie zijn open. |
 | `includes/helpers/class-registration-validator.php` (branchupdate) | 70 | Nieuwe kandidaatnormalisatie: arraytype, 1–12 kandidaten, veldlengte en behoud rijindex bij lege tussenvoegsels; overige zakelijke verplichte velden nog te specificeren. |
@@ -92,7 +92,7 @@ Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository ge�
 | `languages/pontifex-oi.pot` | 378 | POT dateert van 2025-08-05; regen en vertaalscans na gewijzigde strings. |
 | `.github/workflows/wordpress-compatibility.yml` (branchupdate) | 195 | WordPress 6.0/PHP8.1 + WP7.1/PHP8.3; JS syntax/XSS en WP-CLI CSV-tests toegevoegd; PHPUnit/PHPCS/Plugin Check nog open. |
 | `tests/js-render-safety-smoke.js` (branchupdate) | 80 | Runtime fixture voor HTML-escaping in planninglijst en cards; test geen complete browser/CSP. |
-| `tests/wp-cli-security-smoke.php` (branchupdate) | 95 | WordPress runtime-smoke voor CSV-formules, exporthook, kandidaatindexering en ongeldige arrays; geen echte betaal-/HTTP-exporttest. |
+| `tests/wp-cli-security-smoke.php` (branchupdate) | 197 | WP-CLI-fixtures: beveiligde CSV, kandidaatrijen, geldige/ongeldige REST planning en prijs, SOAP-trace. Recente positieve prijsregressie ontdekte een ontbrekende global catalogus. |
 | `docs/WORDPRESS-AUDIT-2026-10-15.md` (branchupdate) | — | Prioriteiten, bewezen bugs/contractvragen, faseplanning en verificatiegrenzen staan in hoofdaudit. |
 
 ## Belangrijkste openstaande kwaliteitsblokkades
