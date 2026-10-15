@@ -91,4 +91,45 @@ foreach ($invalid_orders as $invalid_order) {
     }
 }
 
-echo 'Pontifex CSV export and candidate validation: OK' . PHP_EOL;
+
+/**
+ * Malformed unauthenticated REST filter data must return 400 instead of
+ * reaching PHP string-offset errors or the SOAP planning backend.
+ */
+$invalid_filters = [
+    'not-an-array',
+    ['month' => ['nested-array']],
+    ['page' => 'not-a-page'],
+    ['per_page' => -1],
+    ['location' => str_repeat('x', 192)],
+];
+
+foreach ($invalid_filters as $invalid_filter) {
+    $request = new \WP_REST_Request('POST', '/pontifex-oi/v1/planning');
+    $request->set_param('filters', $invalid_filter);
+    $response = rest_do_request($request);
+    if ($response->get_status() !== 400) {
+        throw new RuntimeException('Planning REST route must reject malformed filter values.');
+    }
+}
+
+// Weekend planning is local: this valid test never calls the external SOAP API.
+$request = new \WP_REST_Request('POST', '/pontifex-oi/v1/planning');
+$request->set_param('filters', [
+    'material' => 'cursus-weekend',
+    'month' => wp_date('Y-m'),
+    'page' => 1,
+    'per_page' => 1,
+]);
+$response = rest_do_request($request);
+$result = $response->get_data();
+if ($response->get_status() !== 200
+    || !is_array($result)
+    || !isset($result['planning'])
+    || !is_array($result['planning'])
+    || !isset($result['current_page'])
+    || $result['current_page'] !== 1) {
+    throw new RuntimeException('Legitimate weekend-planning REST request must keep working.');
+}
+
+echo 'Pontifex CSV, candidate and REST planning input safety: OK' . PHP_EOL;
