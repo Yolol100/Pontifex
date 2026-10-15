@@ -545,8 +545,10 @@ class Frontend
                 'total_incl' => $price_incl,
                 'debug_info' => $order_details,
             ]);
-        } catch (\Exception $e) {
-            wp_send_json_error(['message' => 'Fout bij prijsberekening: ' . $e->getMessage()]);
+        } catch (\Throwable $e) {
+            wp_send_json_error([
+                'message' => __('Prijsberekening tijdelijk niet beschikbaar.', 'pontifex-oi'),
+            ], 503);
         }
     }
     /**
@@ -778,15 +780,46 @@ class Frontend
      */
     public function rest_get_price(WP_REST_Request $request)
     {
-        $exam_type = sanitize_text_field($request->get_param('exam_type') ?? '');
-        $language = sanitize_text_field($request->get_param('language') ?? 'nl');
-        $material = sanitize_text_field($request->get_param('material') ?? '1');
+        $raw_exam_type = $request->get_param('exam_type') ?? '';
+        $raw_language = $request->get_param('language') ?? 'nl';
+        $raw_material = $request->get_param('material') ?? '1';
+
+        foreach ([$raw_exam_type, $raw_language, $raw_material] as $value) {
+            if (!is_string($value) && !is_int($value) && !is_float($value)) {
+                return new \WP_Error(
+                    'pontifex_invalid_price_request',
+                    __('Ongeldige prijsfilters.', 'pontifex-oi'),
+                    ['status' => 400]
+                );
+            }
+            if (strlen((string) $value) > 191) {
+                return new \WP_Error(
+                    'pontifex_invalid_price_request',
+                    __('Een prijsfilter is te lang.', 'pontifex-oi'),
+                    ['status' => 400]
+                );
+            }
+        }
+
+        $exam_type = sanitize_text_field((string) $raw_exam_type);
+        $language = sanitize_text_field((string) $raw_language);
+        $material = sanitize_text_field((string) $raw_material);
         $order_details = [
             'exam_type' => $exam_type,
             'language' => $language,
             'material' => $material,
         ];
-        $price = PaymentHelpers::calculate_total_price($order_details);
+
+        try {
+            $price = PaymentHelpers::calculate_total_price($order_details);
+        } catch (\Throwable $e) {
+            return new \WP_Error(
+                'pontifex_price_unavailable',
+                __('Prijsberekening tijdelijk niet beschikbaar.', 'pontifex-oi'),
+                ['status' => 503]
+            );
+        }
+
         $price_str = is_numeric($price) && $price > 0
             ? '€' . number_format((float)$price, 2, ',', '.')
             : '';
@@ -797,6 +830,7 @@ class Frontend
         $this->set_no_cache_headers($response);
         return $response;
     }
+
     /**
      * Helper function to set no-cache headers.
      * @param \WP_REST_Response|null $response Optional response object.
