@@ -186,6 +186,15 @@ jobs:
             /tmp/pontifex-runtime/wp-content/plugins/pontifex-oi/tests/wp-cli-security-smoke.php \
             --path=/tmp/pontifex-runtime
 
+      - name: WordPress uninstall lifecycle regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime=/tmp/pontifex-runtime
+          php /tmp/wp-cli.phar eval 'update_option("pontifex_oi_webhook_secret", "ci-placeholder", false); update_option("pontifex_wh_state_".hash("sha256","uninstall-smoke"), ["complete"=>true], false);' --path="$runtime"
+          php /tmp/wp-cli.phar plugin uninstall pontifex-oi --deactivate --path="$runtime"
+          php /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/tests/wp-cli-uninstall-smoke.php" --path="$runtime"
+
       - name: Reject runtime PHP errors
         if: always()
         shell: bash
