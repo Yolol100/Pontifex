@@ -54,7 +54,7 @@ foreach ($cases as [$input, $expected]) {
     rewind($stream);
     $roundtrip = fgetcsv($stream, 0, ',', '"', '');
     fclose($stream);
-    if (!is_array($roundtrip) || ($roundtrip[0] ?? null) !== $expected) {
+    if (!is_array($roundtrip) || ($roundtrip[0] ?? '') !== $expected) {
         throw new RuntimeException('CSV roundtrip unexpectedly changed the safe content.');
     }
 }
