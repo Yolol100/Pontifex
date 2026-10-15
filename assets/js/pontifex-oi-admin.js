@@ -2,10 +2,8 @@ jQuery(function ($) {
 'use strict';
 // Detect admin environment and skip if not in admin (prevents interference from admin logic on frontend)
 if (!window.location.pathname.includes('/wp-admin/')) {
-  console.log('[Pontifex OI] Not in admin — skipping admin logic');
   return;
 }
-console.log('[Pontifex OI] Admin detected — running admin logic');
 // ===================== Globals & i18n =====================
 const I18N = (window.POI_PRICES_DATA && POI_PRICES_DATA.i18n) || {};
 // Utility function for translation (t(key, fallback))
@@ -287,7 +285,7 @@ showFeedback(html);
 error: (xhr) => {
 $fetchBtn.prop('disabled', false).text(t('fetch_data', 'Haal gegevens op'));
 const errorMessage = (xhr?.responseJSON?.data?.message || t('fetch_failed', 'Ophalen mislukt. Probeer opnieuw.'));
-showFeedback(`<div class="pontifex-soap-feedback error"><span class="pontifex-feedback-icon">&#10060;</span> <span>${errorMessage}</span></div>`);
+showFeedback(`<div class="pontifex-soap-feedback error"><span class="pontifex-feedback-icon">&#10060;</span> <span>${escapeSubmissionText(errorMessage)}</span></div>`);
 }
 });
 });
@@ -342,8 +340,6 @@ $grid.append(card);
 function setupSubmissionsAjax() {
 if (!$('#poi_sub_cardgrid').length) return;
 // 🔍 DEBUG: Check localized script data availability
-console.log('window.PontifexOIAdmin:', window.PontifexOIAdmin);
-console.log('ajaxurl waarde:', ajaxurl);
 const $grid = $('#poi_sub_cardgrid');
 const $pagination = $('#poi_sub_pagination');
 const $pageinfo = $('#poi_sub_pageinfo');
@@ -381,7 +377,7 @@ const errorMsg = response.data?.message || t('loading_error_generic', 'Er is een
 $grid.html(`
 <div class="pontifex-oi-card-item">
 <div class="pontifex-oi-card-header">${t('error', 'Fout')}</div>
-<div class="pontifex-oi-card-body">${errorMsg}</div>
+<div class="pontifex-oi-card-body">${escapeSubmissionText(errorMsg)}</div>
 </div>
 `);
 return;
