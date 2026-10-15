@@ -338,12 +338,75 @@ class Frontend
         return ob_get_clean();
     }
     /**
+     * Normalize public planning filters before using them in the DB or output.
+     * Keep the same supported keys for the AJAX and REST endpoints.
+     *
+     * @param mixed $raw_filters Potentially untrusted request input.
+     * @return array|\WP_Error Sanitized filters or a client input error.
+     */
+    private static function normalize_planning_filters($raw_filters)
+    {
+        if (!is_array($raw_filters)) {
+            return new \WP_Error(
+                'pontifex_invalid_planning_filters',
+                __('Ongeldige planningfilters.', 'pontifex-oi'),
+                ['status' => 400]
+            );
+        }
+
+        $allowed = [
+            'exam_type', 'language', 'material', 'daytype', 'month',
+            'province', 'location', 'city', 'timeslot', 'page', 'per_page',
+        ];
+        $normalized = [];
+        foreach ($allowed as $key) {
+            if (!array_key_exists($key, $raw_filters)) {
+                continue;
+            }
+            $value = $raw_filters[$key];
+            if (!is_string($value) && !is_int($value) && !is_float($value)) {
+                return new \WP_Error(
+                    'pontifex_invalid_planning_filter',
+                    __('Een planningfilter heeft een ongeldig formaat.', 'pontifex-oi'),
+                    ['status' => 400]
+                );
+            }
+            $clean = sanitize_text_field((string) $value);
+            if (strlen($clean) > 191) {
+                return new \WP_Error(
+                    'pontifex_invalid_planning_filter',
+                    __('Een planningfilter is te lang.', 'pontifex-oi'),
+                    ['status' => 400]
+                );
+            }
+            if ($key === 'page' || $key === 'per_page') {
+                if (!ctype_digit($clean)) {
+                    return new \WP_Error(
+                        'pontifex_invalid_planning_page',
+                        __('Ongeldige paginering.', 'pontifex-oi'),
+                        ['status' => 400]
+                    );
+                }
+                $normalized[$key] = (int) $clean;
+            } else {
+                $normalized[$key] = $clean;
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
      * AJAX handler for fetching planning data.
      */
     public function ajax_get_planning()
     {
         $this->set_no_cache_headers();
-        $filters = $_POST['filters'] ?? [];
+        $raw_filters = isset($_POST['filters']) ? wp_unslash($_POST['filters']) : [];
+        $filters = self::normalize_planning_filters($raw_filters);
+        if (is_wp_error($filters)) {
+            wp_send_json_error(['message' => $filters->get_error_message()], 400);
+        }
         $page = max(1, (int)($filters['page'] ?? 1));
         $per_page = isset($filters['per_page']) ? (int)$filters['per_page'] : 0;
         // Check of het om de weekendcursus gaat
@@ -379,13 +442,18 @@ class Frontend
     public function ajax_get_filter_options()
     {
         $this->set_no_cache_headers();
-        $filter = sanitize_text_field($_REQUEST['filter'] ?? '');
-        $filters = $_REQUEST['filters'] ?? [];
-        // ▶ Sanitisatie van alle filters (veilig + voorspelbaar)
-        if (!is_array($filters)) {
-            $filters = [];
-        } else {
-            $filters = array_map('sanitize_text_field', $filters);
+        $raw_filter = $_REQUEST['filter'] ?? '';
+        if (!is_string($raw_filter)) {
+            wp_send_json_error(['message' => __('Ongeldig filtertype.', 'pontifex-oi')], 400);
+        }
+        $filter = sanitize_key(wp_unslash($raw_filter));
+        if (!in_array($filter, ['location', 'language', 'material', 'month', 'province', 'timeslot'], true)) {
+            wp_send_json_error(['message' => __('Onbekend planningfilter.', 'pontifex-oi')], 400);
+        }
+        $raw_filters = isset($_REQUEST['filters']) ? wp_unslash($_REQUEST['filters']) : [];
+        $filters = self::normalize_planning_filters($raw_filters);
+        if (is_wp_error($filters)) {
+            wp_send_json_error(['message' => $filters->get_error_message()], 400);
         }
         $isWeekend = isset($filters['material']) && $filters['material'] === 'cursus-weekend';
         $options = [];
@@ -482,8 +550,10 @@ class Frontend
                 'total_incl' => $price_incl,
                 'debug_info' => $order_details,
             ]);
-        } catch (\Exception $e) {
-            wp_send_json_error(['message' => 'Fout bij prijsberekening: ' . $e->getMessage()]);
+        } catch (\Throwable $e) {
+            wp_send_json_error([
+                'message' => __('Prijsberekening tijdelijk niet beschikbaar.', 'pontifex-oi'),
+            ], 503);
         }
     }
     /**
@@ -498,6 +568,9 @@ class Frontend
         }
         $out = [];
         foreach ($items as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
             $exam_type = sanitize_text_field($row['exam'] ?? '');
             $language = sanitize_text_field($row['lang'] ?? 'nl');
             $material = sanitize_text_field($row['material'] ?? '1');
@@ -539,53 +612,31 @@ class Frontend
     public function process_payment()
     {
         $this->set_no_cache_headers();
-        $order_data = $_POST['order'] ?? [];
-       
-        // ✅ FIX: Sanitize and normalize candidate data (filter lege entries)
-        $candidate_fields = ['candidate_fullname', 'candidate_infix', 'candidate_lastname', 'candidate_birthdate'];
-        foreach ($candidate_fields as $field) {
-            if (isset($order_data[$field]) && is_array($order_data[$field])) {
-                // Filter lege strings en sanitize
-                $order_data[$field] = array_values(array_filter(
-                    array_map('sanitize_text_field', $order_data[$field]),
-                    function($val) { return trim($val) !== ''; }
-                ));
-            } else {
-                $order_data[$field] = [];
-            }
+
+        // Authorize the request before processing potentially large untrusted form data.
+        if (!check_ajax_referer('pontifex_oi_nonce', 'nonce', false)) {
+            wp_send_json_error([
+                'message' => 'Ongeldige beveiligingstoken. Vernieuw de pagina en probeer opnieuw.',
+            ], 403);
         }
-       
-        $max_candidates = 12;
-        // Tel echte kandidaten (niet-lege fullnames)
-        $candidate_count = min(count($order_data['candidate_fullname']), $max_candidates);
-       
-        if ($candidate_count === 0) {
-            wp_send_json_error(['message' => 'Geen kandidaten gevonden. Vul minimaal 1 kandidaat in.']);
-            return;
+
+        if (!isset($_POST['order']) || !is_array($_POST['order'])) {
+            wp_send_json_error(['message' => 'De inschrijvingsgegevens zijn ongeldig.'], 400);
         }
-       
-        $order_data['candidate_count'] = $candidate_count;
-       
-        // ✅ DEBUG: Log het aantal gevonden kandidaten
-        error_log('[Pontifex OI DEBUG][' . self::get_log_context() . '] Aantal kandidaten na filtering: ' . $candidate_count);
-       
-        // Pad arrays to the correct length
-        foreach ($candidate_fields as $field) {
-            $order_data[$field] = array_slice(array_pad($order_data[$field], $candidate_count, ''), 0, $candidate_count);
+
+        $order_data = wp_unslash($_POST['order']);
+        $normalized_order = \PontifexOI\Helpers\RegistrationValidator::normalize_candidates($order_data);
+        if (is_wp_error($normalized_order)) {
+            wp_send_json_error(['message' => $normalized_order->get_error_message()], 400);
         }
+        $order_data = $normalized_order;
+
         // Sanitize other data
         $order_data['exam_type'] = sanitize_text_field($order_data['exam_type'] ?? '');
         $order_data['language'] = sanitize_text_field($order_data['language'] ?? 'nl');
         $order_data['material'] = sanitize_text_field($order_data['material'] ?? '');
         $order_data['extra_options'] = isset($order_data['extra_options']) && is_array($order_data['extra_options']) ? array_map('sanitize_text_field', $order_data['extra_options']) : [];
         $order_data['order_email'] = $order_data['order_email'] ?? ($order_data['email'] ?? null);
-        // Check nonce for security
-        if (!check_ajax_referer('pontifex_oi_nonce', 'nonce', false)) {
-            wp_send_json_error([
-                'message' => 'Ongeldige beveiligingstoken. Vernieuw de pagina en probeer opnieuw.'
-            ]);
-            return;
-        }
         // Vroege check of Mollie correct is ingesteld
         if (!\PontifexOI\Helpers\PaymentHelpers::is_configured()) {
             wp_send_json_error([
@@ -595,7 +646,11 @@ class Frontend
         }
         $totals = \PontifexOI\Helpers\PaymentHelpers::calculate_totals_with_vat($order_data);
         $calculated_total_incl = (float) ($totals['incl'] ?? 0.0);
-        $amount_from_frontend = (float) ($_POST['amount'] ?? ($_POST['payment_amount'] ?? 0));
+        $submitted_amount = $_POST['amount'] ?? ($_POST['payment_amount'] ?? null);
+        if (!is_scalar($submitted_amount)) {
+            wp_send_json_error(['message' => 'Ongeldig bedrag.'], 400);
+        }
+        $amount_from_frontend = (float) wp_unslash((string) $submitted_amount);
         $difference = abs($amount_from_frontend - $calculated_total_incl);
 
         // AI-PATCH: herstel bedragvalidatie; de oorspronkelijke regel had een inline // comment waardoor de controle niet werd uitgevoerd.
@@ -690,7 +745,11 @@ class Frontend
      */
     public function rest_get_planning(WP_REST_Request $request)
     {
-        $filters = $request->get_param('filters') ?: [];
+        $raw_filters = $request->get_param('filters');
+        $filters = self::normalize_planning_filters($raw_filters === null ? [] : $raw_filters);
+        if (is_wp_error($filters)) {
+            return $filters;
+        }
         $page = max(1, (int) ($filters['page'] ?? 1));
         $per_page = isset($filters['per_page']) ? (int) $filters['per_page'] : 0;
         $isWeekend = isset($filters['material']) && $filters['material'] === 'cursus-weekend';
@@ -726,15 +785,46 @@ class Frontend
      */
     public function rest_get_price(WP_REST_Request $request)
     {
-        $exam_type = sanitize_text_field($request->get_param('exam_type') ?? '');
-        $language = sanitize_text_field($request->get_param('language') ?? 'nl');
-        $material = sanitize_text_field($request->get_param('material') ?? '1');
+        $raw_exam_type = $request->get_param('exam_type') ?? '';
+        $raw_language = $request->get_param('language') ?? 'nl';
+        $raw_material = $request->get_param('material') ?? '1';
+
+        foreach ([$raw_exam_type, $raw_language, $raw_material] as $value) {
+            if (!is_string($value) && !is_int($value) && !is_float($value)) {
+                return new \WP_Error(
+                    'pontifex_invalid_price_request',
+                    __('Ongeldige prijsfilters.', 'pontifex-oi'),
+                    ['status' => 400]
+                );
+            }
+            if (strlen((string) $value) > 191) {
+                return new \WP_Error(
+                    'pontifex_invalid_price_request',
+                    __('Een prijsfilter is te lang.', 'pontifex-oi'),
+                    ['status' => 400]
+                );
+            }
+        }
+
+        $exam_type = sanitize_text_field((string) $raw_exam_type);
+        $language = sanitize_text_field((string) $raw_language);
+        $material = sanitize_text_field((string) $raw_material);
         $order_details = [
             'exam_type' => $exam_type,
             'language' => $language,
             'material' => $material,
         ];
-        $price = PaymentHelpers::calculate_total_price($order_details);
+
+        try {
+            $price = PaymentHelpers::calculate_total_price($order_details);
+        } catch (\Throwable $e) {
+            return new \WP_Error(
+                'pontifex_price_unavailable',
+                __('Prijsberekening tijdelijk niet beschikbaar.', 'pontifex-oi'),
+                ['status' => 503]
+            );
+        }
+
         $price_str = is_numeric($price) && $price > 0
             ? '€' . number_format((float)$price, 2, ',', '.')
             : '';
@@ -745,6 +835,7 @@ class Frontend
         $this->set_no_cache_headers($response);
         return $response;
     }
+
     /**
      * Helper function to set no-cache headers.
      * @param \WP_REST_Response|null $response Optional response object.

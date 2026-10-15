@@ -133,10 +133,7 @@ jQuery(function($) {
             nonce: window.pontifexOiVars.nonce || ''
         };
 
-        // Debug logging
-        console.log('Form submission data (for AJAX):', ajaxData);
-        console.log('Candidate count:', candidateCount);
-        console.log('Payment amount:', amountRaw);
+        // Registration and payment details must not be logged in the browser.
 
         // Disable submit-knop
         $form.find('button[type=submit], input[type=submit]').prop('disabled', true);
@@ -154,7 +151,7 @@ jQuery(function($) {
                 }
             }
         ).fail(function(xhr, status, error) {
-            console.error('Form submission error:', { status, error, response: xhr.responseText });
+            // Do not log raw responses; they may contain registration data.
             alert('Er ging iets mis met de verbinding. Probeer het opnieuw.');
             $form.find('button[type=submit], input[type=submit]').prop('disabled', false);
         });

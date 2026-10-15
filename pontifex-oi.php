@@ -33,6 +33,7 @@ require_once PONTIFEX_OI_PATH . 'includes/cron/fetch-planning-cron.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-payment-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-mail-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registrations.php';
+require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registration-validator.php';
 require_once PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/ajax-soap-fetch-handler.php';
 require_once PONTIFEX_OI_PATH . 'includes/webhooks/webhook-handler.php';

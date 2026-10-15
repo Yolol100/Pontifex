@@ -3,56 +3,12 @@ defined('ABSPATH') || exit;
 
 use PontifexOI\Helpers\Registrations;
 
-// 1) Helper-functie is verplaatst naar een aparte file en wordt hier ingeladen.
-require_once PONTIFEX_OI_PATH . 'includes/helpers/submissions-helpers.php';
-
 // Query params veilig uitlezen (Only needed for initial search state and export link)
 $page = isset($_GET['paged']) ? max(1, (int)$_GET['paged']) : 1;
 $per_page = isset($_GET['per_page']) ? max(1, min(200, (int)$_GET['per_page'])) : 20;
-$search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
-$orderby = isset($_GET['orderby']) ? sanitize_text_field($_GET['orderby']) : 'created_at';
-$order = (isset($_GET['order']) && strtoupper($_GET['order']) === 'ASC') ? 'ASC' : 'DESC';
-
-// Export CSV/Excel (Export logic remains server-side)
-// 2) NONCE CHECK VERWIJDERD
-if (isset($_GET['export_submissions'])) {
-	// Note: We ignore the current pagination for export, fetching all based on search/sort
-	// Limit changed to 5000 for safer batch export performance.
-	$all = Registrations::list(1, 5000, $search, $orderby, $order);
-
-	// Streaming output flush
-	if (ob_get_level()) { ob_end_clean(); }
-	while (ob_get_level()) ob_end_flush();
-	
-	$filename = 'inzendingen-' . date('Ymd-His') . '.csv';
-
-	// Prevent caching and set CSV headers
-	nocache_headers();
-	header('Content-Type: text/csv; charset=utf-8');
-	header('Content-Disposition: attachment; filename=' . $filename);
-	$output = fopen('php://output', 'w');
-
-	$headers = [
-		'Naam','Tussenvoegsel','Achternaam','Geboortedatum',
-		'Postcode','Huisnummer','Straat','Stad',
-		'Telefoonnummer','E-mailadres','Bedrijfsnaam','Functie',
-		'BTW-nummer','Examen','Taal','Lesmateriaal','Extra lesmateriaal',
-		'Locatie','Datum','Tijd','Totaal'
-	];
-	fputcsv($output, $headers);
-
-	foreach ($all['rows'] as $r) {
-		$payload = json_decode($r['payload'] ?? '[]', true) ?: [];
-		$rows = pontifex_oi_order_to_rows($payload);
-		foreach ($rows as $row) {
-			// Write to CSV
-			fputcsv($output, $row);
-		}
-	}
-
-	fclose($output);
-	exit; // Exit cleanly
-}
+$search = isset($_GET['s']) && is_string($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '';
+$orderby = isset($_GET['orderby']) && is_string($_GET['orderby']) ? sanitize_key(wp_unslash($_GET['orderby'])) : 'created_at';
+$order = (isset($_GET['order']) && is_string($_GET['order']) && strtoupper(wp_unslash($_GET['order'])) === 'ASC') ? 'ASC' : 'DESC';
 
 // Data ophalen: Only call Registrations::list to get the total count for the title row.
 // The actual table content will be fetched by JS.
@@ -62,15 +18,6 @@ $list = Registrations::list($page, $per_page, $search, $orderby, $order);
 if (!is_array($list)) {
 	$list = ['rows' => [], 'total' => 0, 'page' => 1, 'pages' => 1];
 }
-
-// Headers for the table (must match the pontifex_oi_order_to_rows function output)
-$headers = [
-	'Naam','Tussenvoegsel','Achternaam','Geboortedatum',
-	'Postcode','Huisnummer','Straat','Stad',
-	'Telefoonnummer','E-mailadres','Bedrijfsnaam','Functie',
-	'BTW-nummer','Examen','Taal','Lesmateriaal','Extra lesmateriaal',
-	'Locatie','Datum','Tijd','Totaal'
-];
 
 // Set initial values for JavaScript to know the table state
 // The JS needs the current search, per_page, orderby, and order to initiate the fetch
@@ -93,13 +40,12 @@ $headers = [
 
 			<button id="poi_sub_apply" class="pontifex-admin-submit poi-sub-btn"><?php esc_html_e('Toepassen','pontifex-oi'); ?></button>
 
-			<a href="<?php echo esc_url(add_query_arg([
-				'page' => 'pontifex_oi_submissions',
+			<a href="<?php echo esc_url(wp_nonce_url(add_query_arg([
+				'action' => 'pontifex_oi_export_submissions',
 				's' => $search,
 				'orderby' => $orderby,
 				'order' => $order,
-				'export_submissions' => 1,
-			], admin_url('admin.php'))); ?>"
+			], admin_url('admin-post.php')), 'pontifex_oi_export_submissions')); ?>"
 			class="pontifex-admin-submit poi-sub-btn poi-export-btn"><?php esc_html_e('Exporteren','pontifex-oi'); ?></a>
 		</div>
 

@@ -35,6 +35,7 @@ class Admin {
 		add_action('wp_ajax_pontifex_oi_fetch_soap_data', 'pontifex_oi_fetch_soap_data_handler');
 		// Gebruikt de class methode voor de inzendingen AJAX handler
 		add_action('wp_ajax_pontifex_oi_fetch_submissions', [__CLASS__, 'ajax_fetch_submissions']);
+		add_action('admin_post_pontifex_oi_export_submissions', [$this, 'export_submissions']);
 	}
 
 	/**
@@ -281,6 +282,72 @@ class Admin {
 	 */
 	public function soap_settings_page() {
 		include_once PONTIFEX_OI_PATH . 'admin/page-soap-settings.php';
+	}
+
+
+	/**
+	 * Export up to 5,000 registrations before any admin HTML is rendered.
+	 *
+	 * Access requires the administrator capability and a request nonce.
+	 */
+	public function export_submissions(): void {
+		if (!current_user_can('manage_options')) {
+			wp_die(esc_html__('Je hebt geen toestemming om inschrijvingen te exporteren.', 'pontifex-oi'), '', ['response' => 403]);
+		}
+
+		check_admin_referer('pontifex_oi_export_submissions');
+
+		$search = isset($_GET['s']) && is_string($_GET['s'])
+			? sanitize_text_field(wp_unslash($_GET['s']))
+			: '';
+		$orderby = isset($_GET['orderby']) && is_string($_GET['orderby'])
+			? sanitize_key(wp_unslash($_GET['orderby']))
+			: 'created_at';
+		$order = isset($_GET['order']) && is_string($_GET['order']) && strtoupper(wp_unslash($_GET['order'])) === 'ASC'
+			? 'ASC'
+			: 'DESC';
+
+		require_once PONTIFEX_OI_PATH . 'includes/helpers/submissions-helpers.php';
+
+		$list = \PontifexOI\Helpers\Registrations::list(1, 5000, $search, $orderby, $order);
+		if ((int) ($list['total'] ?? 0) > 5000) {
+			wp_die(esc_html__('De export bevat meer dan 5000 inschrijvingen. Beperk de zoekopdracht.', 'pontifex-oi'), '', ['response' => 400]);
+		}
+
+		$output = fopen('php://output', 'wb');
+		if ($output === false) {
+			wp_die(esc_html__('Het CSV-bestand kon niet worden gemaakt.', 'pontifex-oi'), '', ['response' => 500]);
+		}
+
+		nocache_headers();
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename="inzendingen-' . gmdate('Ymd-His') . '.csv"');
+		header('X-Content-Type-Options: nosniff');
+
+		$headers = [
+			'Naam', 'Tussenvoegsel', 'Achternaam', 'Geboortedatum',
+			'Postcode', 'Huisnummer', 'Straat', 'Stad',
+			'Telefoonnummer', 'E-mailadres', 'Bedrijfsnaam', 'Functie',
+			'BTW-nummer', 'Examen', 'Taal', 'Lesmateriaal', 'Extra lesmateriaal',
+			'Locatie', 'Datum', 'Tijd', 'Totaal',
+		];
+
+		// UTF-8 BOM helps Excel recognize Dutch names and other Unicode text.
+		fwrite($output, "\xEF\xBB\xBF");
+		fputcsv($output, $headers, ',', '"', '');
+
+		foreach ($list['rows'] ?? [] as $registration) {
+			$payload = json_decode((string) ($registration['payload'] ?? ''), true);
+			if (!is_array($payload)) {
+				continue;
+			}
+			foreach (pontifex_oi_order_to_rows($payload) as $row) {
+				fputcsv($output, array_map('pontifex_oi_csv_safe_cell', $row), ',', '"', '');
+			}
+		}
+
+		fclose($output);
+		exit;
 	}
 
 	/**

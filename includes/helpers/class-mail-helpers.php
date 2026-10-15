@@ -3,14 +3,8 @@ namespace PontifexOI\Helpers;
 
 if (!defined('ABSPATH')) exit;
 
-// Charset voor uitgaande pluginmail.
-add_filter('wp_mail_charset', fn() => 'UTF-8');
-
-// Log alleen foutcodes; WP_Error kan volledige maildata en ontvangers bevatten.
-add_action('wp_mail_failed', function($wp_error) {
-    $codes = is_wp_error($wp_error) ? implode(',', $wp_error->get_error_codes()) : 'unknown';
-    error_log('[Pontifex OI Plugin] Mail failed; codes: ' . $codes);
-});
+// This plugin sets Content-Type and UTF-8 on its own wp_mail() headers.
+// Do not register sitewide charset or failure hooks for unrelated WordPress mail.
 
 require_once PONTIFEX_OI_PATH . 'includes/config/producten-prijzen.php';
 

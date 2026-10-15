@@ -12,7 +12,7 @@ class SoapClient
     private $client = null;
     private $endpoint;
     private $options = [
-        'trace' => 1,
+        'trace' => 0, // Never retain SOAP request/response payloads (may contain credentials).
         'exceptions' => 1,
         'cache_wsdl' => WSDL_CACHE_BOTH,
         'connection_timeout' => 15,

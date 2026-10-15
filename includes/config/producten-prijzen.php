@@ -3,6 +3,11 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
+// PHP includes inherit the caller's scope. Bind the catalog to WordPress's
+// global table so payment/pricing helpers can access it even when the plugin
+// was loaded from a scoped bootstrap (for example via WP-CLI).
+global $EXTRA_PRODUCTS, $EXAM_PRODUCTS, $MATERIAL_PRODUCTS, $MATERIAL_COMBIS, $WEEKEND_ALLOWED_BY_EXAM;
+
 /* -------------------------------------------
  * PRODUCT CONFIGURATIE - Prijzen en BTW
  *
