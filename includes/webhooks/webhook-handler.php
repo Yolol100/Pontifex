@@ -22,15 +22,32 @@ add_action('rest_api_init', function () {
 });
 
 /**
- * Persist a bounded webhook stage state so retries continue after the last
- * confirmed side effect instead of repeating already completed work.
- *
- * @param string $state_key Transient key.
- * @param array  $state     Stage state.
- * @return void
+ * Load durable payment-stage progress; migrate state from older transients.
+ * The state holds stage flags and timestamps, not customer information.
+ */
+function pontifex_oi_webhook_load_state(string $state_key): array {
+    $state = get_option($state_key, null);
+    if (is_array($state)) {
+        return $state;
+    }
+    $legacy = get_transient($state_key);
+    if (!is_array($legacy)) {
+        return [];
+    }
+    update_option($state_key, $legacy, false);
+    delete_transient($state_key);
+    return $legacy;
+}
+
+/**
+ * Save stage progress durably so callback retries cannot restart after
+ * the previous seven-day transient expiration.
  */
 function pontifex_oi_webhook_store_state(string $state_key, array $state): void {
-    set_transient($state_key, $state, 7 * DAY_IN_SECONDS);
+    $written = update_option($state_key, $state, false);
+    if (!$written && get_option($state_key, null) !== $state) {
+        throw new \RuntimeException('webhook_state_persistence_failed');
+    }
 }
 
 /**
@@ -56,8 +73,7 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
     $event_hash = hash('sha256', $payment_id);
     $state_key = 'pontifex_wh_state_' . $event_hash;
     $lock_key = 'pontifex_wh_lock_' . $event_hash;
-    $state = get_transient($state_key);
-    $state = is_array($state) ? $state : [];
+    $state = pontifex_oi_webhook_load_state($state_key);
 
     if (!empty($state['complete'])) {
         return new \WP_REST_Response(['status' => 'ignored', 'message' => 'Already processed'], 200);
@@ -135,15 +151,10 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
             pontifex_oi_webhook_store_state($state_key, $state);
         }
 
-        if (empty($state['soap_sent'])) {
-            if (!class_exists('\\PontifexOI\\Api\\SoapClient')) {
-                require_once PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
-            }
-            $soap = new \PontifexOI\Api\SoapClient();
-            if (!$soap->sendRegistration($order)) {
-                throw new \RuntimeException('soap_registration_failed');
-            }
-            $state['soap_sent'] = true;
+        // Only local registration is implemented. Do not claim a SOAP registration
+        // was sent: sendRegistration() is an explicitly documented no-op.
+        if (empty($state['local_registration_only'])) {
+            $state['local_registration_only'] = true;
             pontifex_oi_webhook_store_state($state_key, $state);
         }
 
