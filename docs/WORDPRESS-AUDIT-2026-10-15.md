@@ -11,6 +11,20 @@ De GitHub-repositoryboom is integraal geïnventariseerd (GitHub tree niet afgeka
 
 Vervang deze bevindingen niet door de historische `AUDIT_PONTIFEX_OI_2026-04-26.md`: die meldt onder meer een verouderde bootstrap- en README-status.
 
+## Bronnen en verificatie (zevenstappencontrole)
+
+| Bronklasse | Status | Wat is gecontroleerd |
+|---|---|---|
+| Actieve projectbronnen | `no_relevant_match` | Projectbronregistry geraadpleegd; geen afzonderlijk Pontifex-manifest gevonden. Zoekopdracht in verbonden Google Drive leverde geen canonieke Pontifex-projectbron op. |
+| Specialist-Skills | `checked` | `webactueel-workflow` als controller, `wordpressqualityarchitect` als code-eigenaar en `website-qa-checklist` voor onafhankelijke acceptatiegrenzen. |
+| Repository | `checked` | [Pontifex `main`](https://github.com/Yolol100/Pontifex) op `2547a04ff34510e2bff052defeabc4b78dc64151`, wijzigingen uitsluitend op draft-PR #7; huidige code, testfiles, CI-runs en file-diff teruggelezen. |
+| ChatGPT Library | `checked` | Bestaande portfolio-/plugin-inhoud over *Exam Registration Manager* teruggevonden. Het portfolio is context, **geen** SOAP-contract of betalingsbewijs. |
+| YouTube-corpus | `no_relevant_match` | WordPress-kanalencatalogus met developerkanalen aangetroffen; geen Pontifex-specifieke verifieerbare captions/comments voor de API-contractvraag gevonden. |
+| Actuele officiële bronnen | `checked` | [WordPress-validatie](https://developer.wordpress.org/apis/security/data-validation/), [REST endpoints](https://developer.wordpress.org/rest-api/extending-the-rest-api/adding-custom-endpoints/), [escaping](https://developer.wordpress.org/apis/security/escaping/) en [Plugin Review issues](https://developer.wordpress.org/plugins/wordpress-org/common-issues/) als richtlijn; een bron is geen vervanging voor runtime-testbewijs. |
+| Uitvoering en QA | `checked met gaten` | Branchmutaties per bestand teruggelezen; WordPress/PHP GitHub Actions testmatrix met syntaxis, prijs, BTW, CSV, XSS en REST-negatieve gevallen. Zonder SOAP/Mollie/SMTP-staging of browser-/WCAG-resultaten blijft release **No-Go**. |
+
+**Conflict:** de portfolio-omschrijving suggereert een registratie-integratie, terwijl de actuele code `sendRegistration()` bewust als no-op markeert. De werkelijke externe registratieverplichting is onbeslist en blokkeert iedere claim dat Pontifex-inschrijvingen worden afgeleverd.
+
 ## Bevestigde bevindingen, op prioriteit
 
 | ID | Ernst | Bestand | Probleem | Aanpak / bewijs |
