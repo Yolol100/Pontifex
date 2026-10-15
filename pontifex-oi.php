@@ -45,6 +45,19 @@ add_filter(
     'wp_privacy_personal_data_erasers',
     [\PontifexOI\Helpers\Registrations::class, 'register_privacy_eraser']
 );
+add_action('admin_init', static function (): void {
+    if (!function_exists('wp_add_privacy_policy_content')) {
+        return;
+    }
+    $text = '<p>' . esc_html__(
+        'Pontifex OI bewaart inschrijf-, kandidaat- en betaalinformatie in een eigen WordPress-databasetabel. '
+        . 'Een betaalstatus wordt bij Mollie gecontroleerd en bevestigingsmails worden verzonden via de mailvoorziening van de site. '
+        . 'Het exporteerhulpmiddel bevat kopergegevens; overige kandidaatgegevens en wettelijke bewaartermijnen moeten afzonderlijk worden beoordeeld. '
+        . 'Niet-afgehandelde betaalgegevens worden standaard na 30 dagen gewist of voor handmatige controle gemarkeerd.',
+        'pontifex-oi'
+    ) . '</p>';
+    wp_add_privacy_policy_content('Pontifex OI', wp_kses_post($text));
+});
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registration-validator.php';
 require_once PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/ajax-soap-fetch-handler.php';
