@@ -61,10 +61,19 @@ These routes are implementation surfaces for the plugin. Do not expose credentia
 - `pontifex-oi.php` — plugin bootstrap and runtime metadata.
 - `includes/` — API, cron, registration, payment and helper logic.
 - `public/` — public-facing shortcode and presentation code.
-- `templates/` — frontend templates.
+- `admin/` — admin settings, registration overview, and export interface.
+- `assets/` — frontend/admin CSS and JavaScript.
+- `public/` — shortcode presentation, registration templates, and email templates.
 - `composer.json` — PHP dependency declaration, including the Mollie SDK.
 - `readme.txt` — legacy WordPress-format documentation and version history.
 
 ## License
 
 GPL v2 or later, as documented by the project metadata.
+## Audit and modernization status
+
+The [15 October 2026 WordPress code audit](docs/WORDPRESS-AUDIT-2026-10-15.md) records confirmed risks, file-level observations, a staged modernization plan, and required tests. This audit is **not** an assertion that all files passed coding standards or that a release is ready.
+
+**Important known limitation:** `includes/api/class-soap-client.php::sendRegistration()` currently returns success without calling the SOAP registration endpoint. A paid webhook may therefore be marked as processed without a verified registration in Pontifex. **Do not treat a payment confirmation as proof of exam registration.** Restore and test the real vendor SOAP contract before production acceptance.
+
+The webhook lifecycle, privacy controls, CSV export, server-side validation, and dependency packaging also require additional work. Existing shortcode names, REST routes, option keys, and database structures must remain compatible unless a tested migration explicitly changes them.
