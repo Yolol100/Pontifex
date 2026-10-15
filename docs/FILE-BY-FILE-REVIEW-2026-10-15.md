@@ -1,0 +1,105 @@
+# Pontifex OI — bestand-voor-bestand review
+
+**Datum:** 15 oktober 2026 · **Bron:** `Yolol100/Pontifex` · **Branch:** `audit/wordpress-standards-2026-10-15` · **Pluginversie:** 1.0.1.
+
+## Auditstatus en methode
+
+Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository geïnventariseerd. PHP/JS/CSS is per bestand met een statische patroonanalyse onderzocht; de belangrijkste codepaden zijn ook handmatig inhoudelijk beoordeeld. **De notities zijn risicosignalen en testsuggesties, niet een garantie van volledige regel-voor-regel verificatie.** Live Mollie, SOAP, accessibility, performance en WordPress Plugin Check ontbreken nog. De eerste beveiligingswijzigingen staan alleen op een draft-PR, niet op `main`.
+
+**Opvallend:** de 5 CSS-bestanden bevatten samen **667 keer `!important`** (respectievelijk 67, 18, 301, 166 en 115). Dit is technische schuld, geen automatisch beveiligingslek. Verwijder uitsluitend overrides met bewijs van gelijkwaardig gerenderd gedrag.
+
+## Root
+
+| Bestand | Regels | Bronbevinding en volgende controle |
+|---|---:|---|
+| `pontifex-oi.php` | 183 | Bootstrap, globale includes, 3 tabellen en cron; schemaversies, lifecycle, rewrite flush en klassegrenzen valideren. |
+| `uninstall.php` | 89 | Multisite-tabellen/options onvolledig opgeschoond; cronhook mismatch en privacyretentie. |
+| `composer.json` | 15 | PHP ^8.0 wijkt af van Requires PHP 8.1; PSR-4-classmap strookt niet overal met bestandsnamen. |
+| `composer.lock` | 427 | Mollie SDK en dependencies vastgezet; audit en productie-vendor-build vereisen lockfile-pariteit. |
+| `README.md` (branchupdate) | 83 | Mapoverzicht en lokale versus externe inschrijving verduidelijkt; deploy/runbook uitbreiden. |
+| `readme.txt` (branchupdate) | 73 | WP-releasevelden, compatibiliteitsclaims, privacydisclosure, licentie en POT actualiteit controleren. |
+| `AUDIT_PONTIFEX_OI_2026-04-26.md` | 14 | Historisch document; niet verwarren met actuele analyse of regressiebewijs. |
+
+## Beheer
+
+| Bestand | Regels | Bronbevinding en volgende controle |
+|---|---:|---|
+| `admin/class-admin.php` (branchupdate) | 426 | Instellingen, menu, admin AJAX en nieuwe beveiligde CSV-handler; admin-post capability/nonce en export browsermatig hertesten. |
+| `admin/page-soap-settings.php` | 86 | Instellingenweergave; URL allowlist, credentialsvelden, markup/i18n en permissies controleren. |
+| `admin/page-submissions.php` (branchupdate) | 64 | UI-only exportlink naar admin-post; inputtypes, toegankelijkheid, sortering en zoekweergave controleren. |
+
+## PHP integraties
+
+| Bestand | Regels | Bronbevinding en volgende controle |
+|---|---:|---|
+| `includes/api/class-soap-client.php` | 470 | SOAP-planning + SQL; trace=1 en endpointcontrole; sendRegistration() is gedocumenteerde no-op, maar webhook gebruikt soap_sent. |
+| `includes/class-frontend.php` | 881 | Enkele grote klasse voor REST/AJAX, shortcodes, betaling en assets; servervalidatie, prijsvertrouwen en code-splitsing zijn prioriteit. |
+| `includes/config/producten-prijzen.php` | 419 | Gedeelde product- en prijsconfig met globals; prijspariteit PHP/JS en BTW-matrix vastleggen. |
+| `includes/cron/fetch-planning-cron.php` | 59 | WP-Cron, planning-reconciliatie en cache; locks, tijdzone, fouten en uitval testen. |
+| `includes/frontend-asset-guard.php` | 56 | Conditionele enqueues via shortcode/slugs; dynamische templates en WordPress builders testen. |
+| `includes/helpers/ajax-soap-fetch-handler.php` | 55 | Admin-only AJAX met nonce/capability; providerresponses veilig begrenzen en loggen. |
+| `includes/helpers/class-mail-helpers.php` | 174 | Mailverzending met globale wp_mail_charset-filter; isoleer mailinstellingen en test foutafhandeling/PII. |
+| `includes/helpers/class-payment-helpers.php` | 476 | Mollie API, prijsberekening, VAT/afronding; mode/secret handling en refund/retry testen. |
+| `includes/helpers/class-registrations.php` | 142 | Registratie-opslag en queries; order_id mist UNIQUE, idempotente migratie en retentie zijn open. |
+| `includes/helpers/submissions-helpers.php` (branchupdate) | 509 | CSV/kaartformatters; spreadsheet-formulebeveiliging toegevoegd, legacy-JSON en verborgen technische velden controleren. |
+| `includes/webhooks/webhook-handler.php` | 175 | Mollie webhook met 7-daagse transients/lock; duurzaam idempotent verwerken en SOAP-no-op-verwarring oplossen. |
+
+## Publiek
+
+| Bestand | Regels | Bronbevinding en volgende controle |
+|---|---:|---|
+| `public/class-payment-success-shortcode.php` (branchupdate) | 126 | Mollie-geverifieerde betaling; tekst claimt niet langer bevestigde inschrijving, tijdelijke token en statusstatus onderzoeken. |
+| `public/planning-list.php` | 241 | Planning en inschrijfformulier, GET-data; escapers, valid HTML, keyboardnavigatie en dubbele formulieren controleren. |
+| `public/registration-form.php` | 445 | Formuliertekst/URL-parameters/prijs; formele inputvalidatie, hardcoded links en WCAG toetsen. |
+| `public/emails/owner-notification-email-template.php` | 291 | HTML-email met PII: contextuele escaping, veilige ontvangers en mailclients controleren. |
+| `public/emails/payment-success-email-template.php` | 291 | HTML-email: escaping, vertaling, correcte betalingsclaims en alternatieve plain-text mail testen. |
+
+## JavaScript
+
+| Bestand | Regels | Bronbevinding en volgende controle |
+|---|---:|---|
+| `assets/js/candidates.js` | 369 | 5 eventhandlers; kandidaatrijen/indexering, dubbele binding en grens van 12 kandidaten testen. |
+| `assets/js/config.js` | 10 | Legacy globalconfig shim; naamgevingscontract en verwijderbaarheid via referentieanalyse. |
+| `assets/js/filters.js` | 336 | Dynamische taalopties, AJAX en filters; .html()-injectiegrenzen en paginering controleren. |
+| `assets/js/form-validation.js` (branchupdate) | 176 | Formulier-AJAX en klantgegevens; consolelekken verwijderd; server/client-validatie moet gelijkgetrokken worden. |
+| `assets/js/main.js` | 102 | Pagina-initialisatie en globale DOM-listeners; dubbel events en scriptdeps onderzoeken. |
+| `assets/js/material.js` | 433 | Weekend- en lesmateriaalinteracties met 5 consolelogs en HTML-opbouw; prijspariteit en UI-a11y toetsen. |
+| `assets/js/pagination.js` | 92 | Genereert paginatie-HTML; inputescapers, focus/ARIA en null-state toetsen. |
+| `assets/js/pontifex-oi-admin.js` (branchupdate) | 474 | Admin HTML-templates en AJAX; inschrijvingsvelden/nonce/fouttekst harder escaped; kaart-XSS/browserproef open. |
+| `assets/js/pontifex-oi-custom.js` | 78 | Extra weekend/prijsfallback; overlap met material.js en filters.js aantonen vóór cleanup. |
+| `assets/js/pontifex-oi-testmode.js` | 32 | Verwijdert client-required in testmode; nooit serverbeveiliging/validatie versoepelen. |
+| `assets/js/price.js` | 507 | Complexe frontend-calculatie en 5 consolelogs; VAT, weekends, meerdere kandidaten vergelijken met server. |
+| `assets/js/prices-admin.js` | 207 | Prijsbeheer naast logica in pontifex-oi-admin.js; dubbele UI-states en owners onderzoeken. |
+| `assets/js/sidebar.js` (branchupdate) | 459 | Mobile filterstate; onbetrouwbare optiegegevens naar .text()-DOM omgezet; toetsenbord/overlay testen. |
+| `assets/js/table.js` (branchupdate) | 262 | Planningkaart/tabel; attributen en tekst geescaped, XSS-fixtures in GitHub CI. |
+| `assets/js/utils.js` | 207 | REST-naar-AJAX-fallback en browserlocalStorage; foutcode, race en failover-contract expliciteren. |
+
+## CSS
+
+| Bestand | Regels | Bronbevinding en volgende controle |
+|---|---:|---|
+| `assets/css/pontifex-oi-admin.css` | 473 | 67 !important; admin scope, core UI en responsive cascade visueel testen. |
+| `assets/css/pontifex-oi-payment-success.css` | 108 | 18 !important; status/readability en focus op mobiele apparaten controleren. |
+| `assets/css/pontifex-oi-planning.css` | 818 | 301 !important; hoge specificiteit/override-schuld; selectoren pas na visual-regressie reduceren. |
+| `assets/css/pontifex-oi-registration.css` | 449 | 166 !important; field/focus/error styles en responsieve toegankelijkheid controleren. |
+| `assets/css/pontifex-oi-shared.css` | 290 | 115 !important; layout tokens, globale lekkage en laadvolgorde onderzoeken. |
+
+## Overig
+
+| Bestand | Regels | Bronbevinding en volgende controle |
+|---|---:|---|
+| `languages/pontifex-oi.pot` | 378 | POT dateert van 2025-08-05; regen en vertaalscans na gewijzigde strings. |
+| `.github/workflows/wordpress-compatibility.yml` (branchupdate) | 195 | WordPress 6.0/PHP8.1 + WP7.1/PHP8.3; JS syntax/XSS en WP-CLI CSV-tests toegevoegd; PHPUnit/PHPCS/Plugin Check nog open. |
+| `tests/js-render-safety-smoke.js` (branchupdate) | 80 | Runtime fixture voor HTML-escaping in planninglijst en cards; test geen complete browser/CSP. |
+| `tests/wp-cli-security-smoke.php` (branchupdate) | 63 | WordPress runtime-smoke voor admin exporthook en CSV-formuleveiligheid; geen live HTTP-exporttest. |
+| `docs/WORDPRESS-AUDIT-2026-10-15.md` (branchupdate) | — | Prioriteiten, bewezen bugs/contractvragen, faseplanning en verificatiegrenzen staan in hoofdaudit. |
+
+## Belangrijkste openstaande kwaliteitsblokkades
+
+1. **Registratiecontract:** `sendRegistration()` is aantoonbaar een gedocumenteerde no-op; de webhook gebruikt nog `soap_sent`. Vaststellen of lokale registratie of externe bevestiging de producteis is; geen fictieve SOAP-methode implementeren.
+2. **Mollie-betrouwbaarheid:** transient-gebaseerde retry/status plus ontbrekende unieke payment-index; eerst migratie-, refund-, dubbele callback- en provideruitvaltests.
+3. **Persoonsgegevens:** bewuste bewaartermijn, export/recht op wissen, multisite uninstall, mail, diagnostic masking en rate limiting.
+4. **Onderhoudbaarheid:** PHP/WordPress Coding Standards, correct Composer-autoload, servicegrenzen en compact assetbeheer na regressietests.
+5. **Releasebewijs:** laatste GitHub-head en CI groen plus echte staging-Mollie/SOAP, browser/A11y-test, Plugin Check, distributie-ZIP met runtime-dependencies en rollback.
+
+Zie [prioriteitenaudit](WORDPRESS-AUDIT-2026-10-15.md) voor bevinding-ID's en de fasering.
