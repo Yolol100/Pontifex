@@ -50,11 +50,13 @@ The current plugin registers POST routes under `pontifex-oi/v1`:
 
 The webhook endpoint is an implementation surface of the payment flow. Do not publish secrets or payment payloads in public debugging output.
 
+The current `sendRegistration()` SOAP method is intentionally a no-op according to its source comment; the webhook still names that stage `soap_sent`. Paid Mollie status does not itself prove a registration at Pontifex. Confirm external registration requirements before treating this integration as production-ready.
+
 == Requirements ==
 
 * WordPress 6.0 or newer.
 * PHP 8.1 or newer.
-* Valid Pontifex API credentials for live planning and registration calls.
+* Valid Pontifex API credentials for live planning calls.
 * Mollie credentials plus the Composer payment dependency for Mollie-enabled flows.
 
 The repository compatibility workflow verifies clean activation on WordPress 6.0 / PHP 8.1 and WordPress 7.1 / PHP 8.3.
