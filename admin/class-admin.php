@@ -58,6 +58,12 @@ class Admin {
 				$like
 			)
 		);
+		$index_status = get_option('pontifex_oi_order_index_checked', '');
+		if (in_array($index_status, ['needs_migration', 'needs_review'], true)) {
+			echo '<div class="notice notice-error"><p>';
+			esc_html_e('Pontifex: unieke betaal-ID-index ontbreekt of oude dubbele inschrijvingen blokkeren de migratie. Maak eerst een databaseback-up en herstel dit op staging.', 'pontifex-oi');
+			echo '</p></div>';
+		}
 		if ($count > 0) {
 			printf(
 				'<div class="notice notice-warning"><p>%s</p></div>',
