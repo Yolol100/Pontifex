@@ -118,9 +118,14 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
         if ($order_token !== '') {
             $stored_order = get_transient('pontifex_order_data_for_token_' . $order_token);
             if (!is_array($stored_order) || empty($stored_order)) {
-                // Tokenized payments deliberately keep personal/order data out of Mollie.
-                // Never complete such a payment from the intentionally sparse metadata.
-                throw new \RuntimeException('order_data_missing');
+                // After local persistence, recover the order from the verified
+                // Mollie payment ID; never trust sparse Mollie metadata as PII.
+                if (!empty($state['registration_saved'])) {
+                    $stored_order = \PontifexOI\Helpers\Registrations::find_order($payment_id);
+                }
+                if (!is_array($stored_order) || empty($stored_order)) {
+                    throw new \RuntimeException('order_data_missing');
+                }
             }
             $order = $stored_order;
         } else {
