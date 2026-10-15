@@ -17,7 +17,7 @@ Vervang deze bevindingen niet door de historische `AUDIT_PONTIFEX_OI_2026-04-26.
 |---|---|---|
 | Actieve projectbronnen | `no_relevant_match` | Projectbronregistry geraadpleegd; geen afzonderlijk Pontifex-manifest gevonden. Zoekopdracht in verbonden Google Drive leverde geen canonieke Pontifex-projectbron op. |
 | Specialist-Skills | `checked` | `webactueel-workflow` als controller, `wordpressqualityarchitect` als code-eigenaar en `website-qa-checklist` voor onafhankelijke acceptatiegrenzen. |
-| Repository | `checked` | [Pontifex `main`](https://github.com/Yolol100/Pontifex) op `2547a04ff34510e2bff052defeabc4b78dc64151`, wijzigingen uitsluitend op draft-PR #7; huidige code, testfiles, CI-runs en file-diff teruggelezen. |
+| Repository | `checked` | Baseline `2547a04`; fase 1–2 via [PR #7](https://github.com/Yolol100/Pontifex/pull/7) naar `9941470`, fase 3 via [PR #8](https://github.com/Yolol100/Pontifex/pull/8) naar `19d8c14` op [`main`](https://github.com/Yolol100/Pontifex). Laatste post-merge matrix [GitHub Actions #38813793937](https://github.com/Yolol100/Pontifex/actions/runs/38813793937): beide WordPress/PHP-jobs groen. |
 | ChatGPT Library | `checked` | Bestaande portfolio-/plugin-inhoud over *Exam Registration Manager* teruggevonden. Het portfolio is context, **geen** SOAP-contract of betalingsbewijs. |
 | YouTube-corpus | `no_relevant_match` | WordPress-kanalencatalogus met developerkanalen aangetroffen; geen Pontifex-specifieke verifieerbare captions/comments voor de API-contractvraag gevonden. |
 | Actuele officiële bronnen | `checked` | [WordPress-validatie](https://developer.wordpress.org/apis/security/data-validation/), [REST endpoints](https://developer.wordpress.org/rest-api/extending-the-rest-api/adding-custom-endpoints/), [escaping](https://developer.wordpress.org/apis/security/escaping/) en [Plugin Review issues](https://developer.wordpress.org/plugins/wordpress-org/common-issues/) als richtlijn; een bron is geen vervanging voor runtime-testbewijs. |
@@ -54,11 +54,11 @@ Vervang deze bevindingen niet door de historische `AUDIT_PONTIFEX_OI_2026-04-26.
 ## Map- en bestandsinventaris (bronreview)
 
 - **Root:** `pontifex-oi.php` bevat versie/header, tabelschema, activatie, cronmigratie en globale includes; `uninstall.php` heeft levenscyclusgaten. `README.md` en `readme.txt` zijn aanwezig; historische audit is niet actueel; `composer.lock` aanwezig.
-- **`includes/api/`:** SOAP-planning en registratie, grootste bedrijfskritische mismatch (P01), opslag/reconciliation en foutafhandeling.
+- **`includes/api/`:** SOAP-planning, met registratie uitsluitend als bewuste no-op (P01); opslag/reconciliation en foutafhandeling vragen externe sandboxverificatie.
 - **`includes/cron/`:** dagelijkse planning en opgeschoonde records; tijdzone, conflictvrij plannen, race/lock en schema migraties gericht testen.
 - **`includes/helpers/`:** registratie, mail, prijs, CSV/kaartvelden en admin AJAX; bevatten security- en duurzaamheidspunten.
 - **`includes/config/`:** product- en prijsmapping; te consolideren na prijsregressietests.
-- **`includes/webhooks/`:** Mollie-callback met lock en gefaseerde transients; controle op replay, persistente stages en retry.
+- **`includes/webhooks/`:** Mollie-callback met lock en duurzame stage-opties, legacy-transientmigratie; gelijktijdige callbacks, refund/replay en onzekere mailretries zijn nog niet bewezen.
 - **`admin/`:** instellingen, credentials, AJAX, persoonsdataoverzicht en CSV-export; prioriteit escaping en autorisatie.
 - **`public/`:** planning, registratie, succes-shortcode, mailtemplates; meerdere hardcoded permalinks; mogelijk misleidende succesbevestiging zolang P01 bestaat.
 - **`assets/js/`:** filters, tabel, kandidaten, materiaal, prijzen, frontendvalidatie, admin en testmodus. Modules gebruiken jQuery, globals en HTML-stringrendering; gerichte QA voor DOM-XSS en redundante listeners.
@@ -67,7 +67,7 @@ Vervang deze bevindingen niet door de historische `AUDIT_PONTIFEX_OI_2026-04-26.
 - **`.github/workflows/`:** compatibiliteitsmatrix, dependency audit en een aantal privacy-asserties aanwezig, maar onvoldoende voor diepgaande runtime- en securityzekerheid.
 
 
-## Voortgang auditbranch (fase 2)
+## Historiek fase 2 (gemerged via PR #7)
 
 - AJAX-filteropties gebruiken nu dezelfde type/allowlistcontrole als de publieke planningroute. De WP-CLI-suite controleert zowel geldige filterwaarden als ongeldige en onverwachte sleutels.
 - De Composer-beveiligingsaudit probeert uitsluitend na een aantoonbare Packagist-time-out maximaal driemaal opnieuw; echte advisories en overige fouten blijven CI-blokkerend.
@@ -87,7 +87,7 @@ Vervang deze bevindingen niet door de historische `AUDIT_PONTIFEX_OI_2026-04-26.
 Primaire referenties: [WordPress admin_post](https://developer.wordpress.org/reference/hooks/admin_post_action/), [WordPress nonces](https://developer.wordpress.org/apis/security/nonces/), [Mollie klassieke webhooks](https://docs.mollie.com/reference/webhooks).
 
 
-## Fase 3 — lifecycle en onderhoudbaarheid (werkbranch, tot merge geen main-claim)
+## Fase 3 — lifecycle en onderhoudbaarheid (op main sinds PR #8)
 
 - Mollie-webhook verwerkt en bewaart afgeronde stage-status duurzaam als niet-geautoloadde option per gehashte payment-ID, migreert oude status-transients en kan reeds lokaal opgeslagen orderpayloads veilig hervinden.
 - SOAP-registratie blijft bewust niet uitgevoerd (vendorcontract ontbreekt); de onware `soap_sent` fase is vervangen door `local_registration_only`.
