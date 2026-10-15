@@ -34,7 +34,12 @@ function pontifex_oi_webhook_load_state(string $state_key): array {
     if (!is_array($legacy)) {
         return [];
     }
-    update_option($state_key, $legacy, false);
+    $written = update_option($state_key, $legacy, false);
+    if (!$written && get_option($state_key, null) !== $legacy) {
+        // Preserve the old transient and stop. Losing confirmed mail/payment
+        // flags can repeat irreversible effects on the next webhook retry.
+        throw new \RuntimeException('legacy_webhook_state_migration_failed');
+    }
     delete_transient($state_key);
     return $legacy;
 }
