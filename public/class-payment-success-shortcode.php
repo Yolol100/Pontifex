@@ -108,10 +108,10 @@ class PaymentSuccessShortcode {
                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
                 </svg>
             </div>
-            <h2 class="pontifex-oi-success-title"><?php esc_html_e('Je aanmelding is gelukt!', 'pontifex-oi'); ?></h2>
+            <h2 class="pontifex-oi-success-title"><?php esc_html_e('Betaling ontvangen', 'pontifex-oi'); ?></h2>
             <p class="pontifex-oi-success-message">
-                <?php esc_html_e('Bedankt voor je aanmelding.', 'pontifex-oi'); ?><br>
-                <?php esc_html_e('Check je mail voor de details van je aanmelding.', 'pontifex-oi'); ?>
+                <?php esc_html_e('We hebben je betaling bevestigd.', 'pontifex-oi'); ?><br>
+                <?php esc_html_e('Je inschrijving wordt verwerkt. Neem contact op als je geen bevestiging ontvangt.', 'pontifex-oi'); ?>
             </p>
             <a href="<?php echo esc_url(home_url('/')); ?>" class="pontifex-oi-home-button">
                 <?php esc_html_e('Terugkeren naar home', 'pontifex-oi'); ?>
