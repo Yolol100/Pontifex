@@ -369,7 +369,7 @@ try {
     ];
     $bad_planning = do_shortcode('[pontifex_oi_planning]');
     if (strpos($bad_planning, 'pontifex-oi-error') === false
-        || strpos($bad_planning, 'Ongeldige') === false) {
+        || strpos($bad_planning, 'planningfilter') === false) {
         throw new RuntimeException('The planning shortcode accepted a malformed GET filter.');
     }
 
