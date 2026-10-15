@@ -1,10 +1,10 @@
 # Pontifex OI — bestand-voor-bestand review
 
-**Datum:** 15 oktober 2026 · **Bron:** `Yolol100/Pontifex` · **Branch:** `audit/wordpress-standards-2026-10-15` · **Pluginversie:** 1.0.1.
+**Datum:** 15 oktober 2026 · **Bron:** [`Yolol100/Pontifex/main`](https://github.com/Yolol100/Pontifex) · **Main codebaseline:** `19d8c1429c9ea3c74f0545d082ddb3b0c11bcfaf` · **Pluginversie:** 1.0.1.
 
 ## Auditstatus en methode
 
-Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository geïnventariseerd. PHP/JS/CSS is per bestand met een statische patroonanalyse onderzocht; de belangrijkste codepaden zijn ook handmatig inhoudelijk beoordeeld. **De notities zijn risicosignalen en testsuggesties, niet een garantie van volledige regel-voor-regel verificatie.** Live Mollie, SOAP, accessibility, performance en WordPress Plugin Check ontbreken nog. De eerste beveiligingswijzigingen staan alleen op een draft-PR, niet op `main`.
+Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository geïnventariseerd. Fases 1–3 zijn naar `main` gemerged via PR #7 en #8; geen live website is aangepast. PHP/JS/CSS is per bestand met een statische patroonanalyse onderzocht; de belangrijkste codepaden zijn ook handmatig inhoudelijk beoordeeld. **De notities zijn risicosignalen en testsuggesties, niet een garantie van volledige regel-voor-regel verificatie.** Live Mollie, SOAP, accessibility, performance en WordPress Plugin Check ontbreken nog. De eerste beveiligingswijzigingen staan alleen op een draft-PR, niet op `main`.
 
 **Opvallend:** de 5 CSS-bestanden bevatten samen **667 keer `!important`** (respectievelijk 67, 18, 301, 166 en 115). Dit is technische schuld, geen automatisch beveiligingslek. Verwijder uitsluitend overrides met bewijs van gelijkwaardig gerenderd gedrag.
 
@@ -32,7 +32,7 @@ Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository ge�
 
 | Bestand | Regels | Bronbevinding en volgende controle |
 |---|---:|---|
-| `includes/api/class-soap-client.php` (branchupdate) | 470 | SOAP-planning en SQL; tracing uitgeschakeld. `sendRegistration()` is gedocumenteerde no-op; webhook gebruikt nog misleidende `soap_sent`. Endpointvalidatie/sandbox open. |
+| `includes/api/class-soap-client.php` (branchupdate) | 470 | SOAP-planning en SQL; tracing uitgeschakeld. `sendRegistration()` is een bewuste no-op; webhook gebruikt nu expliciet `local_registration_only`. Externe SOAP-registratie niet bewezen; endpointvalidatie/sandbox open. |
 | `includes/class-frontend.php` (phase 3) | 988 | Vóór Mollie: nonce, kandidaten, verplichte kopergegevens, bekende productkeuzes, bedrag en pendingopslag; REST/AJAX-prijs en planning typed; echte checkout nog niet getest. |
 | `includes/config/producten-prijzen.php` (branchupdate) | 424 | Vijf catalogusarrays nu expliciet globaal gebonden; CI toonde eerder `catalog=0000`, waardoor een geldige examenprijs `0` werd. Prijsmatrix en i18n aanvullend testen. |
 | `includes/cron/fetch-planning-cron.php` | 59 | WP-Cron, planning-reconciliatie en cache; locks, tijdzone, fouten en uitval testen. |

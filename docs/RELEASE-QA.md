@@ -1,7 +1,7 @@
 # Pontifex OI — acceptatie- en releasechecklist
 
 **Datum:** 15 oktober 2026  
-**Verwachte codebasis:** `fix/pontifex-phase3-lifecycle-20261015` -> PR #8 -> `main` (alleen na head-SHA-test).  
+**Code op `main`:** `19d8c1429c9ea3c74f0545d082ddb3b0c11bcfaf` via [PR #8](https://github.com/Yolol100/Pontifex/pull/8). Post-merge [CI-run #38813793937](https://github.com/Yolol100/Pontifex/actions/runs/38813793937): WP 6.0/PHP 8.1 en WP 7.1/PHP 8.3 beide geslaagd. Dit is repositorybewijs, **geen productie-Go**.  
 **Productclaim:** WordPress slaat lokale registraties op; SOAP wordt momenteel uitsluitend voor planning gebruikt. **Geen bewijs van externe registratie.**
 
 ## Automatische controles (CI)
@@ -19,7 +19,7 @@
 | Webhook-status | Transientstatus migreert; duurzaam state na transientverval, geregistreerde order terugvindbaar | WP-CLI-fixtures |
 | Uninstall (single site) | 3 tabellen en Pontifex-opties/cron verwijderd, zonder WP-coredata | `tests/wp-cli-uninstall-smoke.php` via echte `wp plugin uninstall` |
 
-**Alleen groen op exacte huidige commit telt.** CLI-smokechecks simuleren **geen** echte Mollie/SOAP/SMTP-transacties.
+**Vastgelegd bewijs betreft `19d8c14`. Bij latere wijzigingen moet CI voor de nieuwe head opnieuw slagen.** CLI-smokechecks simuleren **geen** echte Mollie/SOAP/SMTP-transacties.
 
 ## Verplichte handmatige en staging-acceptatie (niet automatisch opgelost)
 
