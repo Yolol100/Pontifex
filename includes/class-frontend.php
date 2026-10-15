@@ -200,13 +200,25 @@ class Frontend
             define('DONOTCACHEPAGE', true);
         }
         nocache_headers();
-        // ✅ Filters samenvoegen
+        // Shared REST/AJAX/shortcode validation prevents crafted GET arrays
+        // from reaching the SOAP client or arithmetic/HTML output.
+        $query_filters = array_intersect_key(
+            wp_unslash($_GET),
+            array_flip([
+                'exam_type', 'language', 'material', 'daytype', 'month',
+                'province', 'location', 'timeslot', 'page', 'per_page',
+            ])
+        );
+        $valid_filters = self::normalize_planning_filters($query_filters);
+        if (is_wp_error($valid_filters)) {
+            return '<p class="pontifex-oi-error">' .
+                esc_html($valid_filters->get_error_message()) . '</p>';
+        }
         $filters = array_merge([
-            'exam_type' => '', 'language' => '', 'material' => '', 'daytype' => '', 'month' => '',
-            'province' => '', 'location' => '', 'timeslot' => '', 'page' => 1,
-        ], array_intersect_key($_GET, array_flip([
-            'exam_type', 'language', 'material', 'daytype', 'month', 'province', 'location', 'timeslot', 'page', 'per_page'
-        ])));
+            'exam_type' => '', 'language' => '', 'material' => '',
+            'daytype' => '', 'month' => '', 'province' => '',
+            'location' => '', 'timeslot' => '', 'page' => 1,
+        ], $valid_filters);
         // ✅ Defaults instellen
         if (empty($filters['exam_type'])) $filters['exam_type'] = 'los-examen-vca-basis';
         if (empty($filters['language'])) $filters['language'] = 'nl';
