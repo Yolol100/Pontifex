@@ -75,6 +75,7 @@ De GitHub-tree van de hoofdbranch bevat **55 van 55 gevolgde bestanden, niet afg
 | A-01 | `public/registration-form.php` rond regels 99–101, tijdens shortcode-include | Hoog | Ongebruikte globale `starts_with()` was op iedere formulierrender gedeclareerd. Bij twee shortcodes in één PHP-request geeft herdeclaratie een fatal. Functie uit render-template verwijderd; PHP/WordPress runtime-smoke voor 2 renders toegevoegd. |
 | A-02 | `assets/js/form-validation.js` rond 62/126 + vormtest met 2 formulieren | Hoog | Globaal `$('.pontifex-oi-candidate-row')` en `$('#payment_amount')` pakten kandidaten en bedrag buiten het ingestuurde formulier. Scoped selectors aan `$form` toegevoegd; browserloze Node-differentiële regressietest. **Twee identieke HTML-ID's in dezelfde pagina zijn nog een eigen browsertestrisico.** |
 | A-03 | `includes/class-frontend.php:203–212` publieke planning-shortcode | Middel/hoog | URL-parameters gingen als ongevalideerde array rechtstreeks naar SOAP/planning. Reeds aanwezige REST/AJAX normalizer nu ook toegepast op GET (wp_unslash/type/allowlist) en malformed + geldig weekendscenario in WP-CLI-test. |
+| A-04 | `includes/class-frontend.php:render_registration_shortcode()` publieke GET | Middel | Onverwachte arraywaarden of te lange URL-data kunnen het inschrijfformulier/de redirect ontregelen. Vooraf scalar/lengtebeveiliging en negatieve WordPress-shortcodefixture toegevoegd. |
 
 ## Harde bestaande releaseproblemen (niet als gefixt markeren)
 
