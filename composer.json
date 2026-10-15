@@ -15,8 +15,7 @@
       "includes/helpers/class-payment-helpers.php",
       "includes/helpers/class-registrations.php",
       "includes/helpers/class-registration-validator.php",
-      "public/class-payment-success-shortcode.php",
-      "includes/helpers/class-pending-orders.php"
+      "public/class-payment-success-shortcode.php"
     ]
   },
   "license": "GPL-2.0-or-later"
