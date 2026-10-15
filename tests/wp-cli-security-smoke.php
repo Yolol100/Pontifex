@@ -170,6 +170,13 @@ if ($response->get_status() !== 200
     $amount = is_array($payload) ? (string) ($payload['raw_price'] ?? 'missing') : 'missing';
     throw new RuntimeException(
         'Valid public REST price regression: HTTP ' . $status . ', code=' . $code . ', amount=' . $amount
+        . ', request_exam=' . (string) $request->get_param('exam_type')
+        . ', direct_price=' . (string) \PontifexOI\Helpers\PaymentHelpers::calculate_total_price([
+            'exam_type' => 'los-examen-vca-basis', 'language' => 'nl', 'material' => '1',
+        ])
+        . ', catalog=' . implode('', array_map(static function ($key) {
+            return isset($GLOBALS[$key]) && is_array($GLOBALS[$key]) ? '1' : '0';
+        }, ['EXAM_PRODUCTS', 'MATERIAL_PRODUCTS', 'MATERIAL_COMBIS', 'EXTRA_PRODUCTS']))
     );
 }
 
