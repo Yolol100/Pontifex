@@ -442,13 +442,18 @@ class Frontend
     public function ajax_get_filter_options()
     {
         $this->set_no_cache_headers();
-        $filter = sanitize_text_field($_REQUEST['filter'] ?? '');
-        $filters = $_REQUEST['filters'] ?? [];
-        // ▶ Sanitisatie van alle filters (veilig + voorspelbaar)
-        if (!is_array($filters)) {
-            $filters = [];
-        } else {
-            $filters = array_map('sanitize_text_field', $filters);
+        $raw_filter = $_REQUEST['filter'] ?? '';
+        if (!is_string($raw_filter)) {
+            wp_send_json_error(['message' => __('Ongeldig filtertype.', 'pontifex-oi')], 400);
+        }
+        $filter = sanitize_key(wp_unslash($raw_filter));
+        if (!in_array($filter, ['location', 'language', 'material', 'month', 'province', 'timeslot'], true)) {
+            wp_send_json_error(['message' => __('Onbekend planningfilter.', 'pontifex-oi')], 400);
+        }
+        $raw_filters = isset($_REQUEST['filters']) ? wp_unslash($_REQUEST['filters']) : [];
+        $filters = self::normalize_planning_filters($raw_filters);
+        if (is_wp_error($filters)) {
+            wp_send_json_error(['message' => $filters->get_error_message()], 400);
         }
         $isWeekend = isset($filters['material']) && $filters['material'] === 'cursus-weekend';
         $options = [];
