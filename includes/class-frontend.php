@@ -325,6 +325,21 @@ class Frontend
      */
     public function render_registration_shortcode($atts = [])
     {
+        // The registration view reads public URL parameters. Reject nested
+        // arrays and oversized values before sanitizers/redirects use them.
+        foreach ([
+            'exam_type', 'language', 'material', 'date', 'time',
+            'location', 'province', 'spots', 'extra_option', 'price',
+        ] as $query_key) {
+            if (!isset($_GET[$query_key])) {
+                continue;
+            }
+            $query_value = $_GET[$query_key];
+            if (!is_scalar($query_value) || strlen((string) $query_value) > 191) {
+                return '<p class="pontifex-oi-error">' .
+                    esc_html__('Ongeldige inschrijvingsgegevens.', 'pontifex-oi') . '</p>';
+            }
+        }
         if (!defined('DONOTCACHEPAGE')) {
             define('DONOTCACHEPAGE', true);
         }
