@@ -520,17 +520,38 @@ class Frontend
     public function ajax_get_price()
     {
         $this->set_no_cache_headers();
-        $exam_type = sanitize_text_field($_POST['exam_type'] ?? '');
-        $language = sanitize_text_field($_POST['language'] ?? 'nl');
-        $material = sanitize_text_field($_POST['material'] ?? '1');
-        $candidate_count = absint($_POST['candidate_count'] ?? 1);
-        if (empty($exam_type)) {
-            wp_send_json_error(['message' => 'Geen exam_type opgegeven']);
+        $raw_price_filters = [
+            'exam_type' => $_POST['exam_type'] ?? '',
+            'language' => $_POST['language'] ?? 'nl',
+            'material' => $_POST['material'] ?? '1',
+            'candidate_count' => $_POST['candidate_count'] ?? 1,
+        ];
+        foreach ($raw_price_filters as $value) {
+            if (!is_scalar($value) || strlen((string) $value) > 191) {
+                wp_send_json_error(['message' => __('Ongeldige prijsfilters.', 'pontifex-oi')], 400);
+            }
+        }
+        $exam_type = sanitize_text_field(wp_unslash((string) $raw_price_filters['exam_type']));
+        $language = sanitize_text_field(wp_unslash((string) $raw_price_filters['language']));
+        $material = sanitize_text_field(wp_unslash((string) $raw_price_filters['material']));
+        $candidate_count = absint($raw_price_filters['candidate_count']);
+        if ($exam_type === '' || $candidate_count < 1 || $candidate_count > 12) {
+            wp_send_json_error(['message' => __('Ongeldig examen of aantal kandidaten.', 'pontifex-oi')], 400);
         }
         try {
-            $extra_options = isset($_POST['extra_options']) && is_array($_POST['extra_options'])
-                ? array_map('sanitize_text_field', $_POST['extra_options'])
-                : [];
+            $raw_options = $_POST['extra_options'] ?? [];
+            if (!is_array($raw_options) || count($raw_options) > 20) {
+                wp_send_json_error(['message' => __('Ongeldige extra opties.', 'pontifex-oi')], 400);
+            }
+            foreach ($raw_options as $raw_option) {
+                if (!is_string($raw_option) || strlen($raw_option) > 80) {
+                    wp_send_json_error(['message' => __('Ongeldige extra opties.', 'pontifex-oi')], 400);
+                }
+            }
+            $extra_options = array_map(
+                'sanitize_text_field',
+                wp_unslash($raw_options)
+            );
             $order_details = [
                 'exam_type' => $exam_type,
                 'language' => $language,
@@ -548,7 +569,6 @@ class Frontend
                 'vat21' => (float)($totals['vat21'] ?? 0),
                 'vat_total' => (float)(($totals['vat9'] ?? 0) + ($totals['vat21'] ?? 0)),
                 'total_incl' => $price_incl,
-                'debug_info' => $order_details,
             ]);
         } catch (\Throwable $e) {
             wp_send_json_error([
@@ -562,19 +582,31 @@ class Frontend
     public function ajax_get_prices()
     {
         $this->set_no_cache_headers();
-        $items = $_POST['items'] ?? [];
+        $items = isset($_POST['items']) ? wp_unslash($_POST['items']) : [];
         if (!is_array($items) || empty($items)) {
             wp_send_json_success([]);
+        }
+        if (count($items) > 100) {
+            wp_send_json_error(['message' => __('Te veel prijsaanvragen.', 'pontifex-oi')], 400);
         }
         $out = [];
         foreach ($items as $row) {
             if (!is_array($row)) {
                 continue;
             }
-            $exam_type = sanitize_text_field($row['exam'] ?? '');
-            $language = sanitize_text_field($row['lang'] ?? 'nl');
-            $material = sanitize_text_field($row['material'] ?? '1');
-            $key = sanitize_text_field($row['key'] ?? ($exam_type . '|' . $language . '|' . $material));
+            $exam = $row['exam'] ?? '';
+            $lang = $row['lang'] ?? 'nl';
+            $mat = $row['material'] ?? '1';
+            $raw_key = $row['key'] ?? null;
+            if (!is_string($exam) || !is_string($lang) || !is_string($mat)
+                || ($raw_key !== null && !is_string($raw_key))
+                || strlen($exam) > 191 || strlen($lang) > 191 || strlen($mat) > 191) {
+                continue;
+            }
+            $exam_type = sanitize_text_field($exam);
+            $language = sanitize_text_field($lang);
+            $material = sanitize_text_field($mat);
+            $key = sanitize_text_field($raw_key ?? ($exam_type . '|' . $language . '|' . $material));
             if (empty($exam_type)) {
                 continue;
             }
