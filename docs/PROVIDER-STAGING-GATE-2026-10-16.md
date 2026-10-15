@@ -15,8 +15,8 @@
 3. Test `pending`, `failed`, `expired`, `canceled`; geen succesmail of lokale betaalde registratie. Test latere betaalstatus na meer dan 48 uur op de testomgeving.
 4. Maak een refund en chargeback aan op een **betaalde testbetaling**. Controleer nieuwe `pontifex_reconciliation_<hash>` en beheerwaarschuwing, zonder automatische dubbele mail.
 5. Simuleer na vooraf vastgelegde testopzet mailuitval, SMTP-time-out en PHP-crash direct na de eerste `wp_mail`. Automatische dubbelzending is niet toegestaan: handmatige interventie/een provider-emailbewijs is vereist.
-6. Verifieer de veilige 30-daagse **technische** pending-retentie en `pontifex_review_<hash>`. Deze termijn is geen juridische norm; de eigenaar moet een passende termijn en herstelproces vastleggen. Betalingen na opschoning vereisen handmatige koppeling.
-7. Op bestaande data: inventariseer dubbele `order_id`-waarden, maak back-up, los conflicten met betaalprovidergegevens op; voer pas dan het unieke indexmigratiepad uit. Nooit willekeurig een rij verwijderen.
+6. Verifieer de 30-daagse **technische** pending-retentie, roterende cleanup-cursor (`pontifex_oi_pending_cleanup_cursor`) en `pontifex_review_<hash>`. Deze termijn is geen juridische norm; de eigenaar moet een passende termijn en herstelproces vastleggen. Betalingen na opschoning vereisen handmatige koppeling.
+7. Bij **iedere bestaande, niet-lege** registratietabel: inventariseer dubbele `order_id`-waarden, maak back-up, herstel conflicten met betaalprovidergegevens en voer pas daarna een **handmatig goedgekeurde** unieke-indexmigratie op staging uit. De plugin voert geen `ALTER TABLE` uit bij een gewoon adminbezoek of bij heractiveren met bestaande registraties. Controleer de melding `pontifex_oi_order_index_checked=needs_migration`. Verwijder nooit willekeurig een rij.
 
 **Fail closed:** zonder bewijs van mailverzending mag `mail_attempted` niet automatisch worden gewist, want dat kan dubbele berichten veroorzaken. De code registreert slechts een handmatige herstelbehoefte.
 
