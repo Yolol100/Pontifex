@@ -182,6 +182,34 @@ if ($response->get_status() !== 200
 
 
 /**
+ * Pricing catalog must remain global even when an include runs in local scope.
+ * Verify unit prices, two candidates and 21% VAT without a Mollie API request.
+ */
+foreach (['EXAM_PRODUCTS', 'EXTRA_PRODUCTS', 'MATERIAL_PRODUCTS', 'MATERIAL_COMBIS', 'WEEKEND_ALLOWED_BY_EXAM'] as $catalog_key) {
+    if (!isset($GLOBALS[$catalog_key]) || !is_array($GLOBALS[$catalog_key])) {
+        throw new RuntimeException('A required Pontifex pricing catalog is not globally available.');
+    }
+}
+
+$base_excl = (float) ($GLOBALS['EXAM_PRODUCTS']['los-examen-vca-basis']['prices']['nl'] ?? 0);
+$two_candidate_totals = \PontifexOI\Helpers\PaymentHelpers::calculate_totals_with_vat([
+    'exam_type' => 'los-examen-vca-basis',
+    'language' => 'nl',
+    'material' => '1',
+    'candidate_count' => 2,
+    'extra_options' => [],
+]);
+$expected_excl = round($base_excl * 2, 2);
+$expected_vat21 = round($expected_excl * 0.21, 2);
+$expected_incl = round($expected_excl + $expected_vat21, 2);
+if ($base_excl <= 0
+    || abs((float) ($two_candidate_totals['excl'] ?? 0) - $expected_excl) > 0.005
+    || abs((float) ($two_candidate_totals['vat21'] ?? 0) - $expected_vat21) > 0.005
+    || abs((float) ($two_candidate_totals['incl'] ?? 0) - $expected_incl) > 0.005) {
+    throw new RuntimeException('Candidate total and VAT calculations diverge from the catalog.');
+}
+
+/**
  * SOAP logging must never keep raw requests/responses containing credentials.
  * This checks configuration only; it does not access the external provider.
  */
