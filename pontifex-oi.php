@@ -92,6 +92,42 @@ function pontifex_oi_next_daily_timestamp($hour = 3, $minute = 15, $second = 0) 
 }
 
 /**
+ * Add an atomic payment-id constraint only if legacy data is conflict-free.
+ * Never silently discard duplicate registrations on customer installations.
+ */
+function pontifex_oi_ensure_unique_registration_index(): bool {
+    global $wpdb;
+    $table = $wpdb->prefix . 'pontifex_oi_registrations';
+    $existing = $wpdb->get_var(
+        "SHOW INDEX FROM {$table} WHERE Key_name = 'pontifex_unique_order_id'"
+    );
+    if ($existing !== null) {
+        update_option('pontifex_oi_order_index_checked', 'installed', false);
+        return true;
+    }
+    $duplicate = $wpdb->get_var(
+        "SELECT order_id FROM {$table} GROUP BY order_id HAVING COUNT(*) > 1 LIMIT 1"
+    );
+    if ($duplicate !== null) {
+        update_option('pontifex_oi_order_index_checked', 'needs_migration', false);
+        return false;
+    }
+    $result = $wpdb->query(
+        "ALTER TABLE {$table} ADD UNIQUE KEY pontifex_unique_order_id (order_id)"
+    );
+    $ok = $result !== false;
+    update_option('pontifex_oi_order_index_checked', $ok ? 'installed' : 'needs_review', false);
+    return $ok;
+}
+
+add_action('admin_init', static function (): void {
+    if (current_user_can('manage_options')
+        && get_option('pontifex_oi_order_index_checked', false) === false) {
+        pontifex_oi_ensure_unique_registration_index();
+    }
+});
+
+/**
  * Create database tables and schedule the daily planning refresh.
  */
 register_activation_hook(__FILE__, function () {
@@ -152,6 +188,8 @@ register_activation_hook(__FILE__, function () {
     dbDelta($sql_planning);
     dbDelta($sql_regs);
     dbDelta($sql_logs);
+
+    pontifex_oi_ensure_unique_registration_index();
 
     $hook = 'pontifex_oi_cron_fetch_planning';
     if (!wp_next_scheduled($hook)) {
