@@ -51,13 +51,12 @@ class SoapClient
      * of vervangen door een logregel.
      *
      * @param array $order De ordergegevens die ontvangen zijn (worden nu genegeerd).
-     * @return bool Altijd true.
+     * @return bool False: outbound registration is not implemented.
      */
     public function sendRegistration(array $order): bool
     {
-        // De logregel is verplaatst naar de aanroepende Webhook-handler om dubbele logging te voorkomen.
-        // Zie de notitie in de code van de Webhook-handler.
-        return true;
+        // Fail closed: a no-op must never be interpreted as vendor acceptance.
+        return false;
     }
 
     /**
