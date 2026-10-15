@@ -338,12 +338,75 @@ class Frontend
         return ob_get_clean();
     }
     /**
+     * Normalize public planning filters before using them in the DB or output.
+     * Keep the same supported keys for the AJAX and REST endpoints.
+     *
+     * @param mixed $raw_filters Potentially untrusted request input.
+     * @return array|\WP_Error Sanitized filters or a client input error.
+     */
+    private static function normalize_planning_filters($raw_filters)
+    {
+        if (!is_array($raw_filters)) {
+            return new \WP_Error(
+                'pontifex_invalid_planning_filters',
+                __('Ongeldige planningfilters.', 'pontifex-oi'),
+                ['status' => 400]
+            );
+        }
+
+        $allowed = [
+            'exam_type', 'language', 'material', 'daytype', 'month',
+            'province', 'location', 'city', 'timeslot', 'page', 'per_page',
+        ];
+        $normalized = [];
+        foreach ($allowed as $key) {
+            if (!array_key_exists($key, $raw_filters)) {
+                continue;
+            }
+            $value = $raw_filters[$key];
+            if (!is_string($value) && !is_int($value) && !is_float($value)) {
+                return new \WP_Error(
+                    'pontifex_invalid_planning_filter',
+                    __('Een planningfilter heeft een ongeldig formaat.', 'pontifex-oi'),
+                    ['status' => 400]
+                );
+            }
+            $clean = sanitize_text_field((string) $value);
+            if (strlen($clean) > 191) {
+                return new \WP_Error(
+                    'pontifex_invalid_planning_filter',
+                    __('Een planningfilter is te lang.', 'pontifex-oi'),
+                    ['status' => 400]
+                );
+            }
+            if ($key === 'page' || $key === 'per_page') {
+                if (!ctype_digit($clean)) {
+                    return new \WP_Error(
+                        'pontifex_invalid_planning_page',
+                        __('Ongeldige paginering.', 'pontifex-oi'),
+                        ['status' => 400]
+                    );
+                }
+                $normalized[$key] = (int) $clean;
+            } else {
+                $normalized[$key] = $clean;
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
      * AJAX handler for fetching planning data.
      */
     public function ajax_get_planning()
     {
         $this->set_no_cache_headers();
-        $filters = $_POST['filters'] ?? [];
+        $raw_filters = isset($_POST['filters']) ? wp_unslash($_POST['filters']) : [];
+        $filters = self::normalize_planning_filters($raw_filters);
+        if (is_wp_error($filters)) {
+            wp_send_json_error(['message' => $filters->get_error_message()], 400);
+        }
         $page = max(1, (int)($filters['page'] ?? 1));
         $per_page = isset($filters['per_page']) ? (int)$filters['per_page'] : 0;
         // Check of het om de weekendcursus gaat
@@ -498,6 +561,9 @@ class Frontend
         }
         $out = [];
         foreach ($items as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
             $exam_type = sanitize_text_field($row['exam'] ?? '');
             $language = sanitize_text_field($row['lang'] ?? 'nl');
             $material = sanitize_text_field($row['material'] ?? '1');
@@ -672,7 +738,11 @@ class Frontend
      */
     public function rest_get_planning(WP_REST_Request $request)
     {
-        $filters = $request->get_param('filters') ?: [];
+        $raw_filters = $request->get_param('filters');
+        $filters = self::normalize_planning_filters($raw_filters === null ? [] : $raw_filters);
+        if (is_wp_error($filters)) {
+            return $filters;
+        }
         $page = max(1, (int) ($filters['page'] ?? 1));
         $per_page = isset($filters['per_page']) ? (int) $filters['per_page'] : 0;
         $isWeekend = isset($filters['material']) && $filters['material'] === 'cursus-weekend';
