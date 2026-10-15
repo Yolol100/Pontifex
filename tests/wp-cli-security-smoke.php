@@ -132,4 +132,40 @@ if ($response->get_status() !== 200
     throw new RuntimeException('Legitimate weekend-planning REST request must keep working.');
 }
 
-echo 'Pontifex CSV, candidate and REST planning input safety: OK' . PHP_EOL;
+
+/**
+ * Pricing reads must reject nonscalar filters and preserve valid calculations.
+ */
+$invalid_prices = [
+    ['exam_type' => ['unexpected']],
+    ['language' => ['unexpected']],
+    ['material' => ['unexpected']],
+    ['material' => str_repeat('x', 192)],
+];
+
+foreach ($invalid_prices as $invalid) {
+    $request = new \WP_REST_Request('POST', '/pontifex-oi/v1/price');
+    foreach ($invalid as $key => $value) {
+        $request->set_param($key, $value);
+    }
+    $response = rest_do_request($request);
+    if ($response->get_status() !== 400) {
+        throw new RuntimeException('REST price must reject malformed filters.');
+    }
+}
+
+$request = new \WP_REST_Request('POST', '/pontifex-oi/v1/price');
+$request->set_param('exam_type', 'los-examen-vca-basis');
+$request->set_param('language', 'nl');
+$request->set_param('material', '1');
+$response = rest_do_request($request);
+$payload = $response->get_data();
+if ($response->get_status() !== 200
+    || !is_array($payload)
+    || !isset($payload['raw_price'])
+    || !is_numeric($payload['raw_price'])
+    || (float) $payload['raw_price'] <= 0) {
+    throw new RuntimeException('Valid public REST price lookup must still work.');
+}
+
+echo 'Pontifex CSV, candidate and REST planning/pricing input safety: OK' . PHP_EOL;
