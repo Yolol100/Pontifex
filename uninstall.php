@@ -20,6 +20,7 @@ function pontifex_oi_uninstall_site(): void {
     global $wpdb;
 
     wp_clear_scheduled_hook('pontifex_oi_cron_fetch_planning');
+    wp_clear_scheduled_hook('pontifex_oi_pending_cleanup');
 
     $options = [
         'pontifex_oi_settings',
@@ -42,6 +43,8 @@ function pontifex_oi_uninstall_site(): void {
     // Remove idempotency flags and locks plus pending-order/cache transients.
     // Keep the prefixes scoped to Pontifex; do not delete unrelated options.
     $prefixes = [
+        'pontifex_pending_',
+        'pontifex_review_',
         'pontifex_wh_state_',
         'pontifex_wh_lock_',
         '_transient_pontifex_order_data_for_token_',
