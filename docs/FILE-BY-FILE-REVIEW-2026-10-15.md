@@ -92,7 +92,7 @@ Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository geÃ
 | `languages/pontifex-oi.pot` | 378 | POT dateert van 2025-08-05; regen en vertaalscans na gewijzigde strings. |
 | `.github/workflows/wordpress-compatibility.yml` (branchupdate) | 195 | WordPress 6.0/PHP8.1 + WP7.1/PHP8.3; JS syntax/XSS en WP-CLI CSV-tests toegevoegd; PHPUnit/PHPCS/Plugin Check nog open. |
 | `tests/js-render-safety-smoke.js` (branchupdate) | 80 | Runtime fixture voor HTML-escaping in planninglijst en cards; test geen complete browser/CSP. |
-| `tests/wp-cli-security-smoke.php` (branchupdate) | 197 | WP-CLI-fixtures: beveiligde CSV, kandidaatrijen, geldige/ongeldige REST planning en prijs, SOAP-trace. Recente positieve prijsregressie ontdekte een ontbrekende global catalogus. |
+| `tests/wp-cli-security-smoke.php` (branchupdate) | 225 | WordPress/CLI: veilige CSV-export, kandidaatrijen, geldige/ongeldige REST-planning en prijzen, catalogusglobaal, dubbele kandidaatprijzen met 21% BTW en SOAP-trace. Geen echte Mollie/SOAP/SMTP-stagingtest. |
 | `docs/WORDPRESS-AUDIT-2026-10-15.md` (branchupdate) | â€” | Prioriteiten, bewezen bugs/contractvragen, faseplanning en verificatiegrenzen staan in hoofdaudit. |
 
 ## Belangrijkste openstaande kwaliteitsblokkades
