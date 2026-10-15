@@ -75,7 +75,7 @@ GPL v2 or later, as documented by the project metadata.
 
 ## Audit and modernization status
 
-The [15 October 2026 WordPress code audit](docs/WORDPRESS-AUDIT-2026-10-15.md) records confirmed risks, file-level observations, a staged modernization plan, and required tests. This audit is **not** an assertion that all files passed coding standards or that a release is ready.
+The [15 October 2026 WordPress code audit](docs/WORDPRESS-AUDIT-2026-10-15.md) records confirmed risks, file-level observations, a staged modernization plan, and required tests. The [per-file source review](docs/FILE-BY-FILE-REVIEW-2026-10-15.md) covers the repository by folder and filename, including remaining manual checks. This audit is **not** an assertion that all files passed coding standards or that a release is ready.
 
 **Registration boundary:** `includes/api/class-soap-client.php::sendRegistration()` is documented in its code as an intentional no-op: it returns success but does not send an outbound registration. The webhook still names that stage `soap_sent`. Whether Pontifex should receive registrations is a business-contract question, not established by this repository. **A paid Mollie transaction is not proof of a registration in Pontifex.** If outbound registration is required, implement it against the verified vendor SOAP contract and staging tests; if registrations are meant to remain local, remove the misleading stage after compatibility testing.
 
