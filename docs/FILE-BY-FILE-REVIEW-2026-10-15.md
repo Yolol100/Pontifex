@@ -33,7 +33,7 @@ Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository ge√
 | Bestand | Regels | Bronbevinding en volgende controle |
 |---|---:|---|
 | `includes/api/class-soap-client.php` (branchupdate) | 470 | SOAP-planning en SQL; tracing uitgeschakeld. `sendRegistration()` is gedocumenteerde no-op; webhook gebruikt nog misleidende `soap_sent`. Endpointvalidatie/sandbox open. |
-| `includes/class-frontend.php` (branchupdate) | 967 | Betaling: nonce/typenormalisatie; publieke AJAX/REST-planning en REST-prijs weigeren foute filtertypen. Prijscalculatie, formuliervalidatie en verdere modularisatie blijven aandachtspunt. |
+| `includes/class-frontend.php` (branchupdate) | 972 | Payment nonce en kandidaatnormalisatie; REST/AJAX-planning √©n filteropties gebruiken gedeelde invoertypen; prijsroute weigert ongeldige typen en lekt geen prijsberekeningsexceptions. Test HTTP, serverbusinessregels en performance verder. |
 | `includes/config/producten-prijzen.php` (branchupdate) | 424 | Vijf catalogusarrays nu expliciet globaal gebonden; CI toonde eerder `catalog=0000`, waardoor een geldige examenprijs `0` werd. Prijsmatrix en i18n aanvullend testen. |
 | `includes/cron/fetch-planning-cron.php` | 59 | WP-Cron, planning-reconciliatie en cache; locks, tijdzone, fouten en uitval testen. |
 | `includes/frontend-asset-guard.php` | 56 | Conditionele enqueues via shortcode/slugs; dynamische templates en WordPress builders testen. |
@@ -90,9 +90,9 @@ Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository ge√
 | Bestand | Regels | Bronbevinding en volgende controle |
 |---|---:|---|
 | `languages/pontifex-oi.pot` | 378 | POT dateert van 2025-08-05; regen en vertaalscans na gewijzigde strings. |
-| `.github/workflows/wordpress-compatibility.yml` (branchupdate) | 195 | WordPress 6.0/PHP8.1 + WP7.1/PHP8.3; JS syntax/XSS en WP-CLI CSV-tests toegevoegd; PHPUnit/PHPCS/Plugin Check nog open. |
+| `.github/workflows/wordpress-compatibility.yml` (branchupdate) | 206 | WordPress 6.0/PHP 8.1 en 7.1/PHP 8.3 matrix, PHP/JS syntax, XSS en WP-CLI tests; Packagist-audit retry uitsluitend bij timeout, advisories blijven fail-closed. |
 | `tests/js-render-safety-smoke.js` (branchupdate) | 80 | Runtime fixture voor HTML-escaping in planninglijst en cards; test geen complete browser/CSP. |
-| `tests/wp-cli-security-smoke.php` (branchupdate) | 225 | WordPress/CLI: veilige CSV-export, kandidaatrijen, geldige/ongeldige REST-planning en prijzen, catalogusglobaal, dubbele kandidaatprijzen met 21% BTW en SOAP-trace. Geen echte Mollie/SOAP/SMTP-stagingtest. |
+| `tests/wp-cli-security-smoke.php` (branchupdate) | 244 | WP-CLI regressies voor CSV/noncehook, kandidaten, geldige/ongeldige planning/prijs, gedeelde filternormalisatie, catalogusglobaal, 2 kandidaten/21% btw en SOAP tracing; geen live provider- of browserbewijs. |
 | `docs/WORDPRESS-AUDIT-2026-10-15.md` (branchupdate) | ‚Äî | Prioriteiten, bewezen bugs/contractvragen, faseplanning en verificatiegrenzen staan in hoofdaudit. |
 
 ## Belangrijkste openstaande kwaliteitsblokkades
