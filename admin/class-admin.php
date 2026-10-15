@@ -29,6 +29,7 @@ class Admin {
 	private function __construct() {
 		add_action('admin_menu', [$this, 'register_menu']);
 		add_action('admin_init', [$this, 'register_settings']);
+		add_action('admin_notices', [$this, 'render_reconciliation_notice']);
 		add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
 
 		// Register AJAX handlers for authenticated users (wp_ajax_)
@@ -36,6 +37,37 @@ class Admin {
 		// Gebruikt de class methode voor de inzendingen AJAX handler
 		add_action('wp_ajax_pontifex_oi_fetch_submissions', [__CLASS__, 'ajax_fetch_submissions']);
 		add_action('admin_post_pontifex_oi_export_submissions', [$this, 'export_submissions']);
+	}
+
+	/**
+	 * Notify authorized admins when payments require reconciliation.
+	 */
+	public function render_reconciliation_notice(): void {
+		if (!current_user_can('manage_options')) {
+			return;
+		}
+		$screen = function_exists('get_current_screen') ? get_current_screen() : null;
+		if (!$screen || strpos((string) $screen->id, 'pontifex_oi') === false) {
+			return;
+		}
+		global $wpdb;
+		$like = $wpdb->esc_like('pontifex_reconciliation_') . '%';
+		$count = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$like
+			)
+		);
+		if ($count > 0) {
+			printf(
+				'<div class="notice notice-warning"><p>%s</p></div>',
+				esc_html(sprintf(
+					/* translators: %d: number of payments requiring administrator review */
+					_n('%d Pontifex-betaling vereist handmatige controle.', '%d Pontifex-betalingen vereisen handmatige controle.', $count, 'pontifex-oi'),
+					$count
+				))
+			);
+		}
 	}
 
 	/**
