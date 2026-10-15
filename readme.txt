@@ -50,7 +50,11 @@ The current plugin registers POST routes under `pontifex-oi/v1`:
 
 The webhook endpoint is an implementation surface of the payment flow. Do not publish secrets or payment payloads in public debugging output.
 
-The current `sendRegistration()` SOAP method is intentionally a no-op according to its source comment; the webhook still names that stage `soap_sent`. Paid Mollie status does not itself prove a registration at Pontifex. Confirm external registration requirements before treating this integration as production-ready.
+The `sendRegistration()` SOAP method is intentionally a no-op according to its source comment. The webhook stores confirmed registrations locally and marks the stage `local_registration_only`, without pretending external delivery occurred. Paid Mollie status does not itself prove registration at Pontifex. Confirm the actual business contract before claiming production-ready outbound registration.
+
+== Privacy and data lifecycle ==
+
+Candidate and payment details are stored by WordPress for processing. Admins can export registration data through a capability- and nonce-protected CSV download. Pending orders currently expire after two days; registration and webhook stage flags use separate storage. Deactivation keeps registration records; permanent uninstall removes Pontifex-owned site data (including multisite). Review the privacy policy and back up the database before deleting the plugin.
 
 == Requirements ==
 
