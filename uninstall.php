@@ -35,6 +35,7 @@ function pontifex_oi_uninstall_site(): void {
         'pontifex_oi_webhook_secret',
         'pontifex_oi_registration_page_id',
         'pontifex_oi_cron_daily_migrated',
+        'pontifex_oi_order_index_checked',
     ];
     foreach ($options as $key) {
         delete_option($key);
@@ -45,6 +46,7 @@ function pontifex_oi_uninstall_site(): void {
     $prefixes = [
         'pontifex_pending_',
         'pontifex_review_',
+        'pontifex_reconciliation_',
         'pontifex_wh_state_',
         'pontifex_wh_lock_',
         '_transient_pontifex_order_data_for_token_',
