@@ -33,6 +33,17 @@ require_once PONTIFEX_OI_PATH . 'includes/cron/fetch-planning-cron.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-payment-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-mail-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registrations.php';
+
+// Connect WordPress core verified personal-data request workflows to our
+// custom registration table. Access is gated by WordPress's privacy UI.
+add_filter(
+    'wp_privacy_personal_data_exporters',
+    [\PontifexOI\Helpers\Registrations::class, 'register_privacy_exporter']
+);
+add_filter(
+    'wp_privacy_personal_data_erasers',
+    [\PontifexOI\Helpers\Registrations::class, 'register_privacy_eraser']
+);
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registration-validator.php';
 require_once PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/ajax-soap-fetch-handler.php';
