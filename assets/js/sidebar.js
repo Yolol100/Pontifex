@@ -108,10 +108,10 @@
 			const $side = $(`#${sidebarId}`);
 			if (!$desk.length || !$side.length) return;
 			// Standaard: kopieer HTML + waarde
-			$side.html($desk.html());
+			$side.empty().append($desk.children('option').clone());
 			const oldVal = $side.val();
-			if (oldVal && !$side.find(`option[value="${oldVal}"]`).length) {
-				$side.append(`<option value="${oldVal}" selected style="display:none;"></option>`);
+			if (oldVal && !$side.find('option').filter(function() { return $(this).val() === oldVal; }).length) {
+				$side.append($('<option>').val(oldVal).prop('selected', true).css('display', 'none'));
 			}
 			$side.val(oldVal);
 			if (sidebarId === 'sidebar-material') {
@@ -125,8 +125,8 @@
 					$desk.val() || '';
 				// ↙️ zet dezelfde marker óók op de sidebar-versie
 				if (remember) $side.attr('data-selected-value', remember);
-				if (remember && !$side.find(`option[value="${remember}"]`).length) {
-					$side.append(`<option value="${remember}">${remember}</option>`);
+				if (remember && !$side.find('option').filter(function() { return $(this).val() === remember; }).length) {
+					$side.append($('<option>').val(remember).text(remember));
 				}
 				$side.val(remember);
 				// ❗ Houd de keuze vast, óók als opties later door andere scripts worden ververst
@@ -360,7 +360,7 @@
 				$loc.empty();
 				$loc.append('<option value="">Kies locatie</option>');
 				list.forEach(function(opt){
-					if (opt && opt.id) $loc.append(`<option value="${opt.id}">${opt.name || opt.id}</option>`);
+					if (opt && opt.id) $loc.append($('<option>').val(opt.id).text(opt.name || opt.id));
 				});
 			})
 			.fail(function(){
