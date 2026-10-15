@@ -96,9 +96,6 @@ if (!empty($url_price)) {
     $clean_price = str_replace(',', '.', $clean_price);
     $url_price_numeric = floatval($clean_price);
 }
-function starts_with($haystack, $needle) {
-    return strpos($haystack, $needle) === 0;
-}
 try {
     // DEZE CALCULATIE IS GEBRUIKT VOOR BACKWARDS COMPATIBILITY.
     // De nieuwe logica gebruikt calculate_totals_with_vat direct hieronder.
