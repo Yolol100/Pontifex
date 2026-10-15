@@ -44,19 +44,9 @@ class Registrations {
 		$planning_identifier = $planning_identifier ? sanitize_text_field($planning_identifier) : null;
 
 		if ($existing_id > 0) {
-			$updated = $wpdb->update(
-				$table,
-				[
-					'planning_identifier' => $planning_identifier,
-					'payload' => $payload,
-					'updated_at' => current_time('mysql'),
-				],
-				['id' => $existing_id],
-				['%s', '%s', '%s'],
-				['%d']
-			);
-
-			return $updated === false ? false : $existing_id;
+			// A webhook replay must not rewrite an existing registration or
+			// restore buyer data already anonymized by a privacy request.
+			return $existing_id;
 		}
 
 		$data = [
@@ -67,7 +57,15 @@ class Registrations {
 			'updated_at' => null,
 		];
 		$ok = $wpdb->insert($table, $data, ['%s', '%s', '%s', '%s', '%s']);
-		return $ok ? (int)$wpdb->insert_id : false;
+		if ($ok) {
+			return (int) $wpdb->insert_id;
+		}
+		// On sites with the unique payment index a concurrent callback may
+		// have inserted the same ID first. Resolve the existing row safely.
+		$winner = (int) $wpdb->get_var(
+			$wpdb->prepare("SELECT id FROM {$table} WHERE order_id = %s ORDER BY id ASC LIMIT 1", $order_id)
+		);
+		return $winner > 0 ? $winner : false;
 	}
 
 	/**
