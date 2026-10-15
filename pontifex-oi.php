@@ -118,10 +118,11 @@ function pontifex_oi_ensure_unique_registration_index(): bool {
         update_option('pontifex_oi_order_index_checked', 'installed', false);
         return true;
     }
-    $duplicate = $wpdb->get_var(
-        "SELECT order_id FROM {$table} GROUP BY order_id HAVING COUNT(*) > 1 LIMIT 1"
-    );
-    if ($duplicate !== null) {
+    // Activation may run against an existing customer database. Never alter a
+    // non-empty registrations table automatically: the index needs a backup,
+    // duplicate reconciliation and an explicit staging-approved migration.
+    $existing_row = $wpdb->get_var("SELECT id FROM {$table} LIMIT 1");
+    if ($existing_row !== null) {
         update_option('pontifex_oi_order_index_checked', 'needs_migration', false);
         return false;
     }
@@ -134,10 +135,17 @@ function pontifex_oi_ensure_unique_registration_index(): bool {
 }
 
 add_action('admin_init', static function (): void {
-    if (current_user_can('manage_options')
-        && get_option('pontifex_oi_order_index_checked', false) === false) {
-        pontifex_oi_ensure_unique_registration_index();
+    if (!current_user_can('manage_options')
+        || get_option('pontifex_oi_order_index_checked', false) !== false) {
+        return;
     }
+    global $wpdb;
+    $table = $wpdb->prefix . 'pontifex_oi_registrations';
+    // Read-only detection on existing sites, never a schema change in wp-admin.
+    $index = $wpdb->get_var(
+        "SHOW INDEX FROM {$table} WHERE Key_name = 'pontifex_unique_order_id'"
+    );
+    update_option('pontifex_oi_order_index_checked', $index === null ? 'needs_migration' : 'installed', false);
 });
 
 /**
