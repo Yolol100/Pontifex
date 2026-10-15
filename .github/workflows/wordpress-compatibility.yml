@@ -89,6 +89,12 @@ jobs:
           set -euo pipefail
           node tests/js-render-safety-smoke.js
 
+      - name: Registration form isolation regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/js-form-scope-smoke.js
+
       - name: Enforce payment privacy invariants
         shell: bash
         run: |
@@ -185,6 +191,25 @@ jobs:
           php /tmp/wp-cli.phar eval-file \
             /tmp/pontifex-runtime/wp-content/plugins/pontifex-oi/tests/wp-cli-security-smoke.php \
             --path=/tmp/pontifex-runtime
+
+      - name: Plugin Check diagnostic on WordPress 7.1 (advisory)
+        if: matrix.wordpress == '7.1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime=/tmp/pontifex-runtime
+          if ! php /tmp/wp-cli.phar plugin install plugin-check --activate --path="$runtime" > /tmp/pontifex-plugin-check-install.log 2>&1; then
+            echo "PLUGIN_CHECK_STATUS|unavailable|Plugin Check installation failed"
+          else
+            set +e
+            php /tmp/wp-cli.phar plugin check pontifex-oi --format=table --path="$runtime" > /tmp/pontifex-plugin-check.log 2>&1
+            code=$?
+            set -e
+            echo "PLUGIN_CHECK_STATUS|executed|exit=$code"
+            head -n 75 /tmp/pontifex-plugin-check.log
+          fi
+          # This is a diagnostic. Do not equate this step's exit status to a
+          # security or release PASS; triage its actual emitted findings.
 
       - name: WordPress uninstall lifecycle regression
         shell: bash

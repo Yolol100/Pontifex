@@ -200,13 +200,25 @@ class Frontend
             define('DONOTCACHEPAGE', true);
         }
         nocache_headers();
-        // ✅ Filters samenvoegen
+        // Shared REST/AJAX/shortcode validation prevents crafted GET arrays
+        // from reaching the SOAP client or arithmetic/HTML output.
+        $query_filters = array_intersect_key(
+            wp_unslash($_GET),
+            array_flip([
+                'exam_type', 'language', 'material', 'daytype', 'month',
+                'province', 'location', 'timeslot', 'page', 'per_page',
+            ])
+        );
+        $valid_filters = self::normalize_planning_filters($query_filters);
+        if (is_wp_error($valid_filters)) {
+            return '<p class="pontifex-oi-error">' .
+                esc_html($valid_filters->get_error_message()) . '</p>';
+        }
         $filters = array_merge([
-            'exam_type' => '', 'language' => '', 'material' => '', 'daytype' => '', 'month' => '',
-            'province' => '', 'location' => '', 'timeslot' => '', 'page' => 1,
-        ], array_intersect_key($_GET, array_flip([
-            'exam_type', 'language', 'material', 'daytype', 'month', 'province', 'location', 'timeslot', 'page', 'per_page'
-        ])));
+            'exam_type' => '', 'language' => '', 'material' => '',
+            'daytype' => '', 'month' => '', 'province' => '',
+            'location' => '', 'timeslot' => '', 'page' => 1,
+        ], $valid_filters);
         // ✅ Defaults instellen
         if (empty($filters['exam_type'])) $filters['exam_type'] = 'los-examen-vca-basis';
         if (empty($filters['language'])) $filters['language'] = 'nl';
@@ -313,6 +325,21 @@ class Frontend
      */
     public function render_registration_shortcode($atts = [])
     {
+        // The registration view reads public URL parameters. Reject nested
+        // arrays and oversized values before sanitizers/redirects use them.
+        foreach ([
+            'exam_type', 'language', 'material', 'date', 'time',
+            'location', 'province', 'spots', 'extra_option', 'price',
+        ] as $query_key) {
+            if (!isset($_GET[$query_key])) {
+                continue;
+            }
+            $query_value = $_GET[$query_key];
+            if (!is_scalar($query_value) || strlen((string) $query_value) > 191) {
+                return '<p class="pontifex-oi-error">' .
+                    esc_html__('Ongeldige inschrijvingsgegevens.', 'pontifex-oi') . '</p>';
+            }
+        }
         if (!defined('DONOTCACHEPAGE')) {
             define('DONOTCACHEPAGE', true);
         }

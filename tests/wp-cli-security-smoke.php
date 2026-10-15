@@ -336,4 +336,66 @@ if (!$first_id || $first_id !== $second_id || $count !== 1
     throw new RuntimeException('Local webhook registration upsert and recovery regression.');
 }
 
+
+/**
+ * Two registration shortcodes on one page must render independently.
+ * A template-local global function definition caused a PHP redeclare fatal.
+ */
+$previous_get = $_GET;
+$_GET['exam_type'] = 'los-examen-vca-basis';
+$_GET['language'] = 'nl';
+$_GET['material'] = '1';
+try {
+    $first_form = do_shortcode('[pontifex_oi_registration]');
+    $second_form = do_shortcode('[pontifex_oi_registration]');
+} finally {
+    $_GET = $previous_get;
+}
+$previous_query = $_GET;
+try {
+    $_GET = ['exam_type' => ['tampered'], 'language' => 'nl'];
+    $rejected_form = do_shortcode('[pontifex_oi_registration]');
+    if (strpos($rejected_form, 'pontifex-oi-error') === false
+        || strpos($rejected_form, 'Ongeldige inschrijvingsgegevens') === false) {
+        throw new RuntimeException('Registration shortcode did not reject nested URL inputs.');
+    }
+} finally {
+    $_GET = $previous_query;
+}
+if (substr_count($first_form, 'id="registration-form"') !== 1
+    || substr_count($second_form, 'id="registration-form"') !== 1) {
+    throw new RuntimeException('Registration shortcode must render on repeated invocation.');
+}
+
+/**
+ * The public planning shortcode must reject malformed URL filters before
+ * reaching SOAP. A valid weekend request remains renderable without SOAP.
+ */
+$previous_query = $_GET;
+try {
+    $_GET = [
+        'material' => 'cursus-weekend',
+        'language' => 'nl',
+        'page' => ['nested' => 1],
+    ];
+    $bad_planning = do_shortcode('[pontifex_oi_planning]');
+    if (strpos($bad_planning, 'pontifex-oi-error') === false
+        || strpos($bad_planning, 'planningfilter') === false) {
+        throw new RuntimeException('The planning shortcode accepted a malformed GET filter.');
+    }
+
+    $_GET = [
+        'material' => 'cursus-weekend',
+        'language' => 'nl',
+        'page' => '1',
+    ];
+    $good_planning = do_shortcode('[pontifex_oi_planning]');
+    if (strpos($good_planning, 'pontifex-oi-error') !== false
+        || !is_string($good_planning) || trim($good_planning) === '') {
+        throw new RuntimeException('A valid weekend planning shortcode must render.');
+    }
+} finally {
+    $_GET = $previous_query;
+}
+
 echo 'Pontifex security, lifecycle and pricing smoke tests: OK' . PHP_EOL;
