@@ -165,7 +165,12 @@ if ($response->get_status() !== 200
     || !isset($payload['raw_price'])
     || !is_numeric($payload['raw_price'])
     || (float) $payload['raw_price'] <= 0) {
-    throw new RuntimeException('Valid public REST price lookup must still work.');
+    $status = $response->get_status();
+    $code = is_array($payload) ? (string) ($payload['code'] ?? 'no_error_code') : 'unexpected_payload';
+    $amount = is_array($payload) ? (string) ($payload['raw_price'] ?? 'missing') : 'missing';
+    throw new RuntimeException(
+        'Valid public REST price regression: HTTP ' . $status . ', code=' . $code . ', amount=' . $amount
+    );
 }
 
 
