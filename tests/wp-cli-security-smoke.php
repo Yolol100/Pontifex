@@ -12,6 +12,8 @@ if (!defined('ABSPATH') || !defined('PONTIFEX_OI_PATH')) {
     throw new RuntimeException('This test must run inside activated WordPress.');
 }
 
+global $wpdb;
+
 require_once PONTIFEX_OI_PATH . 'admin/class-admin.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/submissions-helpers.php';
 
