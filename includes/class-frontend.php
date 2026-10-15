@@ -738,9 +738,9 @@ class Frontend
             $order_token = 'pontifex_order_' . bin2hex(random_bytes(16));
             $order_data["order_token"] = $order_token;
 
-            // AI-PATCH: bewaar de volledige inschrijving tijdelijk in WordPress.
-            // Mollie metadata heeft beperkingen en is niet geschikt voor alle kandidaat-/formulierdata.
-            if (!set_transient("pontifex_order_data_for_token_" . $order_token, $order_data, 2 * DAY_IN_SECONDS)) {
+            // Store candidate PII locally, keyed by a cryptographically random
+            // token and kept until processing or bounded retention cleanup.
+            if (!\PontifexOI\Helpers\PendingOrders::create($order_token, $order_data)) {
                 throw new \RuntimeException('pending_order_storage_failed');
             }
 
@@ -754,6 +754,11 @@ class Frontend
             );
             if (!$payment || empty($payment->id)) {
                 throw new \Exception('Mollie betaling kon niet worden aangemaakt. Controleer test/live-modus, API key en Mollie-log.');
+            }
+            if (!\PontifexOI\Helpers\PendingOrders::set_payment_id($order_token, (string) $payment->id)) {
+                // Payment exists at provider, but its local reference is not
+                // durable. Block redirect; preserve the record for review.
+                throw new \RuntimeException('payment_reference_persistence_failed');
             }
             set_transient('mollie_payment_id_for_token_' . $order_token, $payment->id, 3600);
             wp_send_json_success([
