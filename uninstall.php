@@ -36,6 +36,7 @@ function pontifex_oi_uninstall_site(): void {
         'pontifex_oi_registration_page_id',
         'pontifex_oi_cron_daily_migrated',
         'pontifex_oi_order_index_checked',
+        'pontifex_oi_pending_cleanup_cursor',
     ];
     foreach ($options as $key) {
         delete_option($key);
