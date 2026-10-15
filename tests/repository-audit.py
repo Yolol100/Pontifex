@@ -190,7 +190,7 @@ def run(root: Path, outdir: Path) -> dict:
     output = [
         "# Pontifex — complete tracked-file static audit",
         "",
-        f"Commit: \`{git_sha}\` — files: **{len(records)}** — source bytes: **{total_bytes}** "
+        f"Commit: `{git_sha}` — files: **{len(records)}** — source bytes: **{total_bytes}** "
         f"— lines: **{total_lines}** — heuristic pattern occurrences: **{total_signals}**.",
         "",
         "**Boundary:** Every tracked file was read and SHA256-hashed. Rules are mechanical REVIEW "
@@ -214,12 +214,12 @@ def run(root: Path, outdir: Path) -> dict:
         symbol_names = ", ".join(f"{s['symbol']}:{s['line']}" for s in rec["symbols"][:10])
         if len(rec["symbols"]) > 10:
             symbol_names += f" (+{len(rec['symbols']) - 10} others in JSON)"
-        output.append(f"| \`{rec['path']}\` | {rec['kind']} | {rec['bytes']} | {rec['lines']} | "
-                      f"\`{rec['sha256'][:12]}\` | {markdown_safe(note or '-')} | "
+        output.append(f"| `{rec['path']}` | {rec['kind']} | {rec['bytes']} | {rec['lines']} | "
+                      f"`{rec['sha256'][:12]}` | {markdown_safe(note or '-')} | "
                       f"{markdown_safe(symbol_names or '-')} |")
     output += ["", "## Folder coverage", "",
                "| Folder | Files |", "|---|---:|"]
-    output += [f"| \`{key}\` | {n} |" for key, n in sorted(folder_counts.items())]
+    output += [f"| `{key}` | {n} |" for key, n in sorted(folder_counts.items())]
     output += ["", "## Interpretation and next steps", "",
                "- Look up each flagged file and its full lines in the JSON artifact, not just the first three line numbers.",
                "- Manually check public requests, output encoding, global state, payment + mail side effects and migrations.",
