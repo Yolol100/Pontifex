@@ -23,7 +23,7 @@ The current plugin release is `1.0.1`.
 
 - WordPress 6.0 or newer.
 - PHP 8.1 or newer.
-- Valid Pontifex API credentials for live planning/registration calls.
+- Valid Pontifex API credentials for live planning calls.
 - Mollie credentials and the Composer dependency `mollie/mollie-api-php` for payment paths.
 
 The source checkout can bootstrap planning/admin code without `vendor/`, but payment functionality requires the Composer dependencies to be installed or included in the deployed package.
@@ -60,20 +60,23 @@ These routes are implementation surfaces for the plugin. Do not expose credentia
 
 - `pontifex-oi.php` — plugin bootstrap and runtime metadata.
 - `includes/` — API, cron, registration, payment and helper logic.
-- `public/` — public-facing shortcode and presentation code.
 - `admin/` — admin settings, registration overview, and export interface.
 - `assets/` — frontend/admin CSS and JavaScript.
 - `public/` — shortcode presentation, registration templates, and email templates.
 - `composer.json` — PHP dependency declaration, including the Mollie SDK.
-- `readme.txt` — legacy WordPress-format documentation and version history.
+- `readme.txt` — WordPress-compatible plugin documentation and version history.
+- `tests/` — regression smoke checks for HTML output and CSV export.
+- `docs/` — audit findings, architectural decisions and follow-up priorities.
+- `.github/workflows/` — repository-only CI (not part of an installable plugin ZIP).
 
 ## License
 
 GPL v2 or later, as documented by the project metadata.
+
 ## Audit and modernization status
 
 The [15 October 2026 WordPress code audit](docs/WORDPRESS-AUDIT-2026-10-15.md) records confirmed risks, file-level observations, a staged modernization plan, and required tests. This audit is **not** an assertion that all files passed coding standards or that a release is ready.
 
-**Important known limitation:** `includes/api/class-soap-client.php::sendRegistration()` currently returns success without calling the SOAP registration endpoint. A paid webhook may therefore be marked as processed without a verified registration in Pontifex. **Do not treat a payment confirmation as proof of exam registration.** Restore and test the real vendor SOAP contract before production acceptance.
+**Registration boundary:** `includes/api/class-soap-client.php::sendRegistration()` is documented in its code as an intentional no-op: it returns success but does not send an outbound registration. The webhook still names that stage `soap_sent`. Whether Pontifex should receive registrations is a business-contract question, not established by this repository. **A paid Mollie transaction is not proof of a registration in Pontifex.** If outbound registration is required, implement it against the verified vendor SOAP contract and staging tests; if registrations are meant to remain local, remove the misleading stage after compatibility testing.
 
-The webhook lifecycle, privacy controls, CSV export, server-side validation, and dependency packaging also require additional work. Existing shortcode names, REST routes, option keys, and database structures must remain compatible unless a tested migration explicitly changes them.
+The branch contains initial privacy/escaping and CSV-export security fixes plus regression checks. Durable webhook handling, server-side validation and dependency packaging still require additional work. Existing shortcode names, REST routes, option keys, and database structures must remain compatible unless a tested migration explicitly changes them.
