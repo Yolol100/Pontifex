@@ -68,6 +68,17 @@ function pontifex_oi_webhook_decision($payment, array $state): string {
 }
 
 /**
+ * Mail transport acceptance cannot prove delivery. Once an attempt starts,
+ * a retry must not resend without manual reconciliation.
+ */
+function pontifex_oi_webhook_mail_decision(array $state): string {
+    if (!empty($state['mail_sent'])) {
+        return 'already_sent';
+    }
+    return !empty($state['mail_attempted']) ? 'needs_review' : 'send';
+}
+
+/**
  * Main webhook handler.
  *
  * @param \WP_REST_Request $request Request object.
@@ -200,7 +211,7 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
         if (empty($state['mail_sent'])) {
             // Persist BEFORE an irreversible mail side effect. In case of a
             // crash, SMTP ambiguity or partial success, do not send twice.
-            if (!empty($state['mail_attempted'])) {
+            if (pontifex_oi_webhook_mail_decision($state) === 'needs_review') {
                 $state['mail_reconciliation_required'] = true;
                 pontifex_oi_webhook_store_state($state_key, $state);
                 add_option(
