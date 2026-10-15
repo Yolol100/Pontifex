@@ -3,12 +3,20 @@
   "description": "Pontifex Open Inschrijvingen (planning/inschrijvingen/Mollie).",
   "type": "wordpress-plugin",
   "require": {
-    "php": "^8.0",
+    "php": "^8.1",
     "mollie/mollie-api-php": "^3.4"
   },
   "autoload": {
-    "psr-4": {
-      "PontifexOI\\": "includes/"
-    }
-  }
+    "classmap": [
+      "admin/class-admin.php",
+      "includes/api/class-soap-client.php",
+      "includes/class-frontend.php",
+      "includes/helpers/class-mail-helpers.php",
+      "includes/helpers/class-payment-helpers.php",
+      "includes/helpers/class-registrations.php",
+      "includes/helpers/class-registration-validator.php",
+      "public/class-payment-success-shortcode.php"
+    ]
+  },
+  "license": "GPL-2.0-or-later"
 }

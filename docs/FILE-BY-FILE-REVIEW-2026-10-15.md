@@ -13,9 +13,9 @@ Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository ge�
 | Bestand | Regels | Bronbevinding en volgende controle |
 |---|---:|---|
 | `pontifex-oi.php` | 183 | Bootstrap, globale includes, 3 tabellen en cron; schemaversies, lifecycle, rewrite flush en klassegrenzen valideren. |
-| `uninstall.php` | 89 | Multisite-tabellen/options onvolledig opgeschoond; cronhook mismatch en privacyretentie. |
-| `composer.json` | 15 | PHP ^8.0 wijkt af van Requires PHP 8.1; PSR-4-classmap strookt niet overal met bestandsnamen. |
-| `composer.lock` | 427 | Mollie SDK en dependencies vastgezet; audit en productie-vendor-build vereisen lockfile-pariteit. |
+| `uninstall.php` (phase 3) | 93 | Fase 3: per site uninstall-tabellen, opties, transient/lockstaten en echte cronhook opgeschoond; destructief alléén bij WP-uninstall. Multisite staging-test nog vereist. |
+| `composer.json` (phase 3) | 23 | PHP ^8.1 met GPL-2.0-or-later, classmap voor huidige klassebestanden in plaats van onjuiste PSR-4; composer validate/lockcontrole. |
+| `composer.lock` (phase 3) | 427 | Lockhash bijgewerkt voor PHP-minimum 8.1; pakketversies onveranderd, Composer-audit in CI. |
 | `README.md` (branchupdate) | 83 | Mapoverzicht en lokale versus externe inschrijving verduidelijkt; deploy/runbook uitbreiden. |
 | `readme.txt` (branchupdate) | 73 | WP-releasevelden, compatibiliteitsclaims, privacydisclosure, licentie en POT actualiteit controleren. |
 | `AUDIT_PONTIFEX_OI_2026-04-26.md` | 14 | Historisch document; niet verwarren met actuele analyse of regressiebewijs. |
@@ -33,17 +33,17 @@ Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository ge�
 | Bestand | Regels | Bronbevinding en volgende controle |
 |---|---:|---|
 | `includes/api/class-soap-client.php` (branchupdate) | 470 | SOAP-planning en SQL; tracing uitgeschakeld. `sendRegistration()` is gedocumenteerde no-op; webhook gebruikt nog misleidende `soap_sent`. Endpointvalidatie/sandbox open. |
-| `includes/class-frontend.php` (branchupdate) | 972 | Payment nonce en kandidaatnormalisatie; REST/AJAX-planning én filteropties gebruiken gedeelde invoertypen; prijsroute weigert ongeldige typen en lekt geen prijsberekeningsexceptions. Test HTTP, serverbusinessregels en performance verder. |
+| `includes/class-frontend.php` (phase 3) | 988 | Vóór Mollie: nonce, kandidaten, verplichte kopergegevens, bekende productkeuzes, bedrag en pendingopslag; REST/AJAX-prijs en planning typed; echte checkout nog niet getest. |
 | `includes/config/producten-prijzen.php` (branchupdate) | 424 | Vijf catalogusarrays nu expliciet globaal gebonden; CI toonde eerder `catalog=0000`, waardoor een geldige examenprijs `0` werd. Prijsmatrix en i18n aanvullend testen. |
 | `includes/cron/fetch-planning-cron.php` | 59 | WP-Cron, planning-reconciliatie en cache; locks, tijdzone, fouten en uitval testen. |
 | `includes/frontend-asset-guard.php` | 56 | Conditionele enqueues via shortcode/slugs; dynamische templates en WordPress builders testen. |
 | `includes/helpers/ajax-soap-fetch-handler.php` | 55 | Admin-only AJAX met nonce/capability; providerresponses veilig begrenzen en loggen. |
 | `includes/helpers/class-mail-helpers.php` (branchupdate) | 168 | Sitewide wp_mail_charset en wp_mail_failed-hooks verwijderd; eigen HTML/UTF-8 headers behouden. SMTP/live-verzending niet getest. |
 | `includes/helpers/class-payment-helpers.php` | 476 | Mollie API, prijsberekening, VAT/afronding; mode/secret handling en refund/retry testen. |
-| `includes/helpers/class-registrations.php` | 142 | Registratie-opslag en queries; order_id mist UNIQUE, idempotente migratie en retentie zijn open. |
-| `includes/helpers/class-registration-validator.php` (branchupdate) | 70 | Nieuwe kandidaatnormalisatie: arraytype, 1–12 kandidaten, veldlengte en behoud rijindex bij lege tussenvoegsels; overige zakelijke verplichte velden nog te specificeren. |
+| `includes/helpers/class-registrations.php` (phase 3) | 168 | Bestaand idempotent save-gedrag aangevuld met find_order(payment-ID) voor late webhook-retry; UNIQUE-index en legacy-duplicatenmigratie nog open. |
+| `includes/helpers/class-registration-validator.php` (phase 3) | 162 | Kandidaatrijen/DOB, verplichte contactvelden, valide e-mail/telefoon, product/taal/materiaal/extras én 1-12 kandidaten; businessvarianten testen. |
 | `includes/helpers/submissions-helpers.php` (branchupdate) | 509 | CSV/kaartformatters; spreadsheet-formulebeveiliging toegevoegd, legacy-JSON en verborgen technische velden controleren. |
-| `includes/webhooks/webhook-handler.php` | 175 | Mollie webhook met 7-daagse transients/lock; duurzaam idempotent verwerken en SOAP-no-op-verwarring oplossen. |
+| `includes/webhooks/webhook-handler.php` (phase 3) | 191 | Fase 3: permanente betaal-ID-stageopties, migratie oude transients, lokale orderrecovery en expliciete local_registration_only; gelijktijdige callbacks/SMTP-ambiguitie blijven open. |
 
 ## Publiek
 
@@ -90,9 +90,10 @@ Alle hieronder genoemde bron-/documentbestanden zijn in de GitHub-repository ge�
 | Bestand | Regels | Bronbevinding en volgende controle |
 |---|---:|---|
 | `languages/pontifex-oi.pot` | 378 | POT dateert van 2025-08-05; regen en vertaalscans na gewijzigde strings. |
-| `.github/workflows/wordpress-compatibility.yml` (branchupdate) | 206 | WordPress 6.0/PHP 8.1 en 7.1/PHP 8.3 matrix, PHP/JS syntax, XSS en WP-CLI tests; Packagist-audit retry uitsluitend bij timeout, advisories blijven fail-closed. |
+| `.github/workflows/wordpress-compatibility.yml` (phase 3) | 215 | WP6.0/PHP8.1 en WP7.1/PHP8.3, Composer-supply-chain, PHP/JS syntax, security-smoke, echte uninstall-test en warning gate; browser/SOAP/Mollie niet gedekt. |
 | `tests/js-render-safety-smoke.js` (branchupdate) | 80 | Runtime fixture voor HTML-escaping in planninglijst en cards; test geen complete browser/CSP. |
-| `tests/wp-cli-security-smoke.php` (branchupdate) | 244 | WP-CLI regressies voor CSV/noncehook, kandidaten, geldige/ongeldige planning/prijs, gedeelde filternormalisatie, catalogusglobaal, 2 kandidaten/21% btw en SOAP tracing; geen live provider- of browserbewijs. |
+| `tests/wp-cli-security-smoke.php` (phase 3) | 338 | Regressies voor CSV, adminexport, SOAP diagnostics, REST, prijzen/BTW, kandidaat-/koperdata, webhook-stage-migratie en lokale orderrecovery. |
+| `tests/wp-cli-uninstall-smoke.php` (phase 3) | 35 | Geïsoleerde WP-CLI proef die na echte uninstall verwijderde Pontifex-tabellen, opties en cron verifieert. |
 | `docs/WORDPRESS-AUDIT-2026-10-15.md` (branchupdate) | — | Prioriteiten, bewezen bugs/contractvragen, faseplanning en verificatiegrenzen staan in hoofdaudit. |
 
 ## Belangrijkste openstaande kwaliteitsblokkades

@@ -12,6 +12,8 @@ if (!defined('ABSPATH') || !defined('PONTIFEX_OI_PATH')) {
     throw new RuntimeException('This test must run inside activated WordPress.');
 }
 
+global $wpdb;
+
 require_once PONTIFEX_OI_PATH . 'admin/class-admin.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/submissions-helpers.php';
 
@@ -240,4 +242,98 @@ if (($soap_defaults['options']['trace'] ?? null) !== 0) {
     throw new RuntimeException('SOAP request/response tracing must be disabled.');
 }
 
-echo 'Pontifex CSV, candidate, REST and SOAP diagnostic safety: OK' . PHP_EOL;
+
+/**
+ * A payment may only be started with a complete and valid buyer/order payload.
+ */
+$valid_buyer = array_merge($valid_order, [
+    'given-name' => 'E.',
+    'family-name' => 'Vis',
+    'postal-code' => '1234 AB',
+    'address-line2' => '12',
+    'street-address' => 'Voorbeeldstraat',
+    'address-level2' => 'Amsterdam',
+    'tel' => '+31612345678',
+    'organization-title' => 'Medewerker',
+    'order_email' => 'inschrijving@example.test',
+    'exam_type' => 'los-examen-vca-basis',
+    'language' => 'nl',
+    'material' => '1',
+    'extra_options' => [],
+]);
+$validated = \PontifexOI\Helpers\RegistrationValidator::normalize_candidates($valid_buyer);
+$validated = is_wp_error($validated) ? $validated : \PontifexOI\Helpers\RegistrationValidator::normalize_order_fields($validated);
+if (is_wp_error($validated) || $validated['order_email'] !== 'inschrijving@example.test') {
+    throw new RuntimeException('A valid buyer must remain eligible for registration.');
+}
+
+foreach ([
+    ['order_email' => 'not-an-email'],
+    ['order_email' => ['unexpected']],
+    ['tel' => 'abc'],
+    ['given-name' => ''],
+    ['extra_options' => [['nested']]],
+    ['extra_options' => ['unknown-optional-product']],
+    ['exam_type' => 'fake-exam'],
+    ['language' => ['unexpected']],
+] as $bad) {
+    $order = array_replace($valid_buyer, $bad);
+    $result = \PontifexOI\Helpers\RegistrationValidator::normalize_order_fields($order);
+    if (!is_wp_error($result)) {
+        throw new RuntimeException('Incomplete or tampered buyer/order input passed validation.');
+    }
+}
+foreach ([
+    ['candidate_lastname' => ['Vis', '']],
+    ['candidate_birthdate' => ['32-02-2020', '02-02-1996']],
+    ['candidate_birthdate' => ['31-12-2999', '02-02-1996']],
+] as $bad) {
+    if (!is_wp_error(\PontifexOI\Helpers\RegistrationValidator::normalize_candidates(
+        array_replace($valid_buyer, $bad)
+    ))) {
+        throw new RuntimeException('Candidate surname or date-of-birth regression.');
+    }
+}
+
+/**
+ * Webhook state must survive transient expiry. Legacy flags remain readable.
+ * Use a synthetic key and never contact the Mollie API.
+ */
+$state_key = 'pontifex_wh_state_' . hash('sha256', 'runtime-smoke');
+$fixture = ['registration_saved' => true, 'mail_sent' => true, 'complete' => true];
+delete_option($state_key);
+pontifex_oi_webhook_store_state($state_key, $fixture);
+delete_transient($state_key);
+if (pontifex_oi_webhook_load_state($state_key) !== $fixture) {
+    throw new RuntimeException('Webhook state must be durable.');
+}
+delete_option($state_key);
+set_transient($state_key, $fixture, MINUTE_IN_SECONDS);
+if (pontifex_oi_webhook_load_state($state_key) !== $fixture
+    || get_option($state_key, null) !== $fixture) {
+    throw new RuntimeException('Old webhook transient state migration failed.');
+}
+delete_option($state_key);
+delete_transient($state_key);
+
+
+/**
+ * A confirmed local payment ID must map to one order, and the persisted payload
+ * must be recoverable after a transient disappears.
+ */
+$test_payment_id = 'tr_pontifex_ci_' . substr(hash('sha256', wp_generate_uuid4()), 0, 16);
+$first_id = \PontifexOI\Helpers\Registrations::save($test_payment_id, $validated, 'ci-plan');
+$second_id = \PontifexOI\Helpers\Registrations::save($test_payment_id, $validated, 'ci-plan');
+$restored_order = \PontifexOI\Helpers\Registrations::find_order($test_payment_id);
+$count = (int) $wpdb->get_var($wpdb->prepare(
+    "SELECT COUNT(*) FROM {$wpdb->prefix}pontifex_oi_registrations WHERE order_id = %s",
+    $test_payment_id
+));
+$wpdb->delete($wpdb->prefix . 'pontifex_oi_registrations', ['order_id' => $test_payment_id], ['%s']);
+if (!$first_id || $first_id !== $second_id || $count !== 1
+    || !is_array($restored_order)
+    || ($restored_order['order_email'] ?? null) !== 'inschrijving@example.test') {
+    throw new RuntimeException('Local webhook registration upsert and recovery regression.');
+}
+
+echo 'Pontifex security, lifecycle and pricing smoke tests: OK' . PHP_EOL;

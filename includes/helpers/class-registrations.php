@@ -71,6 +71,32 @@ class Registrations {
 	}
 
 	/**
+	 * Recover a previously persisted registration by its verified payment ID.
+	 * Never use this for a payment that has not already been saved locally.
+	 *
+	 * @return array|null Decoded registration payload.
+	 */
+	public static function find_order(string $order_id): ?array {
+		global $wpdb;
+
+		if ($order_id === '' || strlen($order_id) > 80) {
+			return null;
+		}
+		$table = self::table_name();
+		$raw = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT payload FROM {$table} WHERE order_id = %s ORDER BY id ASC LIMIT 1",
+				$order_id
+			)
+		);
+		if (!is_string($raw) || $raw === '') {
+			return null;
+		}
+		$payload = json_decode($raw, true);
+		return is_array($payload) ? $payload : null;
+	}
+
+	/**
 	 * Fetches a paginated and searchable list of registrations.
 	 *
 	 * @param int $page The current page number.

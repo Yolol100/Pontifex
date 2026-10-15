@@ -1,7 +1,9 @@
 <?php
 /**
- * Uninstall script for Pontifex OI plugin.
- * Do not use direct for anything anders dan via WP.
+ * Permanent cleanup for Pontifex OI (only on WordPress plugin uninstall).
+ *
+ * Uninstall is destructive by design. Deactivation preserves registrations.
+ *
  * @package PontifexOI
  */
 
@@ -10,80 +12,81 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
 }
 
 /**
- * Heldere uitleg:
- * Dit bestand wordt aangeroepen wanneer de plugin permanent wordt verwijderd via de WordPress admin.
- * Het doel is om ALLE data en settings die door de plugin zijn toegevoegd, weer veilig op te ruimen,
- * conform AVG en WP-standaard.
- * Deuninstall.php draait in een “barebones” context – géén andere pluginfiles zijn geladen.
+ * Delete Pontifex-owned data for the currently selected WordPress site.
+ *
+ * @return void
  */
+function pontifex_oi_uninstall_site(): void {
+    global $wpdb;
 
-/**
- * 1. Verwijder plugin-instellingen (options, transients)
- */
-delete_option('pontifex_oi_settings');
-delete_option('pontifex_oi_api_cache');
-// Voeg hier alle andere opties toe die de plugin opslaat (optioneel: gebruik get_option_keys pattern).
+    wp_clear_scheduled_hook('pontifex_oi_cron_fetch_planning');
 
-/**
- * 2. Verwijder custom database tabellen
- * Alleen als de plugin custom tables maakt – check wpdb
- */
-global $wpdb;
-$prefix = $wpdb->prefix;
-$tables = [
-    $prefix . 'pontifex_oi_registrations',
-    $prefix . 'pontifex_oi_logs',
-    $prefix . 'pontifex_planning',
-    // Voeg hier alle custom tables toe die je plugin gebruikt
-];
-foreach ($tables as $table) {
-    $wpdb->query("DROP TABLE IF EXISTS {$table}");
+    $options = [
+        'pontifex_oi_settings',
+        'pontifex_oi_api_cache',
+        'pontifex_oi_soap_url',
+        'pontifex_oi_soap_user_id',
+        'pontifex_oi_soap_hash',
+        'pontifex_oi_soap_company_id',
+        'pontifex_oi_mollie_live_api_key',
+        'pontifex_oi_mollie_test_api_key',
+        'pontifex_oi_mollie_test_mode',
+        'pontifex_oi_webhook_secret',
+        'pontifex_oi_registration_page_id',
+        'pontifex_oi_cron_daily_migrated',
+    ];
+    foreach ($options as $key) {
+        delete_option($key);
+    }
+
+    // Remove idempotency flags and locks plus pending-order/cache transients.
+    // Keep the prefixes scoped to Pontifex; do not delete unrelated options.
+    $prefixes = [
+        'pontifex_wh_state_',
+        'pontifex_wh_lock_',
+        '_transient_pontifex_order_data_for_token_',
+        '_transient_timeout_pontifex_order_data_for_token_',
+        '_transient_mollie_payment_id_for_token_',
+        '_transient_timeout_mollie_payment_id_for_token_',
+        '_transient_pontifex_oi_',
+        '_transient_timeout_pontifex_oi_',
+    ];
+    foreach ($prefixes as $prefix) {
+        $like = $wpdb->esc_like($prefix) . '%';
+        $keys = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+                $like
+            )
+        );
+        foreach ($keys ?: [] as $key) {
+            delete_option($key);
+        }
+    }
+
+    delete_metadata('user', 0, 'pontifex_oi_field', '', true);
+    delete_metadata('post', 0, 'pontifex_oi_linked_planning', '', true);
+
+    // These are exactly the three fixed tables created by this plugin.
+    foreach ([
+        $wpdb->prefix . 'pontifex_oi_registrations',
+        $wpdb->prefix . 'pontifex_oi_logs',
+        $wpdb->prefix . 'pontifex_planning',
+    ] as $table) {
+        $wpdb->query("DROP TABLE IF EXISTS {$table}");
+    }
 }
 
-/**
- * 3. Verwijder usermeta of postmeta (indien van toepassing)
- */
-delete_metadata('user', 0, 'pontifex_oi_field', '', true);
-delete_metadata('post', 0, 'pontifex_oi_linked_planning', '', true);
-
-/**
- * 4. Eventueel: verwijderen van opties voor meerdere sites (Multisite Support)
- */
 if (is_multisite()) {
-    $sites = get_sites(['fields' => 'ids']);
-    foreach ($sites as $site_id) {
-        switch_to_blog($site_id);
-        delete_option('pontifex_oi_settings');
-        delete_option('pontifex_oi_soap_url');
-        delete_option('pontifex_oi_soap_user_id');
-        delete_option('pontifex_oi_soap_hash');
-        delete_option('pontifex_oi_soap_company_id');
-        delete_option('pontifex_oi_mollie_live_api_key');
-        delete_option('pontifex_oi_mollie_test_api_key');
-        delete_option('pontifex_oi_mollie_test_mode');
-        // Herhaal voor andere opties/tables
-        restore_current_blog();
+    $site_ids = get_sites(['fields' => 'ids', 'number' => 0]);
+    foreach ($site_ids as $site_id) {
+        switch_to_blog((int) $site_id);
+        try {
+            pontifex_oi_uninstall_site();
+        } finally {
+            restore_current_blog();
+        }
     }
 } else {
-    delete_option('pontifex_oi_soap_url');
-    delete_option('pontifex_oi_soap_user_id');
-    delete_option('pontifex_oi_soap_hash');
-    delete_option('pontifex_oi_soap_company_id');
-    delete_option('pontifex_oi_mollie_live_api_key');
-    delete_option('pontifex_oi_mollie_test_api_key');
-    delete_option('pontifex_oi_mollie_test_mode');
+    pontifex_oi_uninstall_site();
 }
-
-/**
- * 5. (Best practice) Logging of archiveren van verwijderde data (optioneel)
- * Let op: vanwege AVG/GPDR niet zomaar data bewaren.
- */
-
-/**
- * 6. (Optioneel) Remove scheduled events, cron jobs
- */
-if (function_exists('wp_clear_scheduled_hook')) {
-    wp_clear_scheduled_hook('pontifex_oi_cron_event');
-}
-
-// Einde uninstall.php
