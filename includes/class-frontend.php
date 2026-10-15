@@ -631,12 +631,11 @@ class Frontend
         }
         $order_data = $normalized_order;
 
-        // Sanitize other data
-        $order_data['exam_type'] = sanitize_text_field($order_data['exam_type'] ?? '');
-        $order_data['language'] = sanitize_text_field($order_data['language'] ?? 'nl');
-        $order_data['material'] = sanitize_text_field($order_data['material'] ?? '');
-        $order_data['extra_options'] = isset($order_data['extra_options']) && is_array($order_data['extra_options']) ? array_map('sanitize_text_field', $order_data['extra_options']) : [];
-        $order_data['order_email'] = $order_data['order_email'] ?? ($order_data['email'] ?? null);
+        $validated_order = \PontifexOI\Helpers\RegistrationValidator::normalize_order_fields($order_data);
+        if (is_wp_error($validated_order)) {
+            wp_send_json_error(['message' => $validated_order->get_error_message()], 400);
+        }
+        $order_data = $validated_order;
         // Vroege check of Mollie correct is ingesteld
         if (!\PontifexOI\Helpers\PaymentHelpers::is_configured()) {
             wp_send_json_error([
@@ -653,29 +652,12 @@ class Frontend
         $amount_from_frontend = (float) wp_unslash((string) $submitted_amount);
         $difference = abs($amount_from_frontend - $calculated_total_incl);
 
-        // AI-PATCH: herstel bedragvalidatie; de oorspronkelijke regel had een inline // comment waardoor de controle niet werd uitgevoerd.
-        error_log(
-            '[Pontifex OI PAYMENT][' . self::get_log_context() . '] Bedragvalidatie: Frontend=' .
-            number_format($amount_from_frontend, 2) .
-            ' | Backend=' . number_format($calculated_total_incl, 2) .
-            ' | Verschil=' . number_format($difference, 4) .
-            ' | Kandidaten=' . ($order_data['candidate_count'] ?? 0) .
-            ' | Exam=' . ($order_data['exam_type'] ?? '') .
-            ' | Extras=' . json_encode($order_data['extra_options'] ?? [])
-        );
-
-        if ($amount_from_frontend <= 0 || $difference > 0.05) {
+        if ($calculated_total_incl <= 0 || $amount_from_frontend <= 0 || $difference > 0.01) {
             error_log('[Pontifex OI ERROR][' . self::get_log_context() . '] Bedragvalidatie GEFAALD - Te groot verschil of nul bedrag');
 
             wp_send_json_error([
-                'message' => 'Ongeldig bedrag (BTW). Probeer het opnieuw.',
-                'debug' => defined('WP_DEBUG') && WP_DEBUG ? [
-                    'frontend' => $amount_from_frontend,
-                    'backend' => $calculated_total_incl,
-                    'difference' => $difference,
-                ] : null,
-            ]);
-            return;
+                'message' => __('Ongeldig bedrag (BTW). Probeer het opnieuw.', 'pontifex-oi'),
+            ], 400);
         }
         global $EXAM_PRODUCTS;
         $exam_label = $EXAM_PRODUCTS[$order_data['exam_type']]['label'] ?? 'Onbekend Examen';
@@ -699,7 +681,9 @@ class Frontend
 
             // AI-PATCH: bewaar de volledige inschrijving tijdelijk in WordPress.
             // Mollie metadata heeft beperkingen en is niet geschikt voor alle kandidaat-/formulierdata.
-            set_transient("pontifex_order_data_for_token_" . $order_token, $order_data, 2 * DAY_IN_SECONDS);
+            if (!set_transient("pontifex_order_data_for_token_" . $order_token, $order_data, 2 * DAY_IN_SECONDS)) {
+                throw new \RuntimeException('pending_order_storage_failed');
+            }
 
             $redirect_url_with_token = add_query_arg("order_token", $order_token, home_url("/bedankt-inschrijven/"));
             $payment = \PontifexOI\Helpers\PaymentHelpers::create_mollie_payment(
