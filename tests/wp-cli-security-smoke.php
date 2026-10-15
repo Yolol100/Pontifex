@@ -336,4 +336,24 @@ if (!$first_id || $first_id !== $second_id || $count !== 1
     throw new RuntimeException('Local webhook registration upsert and recovery regression.');
 }
 
+
+/**
+ * Two registration shortcodes on one page must render independently.
+ * A template-local global function definition caused a PHP redeclare fatal.
+ */
+$previous_get = $_GET;
+$_GET['exam_type'] = 'los-examen-vca-basis';
+$_GET['language'] = 'nl';
+$_GET['material'] = '1';
+try {
+    $first_form = do_shortcode('[pontifex_oi_registration]');
+    $second_form = do_shortcode('[pontifex_oi_registration]');
+} finally {
+    $_GET = $previous_get;
+}
+if (substr_count($first_form, 'id="registration-form"') !== 1
+    || substr_count($second_form, 'id="registration-form"') !== 1) {
+    throw new RuntimeException('Registration shortcode must render on repeated invocation.');
+}
+
 echo 'Pontifex security, lifecycle and pricing smoke tests: OK' . PHP_EOL;
