@@ -33,6 +33,31 @@ require_once PONTIFEX_OI_PATH . 'includes/cron/fetch-planning-cron.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-payment-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-mail-helpers.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registrations.php';
+require_once PONTIFEX_OI_PATH . 'includes/helpers/class-pending-orders.php';
+
+// Connect WordPress core verified personal-data request workflows to our
+// custom registration table. Access is gated by WordPress's privacy UI.
+add_filter(
+    'wp_privacy_personal_data_exporters',
+    [\PontifexOI\Helpers\Registrations::class, 'register_privacy_exporter']
+);
+add_filter(
+    'wp_privacy_personal_data_erasers',
+    [\PontifexOI\Helpers\Registrations::class, 'register_privacy_eraser']
+);
+add_action('admin_init', static function (): void {
+    if (!function_exists('wp_add_privacy_policy_content')) {
+        return;
+    }
+    $text = '<p>' . esc_html__(
+        'Pontifex OI bewaart inschrijf-, kandidaat- en betaalinformatie in een eigen WordPress-databasetabel. '
+        . 'Een betaalstatus wordt bij Mollie gecontroleerd en bevestigingsmails worden verzonden via de mailvoorziening van de site. '
+        . 'Het exporteerhulpmiddel bevat kopergegevens; overige kandidaatgegevens en wettelijke bewaartermijnen moeten afzonderlijk worden beoordeeld. '
+        . 'Niet-afgehandelde betaalgegevens worden standaard na 30 dagen gewist of voor handmatige controle gemarkeerd.',
+        'pontifex-oi'
+    ) . '</p>';
+    wp_add_privacy_policy_content('Pontifex OI', wp_kses_post($text));
+});
 require_once PONTIFEX_OI_PATH . 'includes/helpers/class-registration-validator.php';
 require_once PONTIFEX_OI_PATH . 'includes/api/class-soap-client.php';
 require_once PONTIFEX_OI_PATH . 'includes/helpers/ajax-soap-fetch-handler.php';
@@ -78,6 +103,50 @@ function pontifex_oi_next_daily_timestamp($hour = 3, $minute = 15, $second = 0) 
 
     return $run->getTimestamp();
 }
+
+/**
+ * Add an atomic payment-id constraint only if legacy data is conflict-free.
+ * Never silently discard duplicate registrations on customer installations.
+ */
+function pontifex_oi_ensure_unique_registration_index(): bool {
+    global $wpdb;
+    $table = $wpdb->prefix . 'pontifex_oi_registrations';
+    $existing = $wpdb->get_var(
+        "SHOW INDEX FROM {$table} WHERE Key_name = 'pontifex_unique_order_id'"
+    );
+    if ($existing !== null) {
+        update_option('pontifex_oi_order_index_checked', 'installed', false);
+        return true;
+    }
+    // Activation may run against an existing customer database. Never alter a
+    // non-empty registrations table automatically: the index needs a backup,
+    // duplicate reconciliation and an explicit staging-approved migration.
+    $existing_row = $wpdb->get_var("SELECT id FROM {$table} LIMIT 1");
+    if ($existing_row !== null) {
+        update_option('pontifex_oi_order_index_checked', 'needs_migration', false);
+        return false;
+    }
+    $result = $wpdb->query(
+        "ALTER TABLE {$table} ADD UNIQUE KEY pontifex_unique_order_id (order_id)"
+    );
+    $ok = $result !== false;
+    update_option('pontifex_oi_order_index_checked', $ok ? 'installed' : 'needs_review', false);
+    return $ok;
+}
+
+add_action('admin_init', static function (): void {
+    if (!current_user_can('manage_options')
+        || get_option('pontifex_oi_order_index_checked', false) !== false) {
+        return;
+    }
+    global $wpdb;
+    $table = $wpdb->prefix . 'pontifex_oi_registrations';
+    // Read-only detection on existing sites, never a schema change in wp-admin.
+    $index = $wpdb->get_var(
+        "SHOW INDEX FROM {$table} WHERE Key_name = 'pontifex_unique_order_id'"
+    );
+    update_option('pontifex_oi_order_index_checked', $index === null ? 'needs_migration' : 'installed', false);
+});
 
 /**
  * Create database tables and schedule the daily planning refresh.
@@ -141,15 +210,21 @@ register_activation_hook(__FILE__, function () {
     dbDelta($sql_regs);
     dbDelta($sql_logs);
 
+    pontifex_oi_ensure_unique_registration_index();
+
     $hook = 'pontifex_oi_cron_fetch_planning';
     if (!wp_next_scheduled($hook)) {
         wp_schedule_event(pontifex_oi_next_daily_timestamp(3, 15, 0), 'daily', $hook);
     }
 
+    if (!wp_next_scheduled('pontifex_oi_pending_cleanup')) {
+        wp_schedule_event(time() + HOUR_IN_SECONDS, 'daily', 'pontifex_oi_pending_cleanup');
+    }
     flush_rewrite_rules();
 });
 
 register_deactivation_hook(__FILE__, function () {
+    wp_clear_scheduled_hook('pontifex_oi_pending_cleanup');
     $hook = 'pontifex_oi_cron_fetch_planning';
     if (function_exists('wp_clear_scheduled_hook')) {
         wp_clear_scheduled_hook($hook);
@@ -181,3 +256,10 @@ add_action('plugins_loaded', function () {
         update_option($flag, 1, true);
     }
 });
+
+// Existing installations need cleanup scheduling without reactivation.
+add_action('init', static function (): void {
+    if (!wp_next_scheduled('pontifex_oi_pending_cleanup')) {
+        wp_schedule_event(time() + HOUR_IN_SECONDS, 'daily', 'pontifex_oi_pending_cleanup');
+    }
+}, 99);

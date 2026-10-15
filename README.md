@@ -86,3 +86,13 @@ The merged phases 1-2 contain privacy/HTML-escaping improvements, protected CSV 
 See the [release and QA checklist](docs/RELEASE-QA.md) for the exact automatic test matrix, required Mollie/SOAP/SMTP/manual scenarios, uninstall policy and rollback plan. The current local registration path does **not** send an outbound registration to Pontifex.
 
 Run `tests/wp-cli-security-smoke.php` on an activated WordPress installation and `tests/js-render-safety-smoke.js` with Node.js. GitHub Actions runs these on two WordPress/PHP environments. It also runs the destructive uninstall fixture on a **throwaway** WordPress database; never run that test against a customer site.
+
+## Provideracceptatie en gegevensprivacy
+
+De huidige externe SOAP-koppeling is **alleen voor planning**. De methode `sendRegistration()` weigert nu expliciet te doen alsof inschrijvingen via SOAP zijn verzonden; een geautoriseerd vendorcontract is nodig voor outbound registratie.
+
+Voor betaalregistraties bewaart Pontifex tijdelijk de volledige order binnen WordPress, gekoppeld aan een door Mollie bevestigde betaal-ID. Callback-herhalingen controleren de providerstatus, weigeren automatisch dubbel te mailen na een onzeker verzendmoment en markeren refunds/chargebacks voor handmatige verwerking. Dit is geen bewijs van geleverde e-mail of externe examenregistratie.
+
+Beheerders kunnen WordPress' standaard [gegevens-export en -verwijderverzoeken](https://developer.wordpress.org/plugins/privacy/) gebruiken. Automatisch wissen van boekhoud- of kandidaatgegevens blijft geblokkeerd totdat het toepasselijke bewaarbeleid is vastgesteld. De standaard technische opschoning van onafgehandelde betalingen is 30 dagen, aanpasbaar met `pontifex_oi_pending_retention_days`; na die termijn kan een zeer late callback handmatige herstelactie vereisen.
+
+**Productie: NO-GO** totdat de provider-, privacy-, migratie- en browser-/SMTP-scenario's uit [het stagingacceptatieplan](docs/PROVIDER-STAGING-GATE-2026-10-16.md) op een echte testomgeving zijn bewezen.

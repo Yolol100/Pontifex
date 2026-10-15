@@ -738,9 +738,9 @@ class Frontend
             $order_token = 'pontifex_order_' . bin2hex(random_bytes(16));
             $order_data["order_token"] = $order_token;
 
-            // AI-PATCH: bewaar de volledige inschrijving tijdelijk in WordPress.
-            // Mollie metadata heeft beperkingen en is niet geschikt voor alle kandidaat-/formulierdata.
-            if (!set_transient("pontifex_order_data_for_token_" . $order_token, $order_data, 2 * DAY_IN_SECONDS)) {
+            // Store candidate PII locally, keyed by a cryptographically random
+            // token and kept until processing or bounded retention cleanup.
+            if (!\PontifexOI\Helpers\PendingOrders::create($order_token, $order_data)) {
                 throw new \RuntimeException('pending_order_storage_failed');
             }
 
@@ -755,12 +755,37 @@ class Frontend
             if (!$payment || empty($payment->id)) {
                 throw new \Exception('Mollie betaling kon niet worden aangemaakt. Controleer test/live-modus, API key en Mollie-log.');
             }
+            if (!\PontifexOI\Helpers\PendingOrders::set_payment_id($order_token, (string) $payment->id)) {
+                // Payment exists at provider, but its local reference is not
+                // durable. Block redirect; preserve the record for review.
+                throw new \RuntimeException('payment_reference_persistence_failed');
+            }
             set_transient('mollie_payment_id_for_token_' . $order_token, $payment->id, 3600);
             wp_send_json_success([
                 'payment_url' => $payment->getCheckoutUrl(),
                 'order_token' => $order_token,
             ]);
         } catch (\Throwable $e) {
+            if (isset($order_token)) {
+                if (!isset($payment) || empty($payment->id)) {
+                    // No provider payment: clear unneeded buyer/candidate PII.
+                    \PontifexOI\Helpers\PendingOrders::discard($order_token);
+                } else {
+                    // Provider payment exists, but checkout cannot safely
+                    // redirect. Preserve an actionable, PII-free review marker.
+                    $payment_reference = (string) $payment->id;
+                    add_option(
+                        'pontifex_reconciliation_' . hash('sha256', $payment_reference),
+                        [
+                            'payment_id' => $payment_reference,
+                            'reason' => 'payment_start_uncertain',
+                            'created_at' => time(),
+                        ],
+                        '',
+                        false
+                    );
+                }
+            }
             error_log('[Pontifex OI ERROR][' . self::get_log_context() . '] Payment start failed (' . get_class($e) . ').');
             wp_send_json_error(['message' => 'Fout bij starten betaling. Probeer het opnieuw.']);
         }

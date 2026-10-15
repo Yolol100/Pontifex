@@ -34,7 +34,12 @@ function pontifex_oi_webhook_load_state(string $state_key): array {
     if (!is_array($legacy)) {
         return [];
     }
-    update_option($state_key, $legacy, false);
+    $written = update_option($state_key, $legacy, false);
+    if (!$written && get_option($state_key, null) !== $legacy) {
+        // Preserve the old transient and stop. Losing confirmed mail/payment
+        // flags can repeat irreversible effects on the next webhook retry.
+        throw new \RuntimeException('legacy_webhook_state_migration_failed');
+    }
     delete_transient($state_key);
     return $legacy;
 }
@@ -48,6 +53,34 @@ function pontifex_oi_webhook_store_state(string $state_key, array $state): void 
     if (!$written && get_option($state_key, null) !== $state) {
         throw new \RuntimeException('webhook_state_persistence_failed');
     }
+}
+
+/**
+ * Classify a provider-verified Mollie payment without side effects.
+ * Check refunds/chargebacks BEFORE treating a completed order as immutable.
+ */
+function pontifex_oi_webhook_decision($payment, array $state): string {
+    if (method_exists($payment, 'hasChargebacks') && $payment->hasChargebacks()) {
+        return 'chargeback_review';
+    }
+    if (method_exists($payment, 'hasRefunds') && $payment->hasRefunds()) {
+        return 'refund_review';
+    }
+    if (!method_exists($payment, 'isPaid') || !$payment->isPaid()) {
+        return 'not_paid';
+    }
+    return !empty($state['complete']) ? 'already_complete' : 'process';
+}
+
+/**
+ * Mail transport acceptance cannot prove delivery. Once an attempt starts,
+ * a retry must not resend without manual reconciliation.
+ */
+function pontifex_oi_webhook_mail_decision(array $state): string {
+    if (!empty($state['mail_sent'])) {
+        return 'already_sent';
+    }
+    return !empty($state['mail_attempted']) ? 'needs_review' : 'send';
 }
 
 /**
@@ -74,10 +107,6 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
     $state_key = 'pontifex_wh_state_' . $event_hash;
     $lock_key = 'pontifex_wh_lock_' . $event_hash;
     $state = pontifex_oi_webhook_load_state($state_key);
-
-    if (!empty($state['complete'])) {
-        return new \WP_REST_Response(['status' => 'ignored', 'message' => 'Already processed'], 200);
-    }
 
     $now = time();
     $existing_lock = (int) get_option($lock_key, 0);
@@ -107,8 +136,25 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
         $mollie = new \Mollie\Api\MollieApiClient();
         $mollie->setApiKey($api_key);
         $payment = $mollie->payments->get($payment_id);
-
-        if (!$payment->isPaid() || $payment->hasRefunds() || $payment->hasChargebacks()) {
+        $decision = pontifex_oi_webhook_decision($payment, $state);
+        if ($decision === 'refund_review' || $decision === 'chargeback_review') {
+            $state['reconciliation_required'] = $decision;
+            $state['reconciliation_updated_at'] = time();
+            pontifex_oi_webhook_store_state($state_key, $state);
+            // Keep only the provider payment identifier, not candidate details.
+            add_option(
+                'pontifex_reconciliation_' . $event_hash,
+                ['payment_id' => $payment_id, 'reason' => $decision, 'created_at' => time()],
+                '',
+                false
+            );
+            error_log('[Pontifex OI Webhook] Paid order reversal requires manual reconciliation.');
+            return new \WP_REST_Response(['status' => 'needs_review'], 200);
+        }
+        if ($decision === 'already_complete') {
+            return new \WP_REST_Response(['status' => 'ignored'], 200);
+        }
+        if ($decision === 'not_paid') {
             return new \WP_REST_Response(['status' => 'ok', 'message' => 'No paid action required'], 200);
         }
 
@@ -116,7 +162,11 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
         $order_token = isset($metadata['order_token']) ? sanitize_text_field((string) $metadata['order_token']) : '';
 
         if ($order_token !== '') {
-            $stored_order = get_transient('pontifex_order_data_for_token_' . $order_token);
+            $stored_order = \PontifexOI\Helpers\PendingOrders::get_order($order_token, $payment_id);
+            if (!is_array($stored_order)) {
+                // Payments created before the persistent pending-order rollout.
+                $stored_order = get_transient('pontifex_order_data_for_token_' . $order_token);
+            }
             if (!is_array($stored_order) || empty($stored_order)) {
                 // After local persistence, recover the order from the verified
                 // Mollie payment ID; never trust sparse Mollie metadata as PII.
@@ -164,9 +214,32 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
         }
 
         if (empty($state['mail_sent'])) {
+            // Persist BEFORE an irreversible mail side effect. In case of a
+            // crash, SMTP ambiguity or partial success, do not send twice.
+            if (pontifex_oi_webhook_mail_decision($state) === 'needs_review') {
+                $state['mail_reconciliation_required'] = true;
+                pontifex_oi_webhook_store_state($state_key, $state);
+                add_option(
+                    'pontifex_reconciliation_' . $event_hash,
+                    ['payment_id' => $payment_id, 'reason' => 'mail_uncertain', 'created_at' => time()],
+                    '',
+                    false
+                );
+                return new \WP_REST_Response(['status' => 'mail_needs_review'], 202);
+            }
+            $state['mail_attempted'] = true;
+            pontifex_oi_webhook_store_state($state_key, $state);
             $mail_result = MailHelpers::send_inschrijving_mails($order);
             if ($mail_result === false) {
-                throw new \RuntimeException('confirmation_mail_failed');
+                $state['mail_reconciliation_required'] = true;
+                pontifex_oi_webhook_store_state($state_key, $state);
+                add_option(
+                    'pontifex_reconciliation_' . $event_hash,
+                    ['payment_id' => $payment_id, 'reason' => 'mail_uncertain', 'created_at' => time()],
+                    '',
+                    false
+                );
+                return new \WP_REST_Response(['status' => 'mail_needs_review'], 202);
             }
             $state['mail_sent'] = true;
             pontifex_oi_webhook_store_state($state_key, $state);
@@ -177,6 +250,7 @@ function pontifex_oi_mollie_webhook_handler(\WP_REST_Request $request) {
         pontifex_oi_webhook_store_state($state_key, $state);
 
         if ($order_token !== '') {
+            \PontifexOI\Helpers\PendingOrders::mark_complete($order_token);
             delete_transient('pontifex_order_data_for_token_' . $order_token);
         }
 

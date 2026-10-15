@@ -66,14 +66,21 @@ class PaymentSuccessShortcode {
     }
 
     public static function render($atts) {
-        $order_token = sanitize_text_field($_GET['order_token'] ?? '');
+        $raw_token = $_GET['order_token'] ?? '';
+        $order_token = is_string($raw_token)
+            ? sanitize_text_field(wp_unslash($raw_token))
+            : '';
         if ($order_token === '') {
             error_log('[Pontifex OI] Payment success token missing.');
             return self::render_unverified();
         }
 
         error_log('[Pontifex OI] Payment success token received.');
-        $mollie_payment_id = get_transient('mollie_payment_id_for_token_' . $order_token);
+        $mollie_payment_id = \PontifexOI\Helpers\PendingOrders::payment_id($order_token);
+        if ($mollie_payment_id === '') {
+            // Already-created payments from older plugin versions.
+            $mollie_payment_id = get_transient('mollie_payment_id_for_token_' . $order_token);
+        }
         if (empty($mollie_payment_id)) {
             error_log('[Pontifex OI] Payment lookup reference missing.');
             return self::render_unverified();

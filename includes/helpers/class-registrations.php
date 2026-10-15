@@ -44,19 +44,9 @@ class Registrations {
 		$planning_identifier = $planning_identifier ? sanitize_text_field($planning_identifier) : null;
 
 		if ($existing_id > 0) {
-			$updated = $wpdb->update(
-				$table,
-				[
-					'planning_identifier' => $planning_identifier,
-					'payload' => $payload,
-					'updated_at' => current_time('mysql'),
-				],
-				['id' => $existing_id],
-				['%s', '%s', '%s'],
-				['%d']
-			);
-
-			return $updated === false ? false : $existing_id;
+			// A webhook replay must not rewrite an existing registration or
+			// restore buyer data already anonymized by a privacy request.
+			return $existing_id;
 		}
 
 		$data = [
@@ -67,7 +57,15 @@ class Registrations {
 			'updated_at' => null,
 		];
 		$ok = $wpdb->insert($table, $data, ['%s', '%s', '%s', '%s', '%s']);
-		return $ok ? (int)$wpdb->insert_id : false;
+		if ($ok) {
+			return (int) $wpdb->insert_id;
+		}
+		// On sites with the unique payment index a concurrent callback may
+		// have inserted the same ID first. Resolve the existing row safely.
+		$winner = (int) $wpdb->get_var(
+			$wpdb->prepare("SELECT id FROM {$table} WHERE order_id = %s ORDER BY id ASC LIMIT 1", $order_id)
+		);
+		return $winner > 0 ? $winner : false;
 	}
 
 	/**
@@ -164,4 +162,157 @@ class Registrations {
 			'per_page' => $per_page,
 		];
 	}
+	/**
+	 * Scan registrations by stable row-id pagination, never by mutable email.
+	 * Pagination must not skip rows when privacy erasure changes payload.
+	 */
+	private static function privacy_page(string $email, int $page): array {
+		global $wpdb;
+
+		if (!is_email($email) || $page < 1) {
+			return ['rows' => [], 'done' => true];
+		}
+		$table = self::table_name();
+		$limit = 50;
+		$offset = ($page - 1) * $limit;
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, order_id, payload, created_at FROM {$table} ORDER BY id ASC LIMIT %d OFFSET %d",
+				$limit, $offset
+			),
+			ARRAY_A
+		);
+		$rows = is_array($rows) ? $rows : [];
+		$matched = [];
+		foreach ($rows as $row) {
+			$order = json_decode((string) ($row['payload'] ?? ''), true);
+			if (!is_array($order)) {
+				continue;
+			}
+			$contact = $order['order_email'] ?? ($order['email'] ?? '');
+			if (is_string($contact) && strtolower(sanitize_email($contact)) === strtolower($email)) {
+				$row['order'] = $order;
+				$matched[] = $row;
+			}
+		}
+		return ['rows' => $matched, 'done' => count($rows) < $limit];
+	}
+
+	public static function register_privacy_exporter(array $exporters): array {
+		$exporters['pontifex-oi'] = [
+			'exporter_friendly_name' => __('Pontifex inschrijvingen', 'pontifex-oi'),
+			'callback' => [self::class, 'export_personal_data'],
+		];
+		return $exporters;
+	}
+
+	public static function register_privacy_eraser(array $erasers): array {
+		$erasers['pontifex-oi'] = [
+			'eraser_friendly_name' => __('Pontifex inschrijvingen', 'pontifex-oi'),
+			'callback' => [self::class, 'erase_personal_data'],
+		];
+		return $erasers;
+	}
+
+	/**
+	 * Export only the requester's buyer/contact fields and payment reference.
+	 * Another exam candidate's birthdate is NOT exposed to the payer by email.
+	 */
+	public static function export_personal_data(string $email_address, int $page = 1): array {
+		$batch = self::privacy_page($email_address, $page);
+		$keys = [
+			'given-name' => __('Voorletters', 'pontifex-oi'),
+			'family-name' => __('Achternaam', 'pontifex-oi'),
+			'additional-name' => __('Tussenvoegsel', 'pontifex-oi'),
+			'street-address' => __('Straat', 'pontifex-oi'),
+			'address-line2' => __('Huisnummer', 'pontifex-oi'),
+			'postal-code' => __('Postcode', 'pontifex-oi'),
+			'address-level2' => __('Plaats', 'pontifex-oi'),
+			'tel' => __('Telefoonnummer', 'pontifex-oi'),
+			'order_email' => __('E-mailadres', 'pontifex-oi'),
+			'organization' => __('Bedrijf', 'pontifex-oi'),
+			'organization-title' => __('Functie', 'pontifex-oi'),
+		];
+		$data = [];
+		foreach ($batch['rows'] as $row) {
+			$fields = [
+				['name' => __('Betaalreferentie', 'pontifex-oi'), 'value' => (string) $row['order_id']],
+				['name' => __('Inschrijfdatum', 'pontifex-oi'), 'value' => (string) $row['created_at']],
+			];
+			foreach ($keys as $key => $label) {
+				$value = $row['order'][$key] ?? null;
+				if (is_scalar($value) && (string) $value !== '') {
+					$fields[] = ['name' => $label, 'value' => (string) $value];
+				}
+			}
+			$data[] = [
+				'group_id' => 'pontifex-registrations',
+				'group_label' => __('Pontifex inschrijvingen', 'pontifex-oi'),
+				'item_id' => 'pontifex-registration-' . (int) $row['id'],
+				'data' => $fields,
+			];
+		}
+		return ['data' => $data, 'done' => $batch['done']];
+	}
+
+	/**
+	 * Erasure is fail-closed for payment/qualification records. The site's
+	 * legal/financial data-retention owner must approve anonymization by filter.
+	 * Even when approved, candidate exam data remains marked as retained.
+	 */
+	public static function erase_personal_data(string $email_address, int $page = 1): array {
+		global $wpdb;
+		$batch = self::privacy_page($email_address, $page);
+		$removed = false;
+		$retained = false;
+		$messages = [];
+		foreach ($batch['rows'] as $row) {
+			$approved = (bool) apply_filters(
+				'pontifex_oi_allow_buyer_data_erasure',
+				false,
+				(string) $row['order_id'],
+				(int) $row['id']
+			);
+			if (!$approved) {
+				$retained = true;
+				continue;
+			}
+			$order = $row['order'];
+			foreach ([
+				'given-name', 'family-name', 'additional-name',
+				'street-address', 'address-line2', 'postal-code',
+				'address-level2', 'tel', 'order_email', 'email',
+				'organization', 'organization-title',
+				'order_initials', 'order_lastname', 'order_infix',
+				'order_postcode', 'order_housenumber', 'order_street',
+				'order_city', 'order_phone', 'order_company', 'order_function',
+			] as $key) {
+				unset($order[$key]);
+			}
+			$updated = $wpdb->update(
+				self::table_name(),
+				['payload' => wp_json_encode($order), 'updated_at' => current_time('mysql')],
+				['id' => (int) $row['id']],
+				['%s', '%s'],
+				['%d']
+			);
+			if ($updated === false) {
+				$retained = true;
+				$messages[] = __('Gegevens konden niet worden bijgewerkt.', 'pontifex-oi');
+			} else {
+				$removed = true;
+				$retained = true; // Candidate data and accounting references are retained.
+			}
+		}
+		if ($retained) {
+			$messages[] = __('Inschrijvings- en betaalgegevens kunnen nog onder de wettelijke bewaarplicht vallen; beoordeel deze handmatig.', 'pontifex-oi');
+		}
+		return [
+			'items_removed' => $removed,
+			'items_retained' => $retained,
+			'messages' => array_values(array_unique($messages)),
+			'done' => $batch['done'],
+		];
+	}
+
 }
