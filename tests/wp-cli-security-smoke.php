@@ -168,4 +168,17 @@ if ($response->get_status() !== 200
     throw new RuntimeException('Valid public REST price lookup must still work.');
 }
 
-echo 'Pontifex CSV, candidate and REST planning/pricing input safety: OK' . PHP_EOL;
+
+/**
+ * SOAP logging must never keep raw requests/responses containing credentials.
+ * This checks configuration only; it does not access the external provider.
+ */
+if (!class_exists(\PontifexOI\Api\SoapClient::class)) {
+    throw new RuntimeException('Pontifex SOAP client is unavailable.');
+}
+$soap_defaults = (new ReflectionClass(\PontifexOI\Api\SoapClient::class))->getDefaultProperties();
+if (($soap_defaults['options']['trace'] ?? null) !== 0) {
+    throw new RuntimeException('SOAP request/response tracing must be disabled.');
+}
+
+echo 'Pontifex CSV, candidate, REST and SOAP diagnostic safety: OK' . PHP_EOL;
