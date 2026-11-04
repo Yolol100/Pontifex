@@ -400,7 +400,7 @@ class PaymentHelpers
                 $webhook_url = add_query_arg('secret', rawurlencode($secret), $webhook_url);
             }
 
-            // AI-PATCH: houd Mollie metadata bewust klein.
+            // Houd Mollie metadata bewust klein.
             // Volledige kandidaat-/formulierdata kan te groot of te complex zijn voor Mollie metadata.
             // De volledige order staat tijdelijk in WordPress via order_token.
             $metadata = [
