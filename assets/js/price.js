@@ -221,21 +221,8 @@ function isFlow2Active() {
     return Boolean((($('#extra_option_direct').val() || qsExtra) || '').trim());
 }
 
-PontifexOI.__recalcRunId = PontifexOI.__recalcRunId || 0;
 
 function recalcTotal() {
-    const runId = ++PontifexOI.__recalcRunId;
-
-    console.log(`recalcTotal started [Run ${runId}]`, JSON.stringify({
-        isFlow2: isFlow2Active(),
-        dataBasePrice: $('#payment_amount').attr('data-base-price'),
-        dataBaseVat: $('#payment_amount').attr('data-base-vat'),
-        candidateCount: $('#candidate-count').text(),
-        checkedExtras: $('.extra-material-checkbox:checked').map((i, el) => ({
-            id: el.value,
-            price: $(el).data('price')
-        })).get()
-    }, null, 2));
 
     const $pay = $('#payment_amount');
     const $vatAmt = $('#vat-amount');
@@ -294,19 +281,6 @@ function recalcTotal() {
 
     const vatAll = preciseRound(finalBaseVat + finalVat21, 2);
     const inclAll = preciseRound(exclAll + vatAll, 2);
-
-    console.log(`recalcTotal result [Run ${runId}]`, JSON.stringify({
-        baseExcl: baseExcl.toFixed(2),
-        scaledBaseExcl: scaledBaseExcl.toFixed(2),
-        extrasExcl: extrasExcl.toFixed(2),
-        scaledExtrasExcl: scaledExtrasExcl.toFixed(2),
-        count,
-        baseVat: baseVat.toFixed(2),
-        vat21: vat21.toFixed(2),
-        exclAll: exclAll.toFixed(2),
-        vatAll: vatAll.toFixed(2),
-        inclAll: inclAll.toFixed(2)
-    }, null, 2));
 
     const newVatAmount = vatAll;
     const newTotalIncl = inclAll;
