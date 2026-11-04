@@ -112,6 +112,8 @@ class Registrations {
 		string $order = 'DESC'
 	): array {
 		global $wpdb;
+		$page = max(1, $page);
+		$per_page = max(1, $per_page);
 		$table = self::table_name();
 		$offset = ($page - 1) * $per_page;
 
