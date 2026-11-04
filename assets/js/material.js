@@ -260,13 +260,6 @@
 		const totalAmount = finalPrice * candidateCount;
 		$totalPrice.text(`€${totalAmount.toFixed(2).replace('.', ',')}`);
 		$paymentAmount.val(Number(totalAmount).toFixed(2));
-		console.log('updateTotalPriceWithCheckboxes:', {
-			examVal,
-			weekendOn,
-			finalPrice,
-			candidateCount,
-			totalAmount
-		});
 	};
 
 	const renderExtraMaterial = () => {
@@ -290,7 +283,6 @@ ${opt.label} (€${priceStr})
 		}
 		html += '</div>';
 		$container.html(html);
-		// ⬅️ Nieuw: selecteer wat gebruiker in stap 1 koos
 		const selectedFromStep1 = (new URLSearchParams(window.location.search)).get('material') || '1';
 		if (selectedFromStep1 && selectedFromStep1 !== '1') {
 			const $match = $container.find(`.extra-material-checkbox[value="${selectedFromStep1}"]`);
@@ -303,13 +295,7 @@ ${opt.label} (€${priceStr})
 			const examVal = $('select[name="exam_type"]').val() || '';
 			const weekendChecked = $('.extra-material-checkbox[value="cursus-weekend"]:checked').length > 0;
 			const isBasisOrVol = ['los-examen-vca-basis', 'los-examen-vca-vol'].includes(examVal);
-			console.log('Weekend checkbox changed:', {
-				examVal,
-				weekendChecked,
-				isBasisOrVol
-			});
 			if (weekendChecked && isBasisOrVol) {
-				console.log('Weekend selected - setting fixed price €245');
 				const $paymentAmount = $('#payment_amount');
 				if (!$paymentAmount.data('original-base-price')) {
 					$paymentAmount.data('original-base-price', $paymentAmount.val());
@@ -331,7 +317,6 @@ ${opt.label} (€${priceStr})
 					}
 				});
 			} else {
-				console.log('Weekend deselected - restoring normal pricing');
 				const $paymentAmount = $('#payment_amount');
 				const originalPrice = $paymentAmount.data('original-base-price');
 				if (originalPrice) {
@@ -356,12 +341,6 @@ ${opt.label} (€${priceStr})
 		const isChecked = $(this).is(':checked');
 		const examType = $('select[name="exam_type"]').val() || '';
 		const isBasisOrVol = ['los-examen-vca-basis', 'los-examen-vca-vol'].includes(examType);
-		console.log('Weekend checkbox changed:', {
-			isChecked,
-			examType,
-			isBasisOrVol,
-			shouldUseWeekendPrice: isChecked && isBasisOrVol
-		});
 		if (isChecked && isBasisOrVol) {
 			$('.pontifex-oi-dynamic-price').each(function() {
 				const $el = $(this);
