@@ -13,20 +13,17 @@ jQuery(function($) {
       $(this).data('was-required', true).removeAttr('required');
     });
 
-    // ✅ Verberg de sterretjes in labels
     $form.find('label .required').each(function() {
       $(this).addClass('hide-required');
     });
 
   } else {
-    console.log('[Pontifex OI] Productiemodus — verplichte velden ingeschakeld en * zichtbaar.');
     $requiredFields.each(function() {
       if ($(this).data('was-required')) {
         $(this).attr('required', 'required');
       }
     });
 
-    // ✅ Toon de sterretjes weer
     $form.find('label .required').removeClass('hide-required');
   }
 });
