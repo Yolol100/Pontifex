@@ -112,6 +112,9 @@ jobs:
           grep -Fq "bin2hex(random_bytes(16))" includes/class-frontend.php
           grep -Fq "delete_transient('pontifex_order_data_for_token_' . \$order_token)" includes/webhooks/webhook-handler.php
 
+          ! grep -Eq 'console[.](log|debug)[[:space:]]*[(]' assets/js/material.js assets/js/pontifex-oi-testmode.js assets/js/price.js
+          ! grep -Fq '__recalcRunId' assets/js/price.js
+
       - name: Enforce payment lifecycle invariants
         shell: bash
         run: |
